@@ -8,7 +8,7 @@ import { existsSync, statSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { extname } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { PREVIEW_HOST, PREVIEW_SCHEME, type SourceLocation } from '@shared/contracts/runner'
+import { PREVIEW_HOST, PREVIEW_SCHEME, QUICK_PREVIEW_HOST, QUICK_PREVIEW_PAGE, type SourceLocation } from '@shared/contracts/runner'
 import { BRIDGE_PATH } from '@shared/stack'
 import { normalizeRelative } from '@shared/paths'
 import { SourceMapReader, type RawSourceMap } from '@shared/sourcemap'
@@ -60,6 +60,7 @@ export function registerPreviewScheme(): void {
 
 export class PreviewService {
   private readonly maps = new Map<string, RawSourceMap>()
+  private quickPage = ''
 
   constructor(private readonly workspace: WorkspaceService) {}
 
@@ -87,9 +88,21 @@ export class PreviewService {
     return { path: relative, line: original.line, column: original.column }
   }
 
+  /** Pagina della Scrittura rapida: HTML in memoria servito da `ide-preview://quick/pagina.html`. */
+  setQuickPage(html: string): string {
+    this.quickPage = html
+    return `${PREVIEW_SCHEME}://${QUICK_PREVIEW_HOST}/${QUICK_PREVIEW_PAGE}?v=${Date.now()}`
+  }
+
   private async handle(request: Request): Promise<Response> {
     try {
       const url = new URL(request.url)
+      if (url.host === QUICK_PREVIEW_HOST) {
+        const relative = normalizeRelative(decodeURIComponent(url.pathname))
+        if (relative === BRIDGE_PATH) return this.text(bridgeSource, '.js')
+        if (relative === QUICK_PREVIEW_PAGE) return this.text(injectBridge(this.quickPage), '.html')
+        return new Response(`Nella scrittura rapida la pagina non ha file accanto: ${relative}`, { status: 404, headers: BASE_HEADERS })
+      }
       if (url.host !== PREVIEW_HOST) return new Response('Host non valido', { status: 404 })
       const relative = normalizeRelative(decodeURIComponent(url.pathname))
       if (relative === BRIDGE_PATH) return this.text(bridgeSource, '.js')

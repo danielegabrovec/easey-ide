@@ -15,7 +15,8 @@ Piano completo approvato il 2026-11-11. Ogni fase è un vertical slice con il su
 | F6 | Didattica: lezioni ed esercizi con verifica automatica, legati ai manuali della Collana; corso incluso, importatore dei manuali, tutor AI | ✅ v0.7 |
 | F7 | Crescita: esecuzione passo-passo JS/TS con variabili e pila delle chiamate, Git integrato (stato, differenze, commit, cronologia), esportazione ZIP e pagina HTML unica, fornitore AI compatibile OpenAI (LM Studio, llama.cpp, vLLM) | ✅ v0.8 |
 | 1.0 | **Easey IDE**: nuovo nome e icona, note legali e privacy, licenza MIT, elenco dei componenti di terze parti, finestra Informazioni, README con screenshot, pubblicazione su GitHub | ✅ v1.0.0 |
-| F8 | Prossimi passi (a richiesta): Python nel browser (Pyodide), driver PostgreSQL/MySQL/SQL Server su server veri, aggiornamenti automatici (electron-updater + canale di pubblicazione), API pubblica per plugin sugli stessi punti di estensione, verifiche automatiche per gli esercizi importati dai manuali | da fare |
+| 1.1 | **Scrittura rapida** senza progetto: JavaScript, TypeScript, Python (Pyodide incluso), SQL in memoria e HTML; risultati accanto alle righe, worker con tempo massimo (cicli infiniti fermati), aiuto a quattro livelli (Spento/Leggero/Intermedio/Forte) e «Genera con AI», raccolta di file nei Documenti, bozza persistente ([ADR 0007](adr/0007-scrittura-rapida.md)) | ✅ v1.1.0 |
+| F8 | Prossimi passi (a richiesta): pacchetti Python di Pyodide (numpy, pandas…) scaricati a richiesta, altri linguaggi per la Scrittura rapida (Lua, Ruby, C via WebAssembly), driver PostgreSQL/MySQL/SQL Server su server veri, aggiornamenti automatici (electron-updater + canale di pubblicazione), API pubblica per plugin sugli stessi punti di estensione, verifiche automatiche per gli esercizi importati dai manuali | da fare |
 
 ## F3 — Editor grafico stile Canva/Wix
 

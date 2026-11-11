@@ -1,4 +1,5 @@
 import { DEFAULT_AI_SETTINGS, type AiSettings } from './ai'
+import { DEFAULT_QUICK_SETTINGS, type QuickSettings } from './quick'
 
 export type ThemeName = 'dark' | 'light'
 export type Language = 'it' | 'en'
@@ -19,6 +20,8 @@ export interface Settings {
   defaultShell: string
   recent: RecentProject[]
   ai: AiSettings
+  /** Scrittura rapida: livello di aiuto, esecuzione automatica, motore SQL, tempo massimo. */
+  quick: QuickSettings
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -29,7 +32,8 @@ export const DEFAULT_SETTINGS: Settings = {
   autoRun: true,
   defaultShell: 'powershell',
   recent: [],
-  ai: DEFAULT_AI_SETTINGS
+  ai: DEFAULT_AI_SETTINGS,
+  quick: DEFAULT_QUICK_SETTINGS
 }
 
 export interface AppInfo {

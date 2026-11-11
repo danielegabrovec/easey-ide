@@ -15,13 +15,16 @@ import { exportSingleHtml, exportZip } from './services/export/export-service'
 import { SAMPLE_DATABASES } from '@shared/sql/samples'
 import { DEFAULT_SETTINGS } from '@shared/contracts/settings'
 import { cpSync, existsSync } from 'node:fs'
-import { readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { PreviewService, registerPreviewScheme } from './services/preview/preview-service'
 import { SettingsService } from './services/settings/settings-service'
 import { TerminalService } from './services/terminal/terminal-service'
 import { HistoryService } from './services/workspace/history-service'
 import { createFromTemplate, listTemplates } from './services/workspace/templates'
 import { WorkspaceService } from './services/workspace/workspace-service'
+import { QuickRunner } from './services/quick/quick-runner'
+import { QuickSql } from './services/quick/quick-sql'
+import { QuickStore } from './services/quick/snippet-store'
 
 const APP_NAME = 'Easey IDE'
 // Il main è un modulo ESM: __dirname non esiste.
@@ -77,6 +80,25 @@ const learn = new LearnService(
   join(app.getPath('userData'), 'learn-progress.json'),
   testUserData ? join(resolve(testUserData), 'Corsi') : join(app.getPath('documents'), APP_NAME, 'Corsi')
 )
+
+// Scrittura rapida: salvataggi nei Documenti (nei collaudi accanto ai dati utente isolati), worker per JS/TS,
+// database SQL in memoria. Il worker è un file a sé; nell'app installata sta in app.asar.unpacked.
+const quickStore = new QuickStore(
+  testUserData ? join(resolve(testUserData), 'Scrittura rapida') : join(app.getPath('documents'), APP_NAME, 'Scrittura rapida'),
+  async (path) => {
+    try {
+      await shell.trashItem(path)
+    } catch {
+      await rm(path, { force: true })
+    }
+  }
+)
+const unpacked = (file: string) => join(here, file).replace(/app\.asar([\\/])/, 'app.asar.unpacked$1')
+const quickRunner = new QuickRunner(
+  () => ({ js: unpacked('quick-worker.mjs'), python: unpacked('quick-python-worker.mjs') }),
+  (events) => broadcast('quick:events', events)
+)
+const quickSql = new QuickSql()
 
 /** Dialogo Salva con nome e scrittura (nei collaudi LAB_IDE_SAVE_DIR salva senza dialogo). */
 async function saveAs(defaultName: string, data: string | Buffer, defaultDir?: string): Promise<string | null> {
@@ -278,7 +300,25 @@ registerHandlers(
       if (kind === 'zip') return saveAs(`${name}.zip`, await exportZip(root, name), outside)
       const entry = /\.html?$/i.test(info.config.run.entry) ? info.config.run.entry : 'index.html'
       return saveAs(`${name}.html`, await exportSingleHtml(root, entry), outside)
-    }
+    },
+
+    'quick:list': () => quickStore.list(),
+    'quick:read': (id) => quickStore.read(id),
+    'quick:save': (request) => quickStore.save(request),
+    'quick:delete': (id) => quickStore.remove(id),
+    'quick:revealFolder': async () => {
+      await mkdir(quickStore.folder(), { recursive: true })
+      await shell.openPath(quickStore.folder())
+    },
+    'quick:run': (request) => {
+      void quickRunner.run(request)
+    },
+    'quick:stop': (runId) => quickRunner.stop(runId),
+    'quick:prepare': (language) => quickRunner.prepare(language),
+    'quick:page': (html) => preview.setQuickPage(html),
+    'quick:sql': (engine, sql) => quickSql.execute(engine, sql),
+    'quick:sqlSchema': (engine) => quickSql.schema(engine),
+    'quick:sqlReset': (engine, sample) => quickSql.reset(engine, sample)
   },
   isTrustedSender
 )
@@ -349,6 +389,8 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   terminals.killAll()
+  quickRunner.dispose()
   void databases.closeAll()
+  void quickSql.closeAll()
   app.quit()
 })

@@ -2,7 +2,7 @@
 // Non contiene logica di dominio: tutte le azioni passano dai comandi registrati dai moduli.
 import { useCallback, useEffect } from 'react'
 import { DockviewReact, themeDark, themeLight, type DockviewReadyEvent } from 'dockview'
-import { AlertCircle, AlertTriangle, Command as CommandIcon, Moon, Play, Settings2, Sun, SquareTerminal, TerminalSquare, Globe, PenTool, Database } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Command as CommandIcon, Moon, Play, Settings2, Sun, SquareTerminal, TerminalSquare, Globe, PenTool, Database, Zap } from 'lucide-react'
 import { executeCommand } from './commands'
 import { buildDefaultLayout, panelComponents, setDockApi } from './layout'
 import { useWorkbench } from './store'
@@ -42,6 +42,11 @@ function Toolbar() {
       <button className="btn ghost" title={`${t('toolbar.database')} (Ctrl+Shift+D)`} disabled={!project} onClick={() => executeCommand('sql.show')}>
         <Database size={15} />
         {t('toolbar.database')}
+      </button>
+      <div className="divider" />
+      <button className="btn ghost" title={`${t('toolbar.quickHint')} (Ctrl+Shift+Q)`} onClick={() => executeCommand('quick.open')} data-testid="open-quick">
+        <Zap size={15} />
+        {t('toolbar.quick')}
       </button>
       <div className="divider" />
       <button className="icon-btn" title={`${t('toolbar.newTerminal')} (Ctrl+Shift+\`)`} onClick={() => executeCommand('terminal.new')}>

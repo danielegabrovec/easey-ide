@@ -3,12 +3,18 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { DEFAULT_ENDPOINTS } from '@shared/contracts/ai'
+import { normalizeQuickSettings } from '@shared/contracts/quick'
 import { DEFAULT_SETTINGS, type RecentProject, type Settings } from '@shared/contracts/settings'
 
 const MAX_RECENT = 12
 
 export function mergeSettings(base: Settings, patch: Partial<Settings>): Settings {
-  const next: Settings = { ...base, ...patch, ai: { ...DEFAULT_SETTINGS.ai, ...base.ai, ...patch.ai } }
+  const next: Settings = {
+    ...base,
+    ...patch,
+    ai: { ...DEFAULT_SETTINGS.ai, ...base.ai, ...patch.ai },
+    quick: normalizeQuickSettings({ ...base.quick, ...patch.quick })
+  }
   next.ai.temperature = Math.min(1.5, Math.max(0, Number(next.ai.temperature) || 0))
   if (next.ai.provider !== 'openai') next.ai.provider = 'ollama'
   if (!/^https?:\/\//i.test(next.ai.endpoint)) next.ai.endpoint = DEFAULT_ENDPOINTS[next.ai.provider]

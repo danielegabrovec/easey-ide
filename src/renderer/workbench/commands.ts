@@ -1,4 +1,5 @@
 // Registro dei comandi: UNICA fonte delle azioni dell'IDE (menu, palette, scorciatoie, pulsanti).
+import { dockApi } from './layout'
 import { notifyError } from './notifications'
 
 export interface Command<A = unknown> {
@@ -11,6 +12,12 @@ export interface Command<A = unknown> {
   /** Se false il comando non compare nella palette (es. comandi con argomenti obbligatori). */
   palette?: boolean
   when?: () => boolean
+  /**
+   * Id del pannello in cui vale la scorciatoia: con quel pannello attivo il comando ha la precedenza
+   * su quelli generici con la stessa combinazione (es. Ctrl+S nella Scrittura rapida); altrove la
+   * sua scorciatoia non scatta.
+   */
+  panel?: string
   run: (args?: A) => unknown | Promise<unknown>
 }
 
@@ -64,19 +71,28 @@ export function chordOf(event: { key: string; code: string; ctrlKey: boolean; me
   return parts.join('+')
 }
 
+/** Comando da eseguire per una combinazione: prima quelli del pannello attivo, poi quelli generici. */
+export function commandForChord(chord: string): Command | undefined {
+  const activePanel = dockApi()?.activePanel?.id
+  let generic: Command | undefined
+  for (const command of registry.values()) {
+    if (command.keybinding !== chord || (command.when && !command.when())) continue
+    if (command.panel) {
+      if (command.panel === activePanel) return command
+    } else generic ??= command
+  }
+  return generic
+}
+
 /** Ascolta la tastiera in fase di cattura (prima di Monaco e xterm). */
 export function installKeybindings(): () => void {
   const handler = (event: KeyboardEvent) => {
     if (['Control', 'Shift', 'Alt', 'Meta'].includes(event.key)) return
-    const chord = chordOf(event)
-    for (const command of registry.values()) {
-      if (command.keybinding && command.keybinding === chord && (!command.when || command.when())) {
-        event.preventDefault()
-        event.stopPropagation()
-        void executeCommand(command.id)
-        return
-      }
-    }
+    const command = commandForChord(chordOf(event))
+    if (!command) return
+    event.preventDefault()
+    event.stopPropagation()
+    void executeCommand(command.id)
   }
   window.addEventListener('keydown', handler, true)
   return () => window.removeEventListener('keydown', handler, true)
@@ -84,13 +100,9 @@ export function installKeybindings(): () => void {
 
 /** Esegue il comando associato a una combinazione (es. arrivata dall'anteprima). Restituisce true se trovato. */
 export function runChord(chord: string): boolean {
-  for (const command of registry.values()) {
-    if (command.keybinding === chord && (!command.when || command.when())) {
-      void executeCommand(command.id)
-      return true
-    }
-  }
-  return false
+  const command = commandForChord(chord)
+  if (command) void executeCommand(command.id)
+  return !!command
 }
 
 export function onCommandsChanged(listener: () => void): () => void {

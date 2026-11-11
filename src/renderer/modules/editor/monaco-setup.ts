@@ -61,9 +61,12 @@ export function setupMonaco(): typeof monaco {
   // Tutti i file del progetto sono visibili al servizio TS: gli import fra file funzionano.
   ts.typescriptDefaults.setEagerModelSync(true)
   ts.javascriptDefaults.setEagerModelSync(true)
-  ts.typescriptDefaults.setDiagnosticsOptions({ noSemanticValidation: false, noSyntaxValidation: false })
+  // 1375/1378: "await" di primo livello. È valido nei moduli ES e nella Scrittura rapida (che esegue
+  // il codice dentro una funzione asincrona): non va segnalato come errore.
+  const topLevelAwait = [1375, 1378]
+  ts.typescriptDefaults.setDiagnosticsOptions({ noSemanticValidation: false, noSyntaxValidation: false, diagnosticCodesToIgnore: topLevelAwait })
   // Nei file JS solo errori di sintassi: i suggerimenti semantici restano attivi.
-  ts.javascriptDefaults.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: false })
+  ts.javascriptDefaults.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: false, diagnosticCodesToIgnore: topLevelAwait })
 
   monaco.editor.defineTheme('lab-dark', {
     base: 'vs-dark',

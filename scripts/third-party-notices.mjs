@@ -11,6 +11,15 @@ const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 
 // Librerie che finiscono davvero nell'app (le altre devDependencies servono solo a costruire e collaudare).
 const BUNDLED = ['@babel/parser', '@xterm/addon-fit', '@xterm/xterm', '@xyflow/react', 'blockly', 'dockview', 'electron', 'html-to-image', 'lucide-react', 'monaco-editor', 'node-sql-parser', 'parse5', 'postcss', 'react', 'react-dom', 'zustand']
+// Note aggiuntive per i componenti che ne contengono altri (il pacchetto npm non lo dice).
+const SUPPLEMENTS = {
+  pyodide:
+    'Pyodide (Mozilla Public License 2.0, testo completo: https://www.mozilla.org/MPL/2.0/; codice sorgente: ' +
+    'https://github.com/pyodide/pyodide) contiene **CPython** e la sua libreria standard, distribuiti con la ' +
+    '**Python Software Foundation License Version 2** (https://docs.python.org/3/license.html). ' +
+    'Copyright © 2001 Python Software Foundation; All Rights Reserved. Easey IDE usa Pyodide senza modificarlo ' +
+    'per eseguire i programmi Python della Scrittura rapida.'
+}
 // Dipendenze dichiarate ma non incluse nella versione per il browser.
 const EXCLUDED = new Set(['jsdom'])
 
@@ -74,6 +83,7 @@ for (const { data, dir } of entries) {
   lines.push(`## ${data.name} ${data.version}`, '', `Licenza: ${licenseOf(data)}${data.homepage ? ` · ${data.homepage}` : ''}`, '')
   const text = licenseText(dir)
   lines.push(text ? '```text\n' + text + '\n```' : '_Testo della licenza non incluso nel pacchetto: vale la licenza indicata sopra._', '')
+  if (SUPPLEMENTS[data.name]) lines.push(SUPPLEMENTS[data.name], '')
 }
 writeFileSync(join(root, 'THIRD_PARTY_NOTICES.md'), lines.join('\n'))
 mkdirSync(join(root, 'resources', 'legal'), { recursive: true })

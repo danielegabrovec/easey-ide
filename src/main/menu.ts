@@ -18,6 +18,7 @@ export function buildMenu(getWindow: () => BrowserWindow | null): void {
       submenu: [
         command('Nuovo progetto…', 'workspace.newProject', 'Ctrl+Shift+N'),
         command('Apri cartella…', 'workspace.openFolder', 'Ctrl+O'),
+        command('Scrittura rapida (senza progetto)', 'quick.open', 'Ctrl+Shift+Q'),
         command('Chiudi progetto', 'workspace.close'),
         { type: 'separator' },
         command('Nuovo file', 'explorer.newFile', 'Ctrl+N'),

@@ -46,11 +46,13 @@ Electron include a sua volta Chromium, Node.js e altri componenti: le loro licen
 | parse5 | 8.1.1 | MIT |
 | picocolors | 1.1.1 | ISC |
 | postcss | 8.5.32 | MIT |
+| pyodide | 314.0.7 | MPL-2.0 |
 | react | 19.3.1 | MIT |
 | react-dom | 19.3.1 | MIT |
 | scheduler | 0.28.0 | MIT |
 | source-map-js | 1.2.2 | BSD-3-Clause |
 | use-sync-external-store | 1.7.0 | MIT |
+| ws | 8.22.2 | MIT |
 | zustand | 4.5.7 | MIT |
 | zustand | 5.1.0 | MIT |
 
@@ -1472,6 +1474,14 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
+## pyodide 314.0.7
+
+Licenza: MPL-2.0 · https://github.com/pyodide/pyodide
+
+_Testo della licenza non incluso nel pacchetto: vale la licenza indicata sopra._
+
+Pyodide (Mozilla Public License 2.0, testo completo: https://www.mozilla.org/MPL/2.0/; codice sorgente: https://github.com/pyodide/pyodide) contiene **CPython** e la sua libreria standard, distribuiti con la **Python Software Foundation License Version 2** (https://docs.python.org/3/license.html). Copyright © 2001 Python Software Foundation; All Rights Reserved. Easey IDE usa Pyodide senza modificarlo per eseguire i programmi Python della Scrittura rapida.
+
 ## react 19.3.1
 
 Licenza: MIT · https://react.dev/
@@ -1616,6 +1626,33 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
+
+## ws 8.22.2
+
+Licenza: MIT · https://github.com/websockets/ws
+
+```text
+Copyright (c) 2011 Einar Otto Stangvik <einaros@gmail.com>
+Copyright (c) 2013 Arnout Kazemier and contributors
+Copyright (c) 2016 Luigi Pinca and contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
 ## zustand 4.5.7

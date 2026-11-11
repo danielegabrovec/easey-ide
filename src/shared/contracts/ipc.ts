@@ -8,6 +8,7 @@ import type { GitCommit, GitStatus } from './git'
 import type { CheckResult, Course, CourseProgress, CourseSummary, LearnEvent } from './learn'
 import type { CreateDatabaseRequest, DbConnectionInfo, DbSchema, DbSnapshot, QueryOutcome, QueryPlan } from './db'
 import type { AppInfo, Settings } from './settings'
+import type { QuickCodeLanguage, QuickRunEvent, QuickRunRequest, QuickSaveRequest, QuickSnippet, QuickSnippetInfo, QuickSqlEngine } from './quick'
 import type {
   CreateProjectRequest,
   FileEntry,
@@ -110,6 +111,25 @@ export interface InvokeChannels {
 
   /** Esporta il progetto (ZIP o pagina HTML unica) con il dialogo Salva; restituisce il percorso o null. */
   'project:export': (kind: 'zip' | 'html') => string | null
+
+  /** Scrittura rapida (senza progetto): raccolta di file nei Documenti, esecuzione JS/TS isolata, SQL in memoria. */
+  'quick:list': () => QuickSnippetInfo[]
+  'quick:read': (id: string) => QuickSnippet
+  'quick:save': (request: QuickSaveRequest) => QuickSnippetInfo
+  /** Sposta il salvataggio nel Cestino. */
+  'quick:delete': (id: string) => void
+  'quick:revealFolder': () => void
+  /** Avvia l'esecuzione e ritorna subito: i risultati arrivano come eventi `quick:events`. */
+  'quick:run': (request: QuickRunRequest) => void
+  'quick:stop': (runId: string) => void
+  /** Prepara il motore in anticipo (Python: carica Pyodide mentre si scrive). */
+  'quick:prepare': (language: QuickCodeLanguage) => void
+  /** Pubblica la pagina HTML della Scrittura rapida e ne restituisce l'indirizzo `ide-preview://quick/…`. */
+  'quick:page': (html: string) => string
+  'quick:sql': (engine: QuickSqlEngine, sql: string) => QueryOutcome[]
+  'quick:sqlSchema': (engine: QuickSqlEngine) => DbSchema
+  /** Svuota il database in memoria e carica eventualmente i dati d'esempio. */
+  'quick:sqlReset': (engine: QuickSqlEngine, sample: string | null) => DbSchema
 }
 
 export interface EventChannels {
@@ -118,6 +138,7 @@ export interface EventChannels {
   'terminal:exit': TerminalExit
   'menu:command': string
   'ai:chunk': AiChatChunk
+  'quick:events': QuickRunEvent[]
 }
 
 export type InvokeChannel = keyof InvokeChannels
@@ -187,10 +208,22 @@ export const INVOKE_CHANNELS = [
   'git:commit',
   'git:log',
   'git:discard',
-  'project:export'
+  'project:export',
+  'quick:list',
+  'quick:read',
+  'quick:save',
+  'quick:delete',
+  'quick:revealFolder',
+  'quick:run',
+  'quick:stop',
+  'quick:prepare',
+  'quick:page',
+  'quick:sql',
+  'quick:sqlSchema',
+  'quick:sqlReset'
 ] as const satisfies readonly InvokeChannel[]
 
-export const EVENT_CHANNELS = ['workspace:changed', 'terminal:data', 'terminal:exit', 'menu:command', 'ai:chunk'] as const satisfies readonly EventChannel[]
+export const EVENT_CHANNELS = ['workspace:changed', 'terminal:data', 'terminal:exit', 'menu:command', 'ai:chunk', 'quick:events'] as const satisfies readonly EventChannel[]
 
 /** Ciò che il preload espone come `window.ide`. */
 export interface IdeBridge {

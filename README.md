@@ -5,14 +5,14 @@
 <h1 align="center">Easey IDE</h1>
 
 <p align="center">
-  <strong>L'IDE per imparare a programmare:</strong> HTML, CSS, JavaScript, TypeScript e SQL,<br>
+  <strong>L'IDE per imparare a programmare:</strong> HTML, CSS, JavaScript, TypeScript, Python e SQL,<br>
   con progettazione visuale, programmazione a blocchi, diagrammi, esercizi verificati e AI locale.
 </p>
 
 <p align="center">
   <a href="LICENSE"><img alt="Licenza MIT" src="https://img.shields.io/badge/licenza-MIT-6366f1"></a>
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4">
-  <img alt="Versione 1.0.0" src="https://img.shields.io/badge/versione-1.0.0-a855f7">
+  <img alt="Versione 1.1.0" src="https://img.shields.io/badge/versione-1.1.0-a855f7">
   <img alt="AI locale" src="https://img.shields.io/badge/AI-locale%20(Ollama%20%2F%20LM%20Studio)-f59e0b">
 </p>
 
@@ -24,7 +24,8 @@
 un'unica app per Windows tutto quello che serve a chi impara lo sviluppo web e i database: un editor
 professionale, l'anteprima dal vivo, il terminale, un database vero, un designer grafico stile
 Canva/Wix, la programmazione a blocchi, i diagrammi, le lezioni con esercizi che si correggono da soli
-e un assistente AI che **gira interamente sul tuo PC**.
+e un assistente AI che **gira interamente sul tuo PC**. Per provare un'idea al volo c'è la **Scrittura
+rapida**: JavaScript, TypeScript, Python, SQL o HTML senza creare un progetto.
 
 ---
 
@@ -51,6 +52,30 @@ e un assistente AI che **gira interamente sul tuo PC**.
   riga del file originale**, simulazione di telefono e tablet.
 - **Terminale integrato** (PowerShell, cmd, Git Bash) ed **Esegui nel terminale** (Ctrl+F5) per i
   programmi console con input da tastiera.
+
+### Scrittura rapida, senza progetto (novità 1.1)
+Per provare un'idea al volo: **Ctrl+Shift+Q** (o *Scrittura rapida* nel Benvenuto e nella barra in alto)
+apre un foglio a tutta finestra **senza creare né aprire un progetto**.
+- **JavaScript, TypeScript, Python, SQL e HTML** (con CSS e JavaScript dentro la pagina). Python è
+  incluso nell'app (Pyodide, CPython 3.14 in WebAssembly): **non serve installarlo** e funziona offline.
+- **Risultato subito**: il codice si esegue da solo dopo una breve pausa nella scrittura (o con
+  Ctrl+Invio / F5). Il valore di ogni espressione e variabile e ciò che stampi compaiono **accanto
+  alla riga** che li ha prodotti, gli errori sono segnati sulla riga giusta (anche in TypeScript).
+- **Al sicuro dagli errori**: ogni esecuzione gira in un processo separato con un tempo massimo, quindi
+  un ciclo infinito viene fermato e l'IDE resta reattivo.
+- **SQL** su un database in memoria (SQLite o PostgreSQL), con dati d'esempio e l'opzione *database pulito
+  a ogni esecuzione*; **HTML** con anteprima viva e console della pagina.
+- **Aiuto a livelli** mentre scrivi: *Spento*, *Leggero* (suggerimenti e completamento AI di una riga),
+  *Intermedio* (modelli rapidi e qualche riga), *Forte* (blocchi interi, anche a metà riga). Con
+  **Ctrl+I** descrivi a parole cosa vuoi e l'AI scrive il codice, che viene subito eseguito.
+- **Raccolta**: Ctrl+S salva in `Documenti\Easey IDE\Scrittura rapida` come file normali (`.js`, `.ts`,
+  `.py`, `.sql`, `.html`); la bozza in corso si ritrova anche dopo aver chiuso l'app.
+
+![Scrittura rapida in JavaScript: i risultati accanto alle righe](docs/screenshots/13-scrittura-rapida.png)
+
+| Python senza installazioni | HTML con anteprima viva |
+|---|---|
+| ![Scrittura rapida in Python](docs/screenshots/14-scrittura-rapida-python.png) | ![Scrittura rapida in HTML](docs/screenshots/15-scrittura-rapida-html.png) |
 
 ### Passo passo, come «Python Tutor»
 Esegui un programma **una riga alla volta**, avanti e indietro: la riga corrente è evidenziata
@@ -138,6 +163,7 @@ una lezione e ogni esercizio 🧪 un compito. Come scrivere un corso: [docs/CORS
 3. Prova il **Designer**, il **Database** (Ctrl+Shift+D) o le **Lezioni** (Ctrl+Alt+L).
 4. Su un file JavaScript o TypeScript premi **Ctrl+F10** per eseguirlo passo passo.
 5. Tasto destro nell'editor → **✦ Spiega questo codice** per chiedere all'AI.
+6. Per una prova veloce senza progetto: **Ctrl+Shift+Q** (Scrittura rapida).
 
 | Azione | Tasti |
 |---|---|
@@ -148,6 +174,7 @@ una lezione e ogni esercizio 🧪 un compito. Come scrivere un corso: [docs/CORS
 | Database / Designer | Ctrl+Shift+D / Ctrl+Shift+G |
 | Lezioni / Git / Assistente AI | Ctrl+Alt+L / Ctrl+Alt+G / Ctrl+Shift+A |
 | Verifica l'esercizio | F9 |
+| Scrittura rapida · esegui · salva · genera con AI | Ctrl+Shift+Q · Ctrl+Invio · Ctrl+S · Ctrl+I |
 
 ---
 
@@ -228,6 +255,7 @@ Easey IDE è un'app **Electron** scritta in **TypeScript** con **React**.
 | Blocchi e nodi, diagrammi | Blockly, React Flow |
 | Passo passo | strumentazione del codice con il parser di Babel + `node:vm` |
 | Verifica esercizi | `node:vm` (JS/TS), SQLite in memoria (SQL), stili calcolati in un iframe (HTML/CSS) |
+| Scrittura rapida | worker con tempo massimo: `node:vm` (JS/TS, strumentati con Babel), Pyodide (Python, strumentato con `ast`) |
 
 L'architettura è a **moduli indipendenti** che si parlano solo con comandi ed eventi: un unico elenco
 di canali fra interfaccia e processo principale (`src/shared/contracts/ipc.ts`), servizi nativi in
@@ -264,7 +292,7 @@ npm run dev
 | `npm run typecheck` | controllo TypeScript stretto |
 | `npm test` | test di unità (Vitest) |
 | `npm run build` | compila in `out/` |
-| `npm run test:e2e` | collaudo end-to-end sull'app vera (Playwright + Electron, 8 suite) |
+| `npm run test:e2e` | collaudo end-to-end sull'app vera (Playwright + Electron, 9 suite) |
 | `npm run dist` | installer in `release/Easey-IDE-Setup-<versione>.exe` |
 | `npx electron scripts/make-icons.mjs` | rigenera le icone da `build/icon.svg` |
 | `node scripts/third-party-notices.mjs` | rigenera l'elenco dei componenti di terze parti |
@@ -280,7 +308,7 @@ npm run dev
 - **Nessuna garanzia:** il software è fornito «così com'è».
 - **Privacy:** nessuna telemetria, nessun account, nessun dato inviato all'autore. L'app si collega
   alla rete solo verso il server AI che configuri (predefinito: il tuo PC), verso `esm.sh` se una
-  pagina importa pacchetti npm e verso le risorse internet usate dalle tue pagine.
+  pagina importa pacchetti npm e verso le risorse internet usate dal tuo codice e dalle tue pagine.
 - **Componenti di terze parti:** elenco completo con le licenze in
   [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 - **Dettagli completi:** [NOTE-LEGALI.md](NOTE-LEGALI.md) (marchi, modelli AI, codice eseguito,
@@ -293,11 +321,13 @@ npm run dev
 ## English summary
 
 **Easey IDE** is a free, open-source (MIT) desktop IDE for Windows designed for **learning to code**:
-HTML, CSS, JavaScript, TypeScript and SQL. It combines a Monaco-based editor with live preview,
+HTML, CSS, JavaScript, TypeScript, Python and SQL. It combines a Monaco-based editor with live preview,
 a real terminal, a step-by-step debugger with variables and call stack, a Canva/Wix-style visual page
 designer, Blockly blocks and node-based visual programming, diagrams that turn into code, an SQL lab
-with SQLite and embedded PostgreSQL, Git integration, project export, and lessons with **automatically
-checked exercises**. Its AI assistant runs **entirely on your machine** through Ollama or any
+with SQLite and embedded PostgreSQL, Git integration, project export, lessons with **automatically
+checked exercises**, and a **Quick code** mode (Ctrl+Shift+Q) to try JavaScript, TypeScript,
+Python (bundled Pyodide, no install), SQL or HTML without a project, with results shown next to each line,
+infinite loops stopped, four AI assistance levels and a collection of saved snippets. Its AI assistant runs **entirely on your machine** through Ollama or any
 OpenAI-compatible local server (LM Studio, llama.cpp, vLLM): inline completion, contextual chat,
 code explanations and fixes, natural-language SQL and a tutor mode that gives hints instead of answers.
 The UI is in Italian (English translation included).

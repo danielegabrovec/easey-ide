@@ -1,5 +1,5 @@
 // Pagina di benvenuto: nuovo progetto, apri cartella, progetti recenti, scorciatoie principali.
-import { FolderOpen, Plus, Clock, GraduationCap } from 'lucide-react'
+import { FolderOpen, Plus, Clock, GraduationCap, Zap } from 'lucide-react'
 import { executeCommand } from '../../workbench/commands'
 import { useWorkbench } from '../../workbench/store'
 import { t } from '../../i18n'
@@ -23,6 +23,9 @@ export function WelcomePanel() {
           </button>
           <button className="btn" onClick={() => executeCommand('workspace.openFolder')}>
             <FolderOpen size={15} /> {t('welcome.openFolder')}
+          </button>
+          <button className="btn" onClick={() => executeCommand('quick.open')} data-testid="welcome-quick" title={t('welcome.quickHint')}>
+            <Zap size={15} /> {t('welcome.quick')}
           </button>
           <button className="btn" onClick={() => executeCommand('learn.show')} data-testid="welcome-courses">
             <GraduationCap size={15} /> {t('welcome.courses')}
@@ -59,6 +62,12 @@ export function WelcomePanel() {
                 <td>{t('welcome.kRunTerminal')}</td>
                 <td>
                   <kbd>Ctrl+F5</kbd>
+                </td>
+              </tr>
+              <tr>
+                <td>{t('welcome.kQuick')}</td>
+                <td>
+                  <kbd>Ctrl+Shift+Q</kbd>
                 </td>
               </tr>
               <tr>

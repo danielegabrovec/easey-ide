@@ -5,6 +5,7 @@ import { activateDiagrams } from './diagrams'
 import { activateEditor } from './editor'
 import { activateExplorer } from './explorer'
 import { activateGit } from './git'
+import { activateQuickCode } from './quick-code'
 import { activateLearn } from './learn'
 import { activateRunTerminal } from './run-terminal'
 import { activateRunWeb } from './run-web'
@@ -25,6 +26,7 @@ export function activateModules(): void {
   activateLearn()
   activateStepRun()
   activateGit()
+  activateQuickCode()
 }
 
 export { restoreLastProject } from './explorer'

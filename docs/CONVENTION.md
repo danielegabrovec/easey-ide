@@ -11,12 +11,12 @@ via contratti), **consolidamento** (mai due modi di fare la stessa cosa).
 | `src/shared/*.ts` | Utilità **pure** usate da main e renderer (percorsi, source map, stack) | Import di Electron, React o Node |
 | `src/main/index.ts` | Ciclo di vita dell'app, finestra, registrazione dei gestori IPC | Logica dei servizi |
 | `src/main/ipc/router.ts` | Unico punto di registrazione IPC, con controllo del mittente | — |
-| `src/main/services/<servizio>/` | Un servizio nativo per cartella: `workspace`, `preview`, `terminal`, `settings`, `db`, `ai`, `learn`, `trace`, `git`, `export` | UI |
+| `src/main/services/<servizio>/` | Un servizio nativo per cartella: `workspace`, `preview`, `terminal`, `settings`, `db`, `ai`, `learn`, `trace`, `git`, `export`, `quick` (Scrittura rapida: worker JS/TS e Python come entry di build a sé) | UI |
 | `src/preload/` | Ponte `window.ide` con la whitelist dei canali presa dai contratti | Logica |
 | `src/renderer/workbench/` | **Shell**: layout dockview, comandi, palette, eventi, stato condiviso, notifiche | Logica di dominio |
 | `src/renderer/services/` | Client condivisi da più moduli senza interfaccia (es. `ai-client.ts`: stato di Ollama, chat in streaming) | Componenti |
 | `src/renderer/ui/` | Primitive di interfaccia (dialoghi, menu contestuale, Markdown) | Stato di dominio |
-| `src/renderer/modules/<modulo>/` | Un modulo per cartella: `explorer`, `editor`, `run-web`, `run-terminal`, `ai-assist`, `sql-lab`, `designer`, `visual-code`, `diagrams`, `learn`, `step-run`, `git` | Import di altri moduli |
+| `src/renderer/modules/<modulo>/` | Un modulo per cartella: `explorer`, `editor`, `run-web`, `run-terminal`, `ai-assist`, `sql-lab`, `designer`, `visual-code`, `diagrams`, `learn`, `step-run`, `git`, `quick-code` | Import di altri moduli |
 | `src/renderer/modules/index.ts` | **Unico** punto in cui i moduli vengono attivati | — |
 | `src/renderer/i18n/` | Testi: `it.ts` (fonte), `en.ts` (stesse chiavi, verificato da TypeScript) | Testi sparsi nei componenti |
 | `resources/courses/` | Corsi inclusi nell'app, nel formato pacchetto ([CORSI.md](CORSI.md)) | Codice |
@@ -46,7 +46,9 @@ via contratti), **consolidamento** (mai due modi di fare la stessa cosa).
 ## Punti di estensione del workbench
 
 - `registerPanel` / `showPanel` (aree: left, center, right, bottom).
-- `registerCommand` (+ `palette: false` per i comandi interni con argomenti, es. `editor.getContext`, `editor.replaceRange`, `editor.insertText`).
+- `registerCommand` (+ `palette: false` per i comandi interni con argomenti, es. `editor.getContext`, `editor.replaceRange`, `editor.insertText`;
+  + `panel: '<id>'` per una scorciatoia che vale solo con quel pannello attivo e lì vince su quelle generiche,
+  es. Ctrl+S / Ctrl+Invio / F5 nella Scrittura rapida).
 - `setStatusItem` per una voce nella barra di stato (es. `✦ modello AI`).
 - `registerSettingsSection` per una sezione nel dialogo Impostazioni.
 
@@ -67,4 +69,8 @@ via contratti), **consolidamento** (mai due modi di fare la stessa cosa).
   prima di caricare il modulo (`services/esbuild-loader.ts`).
 - Gli URI dei modelli Monaco hanno un prefisso per progetto: progetti diversi con `src/main.ts` non
   devono condividere marcatori.
+- Worker in `out/main/*.mjs` (Scrittura rapida): importano solo moduli di Node (e `pyodide`), stanno in
+  `asarUnpack` e il main li cerca in `app.asar.unpacked`. Un import da `@shared` creerebbe un chunk condiviso dentro asar.
+- Monaco mostra le decorazioni `after` su intervalli vuoti solo con `showIfCollapsed`; i modelli della Scrittura
+  rapida usano lo schema `quick:` (fuori dai Problemi e dai suggerimenti dei file del progetto).
 - Fermare `npm run dev` prima di `npm run dist`; `release/` e `*.exe` non vanno in git.

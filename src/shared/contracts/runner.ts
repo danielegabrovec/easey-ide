@@ -81,3 +81,6 @@ export interface TerminalExit {
 
 export const PREVIEW_SCHEME = 'ide-preview'
 export const PREVIEW_HOST = 'project'
+/** Host della pagina HTML della Scrittura rapida (in memoria, nessun progetto). */
+export const QUICK_PREVIEW_HOST = 'quick'
+export const QUICK_PREVIEW_PAGE = 'pagina.html'
