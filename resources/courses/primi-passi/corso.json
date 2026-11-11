@@ -1,0 +1,11 @@
+{
+  "id": "primi-passi",
+  "titolo": "Primi passi: JavaScript, TypeScript, HTML e SQL",
+  "descrizione": "Quattro lezioni brevi con esercizi verificati automaticamente, sul filo conduttore del centro fitness dei manuali della Collana «Imparare a programmare».",
+  "lezioni": [
+    { "id": "funzioni", "titolo": "Funzioni in JavaScript", "capitolo": "JavaScript, cap. 5", "testo": "lezioni/funzioni.md", "esercizi": ["media-allenamenti"] },
+    { "id": "tipi", "titolo": "I tipi di TypeScript", "capitolo": "TypeScript, cap. 3", "testo": "lezioni/tipi.md", "esercizi": ["prezzo-abbonamento"] },
+    { "id": "pagina", "titolo": "Una pagina HTML con il suo stile", "capitolo": "HTML cap. 3 · CSS cap. 2", "testo": "lezioni/pagina.md", "esercizi": ["scheda-corso"] },
+    { "id": "query", "titolo": "Le prime query SQL", "capitolo": "SQL, cap. 4", "testo": "lezioni/query.md", "esercizi": ["clienti-attivi"] }
+  ]
+}

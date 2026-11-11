@@ -1,0 +1,11 @@
+{
+  "tipo": "js",
+  "test": [
+    { "descrizione": "totaleMinuti somma i valori", "espressione": "totaleMinuti([30, 45, 60])", "atteso": 135 },
+    { "descrizione": "totaleMinuti di un solo allenamento", "espressione": "totaleMinuti([50])", "atteso": 50 },
+    { "descrizione": "mediaMinuti calcola la media", "espressione": "mediaMinuti([30, 45, 60, 45])", "atteso": 45 },
+    { "descrizione": "mediaMinuti con decimali", "espressione": "mediaMinuti([10, 20, 25])", "atteso": 18.333333333333332 },
+    { "descrizione": "mediaMinuti di un array vuoto vale 0", "espressione": "mediaMinuti([])", "atteso": 0 },
+    { "descrizione": "stampa la media della settimana", "output": "Media della settimana: 45" }
+  ]
+}

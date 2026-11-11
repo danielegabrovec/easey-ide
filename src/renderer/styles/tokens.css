@@ -1,0 +1,64 @@
+/* Token di colore e misura. Ogni colore dell'interfaccia passa da qui. */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #16181d;
+  --bg-panel: #1c1f26;
+  --bg-elevated: #232731;
+  --bg-hover: #2a2f3a;
+  --bg-active: #313848;
+  --bg-input: #12141a;
+  --border: #2c313c;
+  --border-strong: #3a4150;
+  --text: #e3e6ed;
+  --text-muted: #9aa3b5;
+  --text-faint: #6b7385;
+  --accent: #6d7cff;
+  --accent-strong: #8692ff;
+  --accent-text: #ffffff;
+  --accent-soft: rgb(109 124 255 / 0.16);
+  --success: #3fb97f;
+  --warning: #e5b443;
+  --danger: #ef6464;
+  --info: #4fb3e8;
+  --danger-soft: rgb(239 100 100 / 0.12);
+  --warning-soft: rgb(229 180 67 / 0.12);
+  --shadow: 0 12px 40px rgb(0 0 0 / 0.45);
+  --terminal-bg: #12141a;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #eef0f4;
+  --bg-panel: #f8f9fb;
+  --bg-elevated: #ffffff;
+  --bg-hover: #e7eaf0;
+  --bg-active: #dde2ec;
+  --bg-input: #ffffff;
+  --border: #d9dde5;
+  --border-strong: #c3c9d4;
+  --text: #1d2230;
+  --text-muted: #566075;
+  --text-faint: #8a93a6;
+  --accent: #4f5bea;
+  --accent-strong: #3d48d6;
+  --accent-text: #ffffff;
+  --accent-soft: rgb(79 91 234 / 0.12);
+  --success: #18905a;
+  --warning: #a8770c;
+  --danger: #d23c3c;
+  --info: #1f7fb6;
+  --danger-soft: rgb(210 60 60 / 0.1);
+  --warning-soft: rgb(168 119 12 / 0.1);
+  --shadow: 0 12px 40px rgb(20 30 60 / 0.18);
+  --terminal-bg: #ffffff;
+}
+
+:root {
+  --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-code: 'Cascadia Code', 'Cascadia Mono', Consolas, 'Courier New', monospace;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --toolbar-h: 42px;
+  --status-h: 24px;
+}

@@ -1,0 +1,12 @@
+{
+  "tipo": "html",
+  "regole": [
+    { "descrizione": "Un titolo h1 con «Yoga»", "selettore": "h1", "testo": "Yoga" },
+    { "descrizione": "Almeno due sezioni h2", "selettore": "h2", "minimo": 2 },
+    { "descrizione": "Un elenco puntato con almeno tre voci", "selettore": "ul > li", "minimo": 3 },
+    { "descrizione": "Un link verso orari.html", "selettore": "a", "attributo": { "nome": "href", "valore": "orari.html" } },
+    { "descrizione": "Il titolo ha la classe «titolo»", "selettore": "h1.titolo" },
+    { "descrizione": "Il titolo è verde", "selettore": "h1", "stile": { "color": "green" } },
+    { "descrizione": "Le voci dell'elenco sono in grassetto", "selettore": "li", "stile": { "font-weight": "bold" } }
+  ]
+}

@@ -1,0 +1,9 @@
+node_modules/
+out/
+release/
+*.exe
+.tsc/
+*.tsbuildinfo
+test-results/
+tmp/
+.e2e-shots/

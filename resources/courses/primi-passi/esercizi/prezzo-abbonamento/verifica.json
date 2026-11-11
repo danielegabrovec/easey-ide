@@ -1,0 +1,10 @@
+{
+  "tipo": "js",
+  "test": [
+    { "descrizione": "mensile senza sconto", "espressione": "prezzoAbbonamento('mensile', false)", "atteso": 40 },
+    { "descrizione": "trimestrale con il 10% di sconto", "espressione": "prezzoAbbonamento('trimestrale', false)", "atteso": 108 },
+    { "descrizione": "annuale con il 25% di sconto", "espressione": "prezzoAbbonamento('annuale', false)", "atteso": 360 },
+    { "descrizione": "studente: 5 € in meno", "espressione": "prezzoAbbonamento('annuale', true)", "atteso": 355 },
+    { "descrizione": "studente mensile", "espressione": "prezzoAbbonamento('mensile', true)", "atteso": 35 }
+  ]
+}
