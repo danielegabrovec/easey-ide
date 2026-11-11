@@ -1,6 +1,6 @@
 {
   "name": "easey-ide",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Easey IDE: l'IDE per imparare a programmare in HTML, CSS, JavaScript, TypeScript e SQL, con progettazione visuale, esercizi verificati e AI locale",
   "author": {
@@ -26,7 +26,7 @@
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "node tests/e2e/smoke.mjs && node tests/e2e/ai.mjs && node tests/e2e/sql.mjs && node tests/e2e/designer.mjs && node tests/e2e/visual.mjs && node tests/e2e/diagrams.mjs && node tests/e2e/learn.mjs && node tests/e2e/growth.mjs && node tests/e2e/quick.mjs",
+    "test:e2e": "node tests/e2e/smoke.mjs && node tests/e2e/ai.mjs && node tests/e2e/sql.mjs && node tests/e2e/designer.mjs && node tests/e2e/visual.mjs && node tests/e2e/diagrams.mjs && node tests/e2e/learn.mjs && node tests/e2e/growth.mjs && node tests/e2e/quick.mjs && node tests/e2e/quick-native.mjs",
     "test:all": "npm run typecheck && npm test && npm run build && npm run test:e2e",
     "predist": "npm run ensure:electron",
     "dist": "npm run build && electron-builder --win nsis --publish never",
@@ -40,7 +40,7 @@
     "test:e2e:diagrams": "node tests/e2e/diagrams.mjs",
     "test:e2e:learn": "node tests/e2e/learn.mjs",
     "test:e2e:growth": "node tests/e2e/growth.mjs",
-    "test:e2e:quick": "node tests/e2e/quick.mjs"
+    "test:e2e:quick": "node tests/e2e/quick.mjs && node tests/e2e/quick-native.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",

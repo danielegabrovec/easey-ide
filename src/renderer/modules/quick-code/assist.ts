@@ -5,7 +5,8 @@
 // Vale solo per i modelli "quick:" (gli editor dei file hanno il loro autocompletamento).
 import * as monaco from 'monaco-editor'
 import { create } from 'zustand'
-import { ASSIST_LEVELS, fitSuggestion } from '@shared/contracts/quick'
+import { ASSIST_LEVELS, QUICK_LANGUAGES, fitSuggestion, type QuickLanguage } from '@shared/contracts/quick'
+import { QUICK_KEYWORDS, QUICK_SNIPPETS } from '@shared/quick/snippets'
 import { schemaComment, sqlSuggestions, type SqlSuggestionKind } from '@shared/sql/completion'
 import { ide } from '../../ipc'
 import { activeModels, newRequestId } from '../../services/ai-client'
@@ -36,7 +37,7 @@ function sqlContext(): string {
 }
 
 function registerInline(): monaco.IDisposable {
-  return monaco.languages.registerInlineCompletionsProvider(['javascript', 'typescript', 'python', 'sql', 'html'], {
+  return monaco.languages.registerInlineCompletionsProvider(QUICK_LANGUAGES, {
     async provideInlineCompletions(model, position, _context, token) {
       if (model.uri.scheme !== QUICK_SCHEME) return { items: [] }
       const settings = workbench().settings
@@ -122,7 +123,37 @@ function registerSql(): monaco.IDisposable {
   })
 }
 
+/** Python, C, C++, C#, Java, Rust: parole chiave e modelli rapidi (Monaco per questi non ha suggerimenti). */
+function registerKeywords(): monaco.IDisposable {
+  const languages = Object.keys(QUICK_KEYWORDS)
+  return monaco.languages.registerCompletionItemProvider(languages, {
+    provideCompletionItems(model, position) {
+      if (model.uri.scheme !== QUICK_SCHEME) return { suggestions: [] }
+      const language = model.getLanguageId() as QuickLanguage
+      const word = model.getWordUntilPosition(position)
+      const range = new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn)
+      const K = monaco.languages.CompletionItemKind
+      const snippets = ASSIST_LEVELS[workbench().settings.quick.level].snippets ? (QUICK_SNIPPETS[language] ?? []) : []
+      return {
+        suggestions: [
+          ...snippets.map((s) => ({
+            label: s.label,
+            kind: K.Snippet,
+            detail: s.detail,
+            insertText: s.body,
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            range,
+            sortText: `0${s.label}`
+          })),
+          ...(QUICK_KEYWORDS[language] ?? []).map((k) => ({ label: k, kind: K.Keyword, insertText: k, range, sortText: `1${k}` }))
+        ]
+      }
+    }
+  })
+}
+
 export function registerQuickAssist(): void {
   registerInline()
   registerSql()
+  registerKeywords()
 }

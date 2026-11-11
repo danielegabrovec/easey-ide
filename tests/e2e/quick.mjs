@@ -123,7 +123,11 @@ try {
   const py = await runAndWait(['ok', 'error'], 40000)
   const pyOut = await outputText()
   check('Python (Pyodide): eseguito senza installazioni', py === 'ok', `${py}: ${pyOut}`)
-  check('Python: print con la riga e valori accanto alle righe', /ciao 42/.test(pyOut) && /x = 42/.test(await editorText()) && /→ 43/.test(await editorText()), await editorText())
+  const pyInline = await until(async () => {
+    const text = await editorText()
+    return /x = 42/.test(text) && /→ 43/.test(text) ? text : null
+  }, 5000)
+  check('Python: print con la riga e valori accanto alle righe', /ciao 42/.test(pyOut) && !!pyInline, pyInline ?? (await editorText()))
   await run.shot('04-python')
   await setCode('def f():\n    return 1 / 0\n\nf()\n')
   const pyState = await runAndWait(['error'], 20000)

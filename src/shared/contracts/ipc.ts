@@ -8,7 +8,7 @@ import type { GitCommit, GitStatus } from './git'
 import type { CheckResult, Course, CourseProgress, CourseSummary, LearnEvent } from './learn'
 import type { CreateDatabaseRequest, DbConnectionInfo, DbSchema, DbSnapshot, QueryOutcome, QueryPlan } from './db'
 import type { AppInfo, Settings } from './settings'
-import type { QuickCodeLanguage, QuickRunEvent, QuickRunRequest, QuickSaveRequest, QuickSnippet, QuickSnippetInfo, QuickSqlEngine } from './quick'
+import type { QuickCodeLanguage, QuickRunEvent, QuickRunRequest, QuickSaveRequest, QuickSnippet, QuickSnippetInfo, QuickSqlEngine, QuickToolchain } from './quick'
 import type {
   CreateProjectRequest,
   FileEntry,
@@ -124,6 +124,8 @@ export interface InvokeChannels {
   'quick:stop': (runId: string) => void
   /** Prepara il motore in anticipo (Python: carica Pyodide mentre si scrive). */
   'quick:prepare': (language: QuickCodeLanguage) => void
+  /** Compilatori per C, C++, C#, Java e Rust trovati sul PC (con `refresh` li cerca di nuovo). */
+  'quick:toolchains': (refresh?: boolean) => QuickToolchain[]
   /** Pubblica la pagina HTML della Scrittura rapida e ne restituisce l'indirizzo `ide-preview://quick/…`. */
   'quick:page': (html: string) => string
   'quick:sql': (engine: QuickSqlEngine, sql: string) => QueryOutcome[]
@@ -217,6 +219,7 @@ export const INVOKE_CHANNELS = [
   'quick:run',
   'quick:stop',
   'quick:prepare',
+  'quick:toolchains',
   'quick:page',
   'quick:sql',
   'quick:sqlSchema',

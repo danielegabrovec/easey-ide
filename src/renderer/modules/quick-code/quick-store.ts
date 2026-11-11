@@ -1,9 +1,9 @@
-// Stato della Scrittura rapida: un documento per linguaggio (JS, TS, SQL), la raccolta dei salvataggi,
+// Stato della Scrittura rapida: un documento per linguaggio, la raccolta dei salvataggi, l'input da tastiera,
 // gli eventi dell'ultima esecuzione e i risultati SQL. Il testo vive nel modello Monaco mentre si
 // scrive; qui c'è la copia per la bozza (ripristinata al riavvio) e lo stato "modificato".
 import { create } from 'zustand'
 import type { DbSchema, QueryOutcome } from '@shared/contracts/db'
-import { QUICK_LANGUAGES, type QuickLanguage, type QuickRunEvent, type QuickSnippetInfo, type QuickSqlEngine } from '@shared/contracts/quick'
+import { QUICK_LANGUAGES, type QuickLanguage, type QuickRunEvent, type QuickSnippetInfo, type QuickSqlEngine, type QuickToolchain } from '@shared/contracts/quick'
 import { ide } from '../../ipc'
 import { notifyError } from '../../workbench/notifications'
 
@@ -50,6 +50,10 @@ interface QuickState {
   promptOpen: boolean
   /** HTML: indirizzo della pagina pubblicata nell'anteprima (null = non ancora). */
   pageUrl: string | null
+  /** Input da tastiera per linguaggio (riquadro «Input»: input(), scanf, cin, Scanner…). */
+  stdin: Partial<Record<QuickLanguage, string>>
+  /** Compilatori di C, C++, C#, Java e Rust trovati sul PC (null = non ancora cercati). */
+  toolchains: QuickToolchain[] | null
   setLanguage: (language: QuickLanguage) => void
   setContent: (language: QuickLanguage, content: string) => void
   setDoc: (language: QuickLanguage, doc: QuickDoc) => void
@@ -62,6 +66,8 @@ interface QuickState {
   setGenerating: (generating: boolean) => void
   setPromptOpen: (open: boolean) => void
   setPageUrl: (url: string | null) => void
+  setStdin: (language: QuickLanguage, text: string) => void
+  setToolchains: (toolchains: QuickToolchain[]) => void
 }
 
 const STORAGE_KEY = 'easey.quick.v1'
@@ -109,6 +115,66 @@ max(numeri), min(numeri)
     console.log('clic numero', clic)
   })
 </script>
+`,
+  c: `// Scrittura rapida · C — compilato con gcc. L'input da tastiera si scrive nel riquadro «Input».
+#include <stdio.h>
+
+int quadrato(int n) { return n * n; }
+
+int main(void) {
+  for (int i = 1; i <= 3; i++) {
+    printf("%d al quadrato fa %d\\n", i, quadrato(i));
+  }
+  return 0;
+}
+`,
+  cpp: `// Scrittura rapida · C++ — compilato con g++ (C++20).
+#include <iostream>
+#include <vector>
+#include <numeric>
+
+int main() {
+  std::vector<int> numeri{3, 1, 4, 1, 5, 9};
+  int somma = std::accumulate(numeri.begin(), numeri.end(), 0);
+  std::cout << "somma " << somma << "\\n";
+  for (int n : numeri) std::cout << n * 2 << ' ';
+  std::cout << std::endl;
+}
+`,
+  csharp: `// Scrittura rapida · C# — .NET 10, istruzioni di primo livello (niente classe Program da scrivere).
+var numeri = new List<int> { 3, 1, 4, 1, 5, 9 };
+Console.WriteLine($"somma {numeri.Sum()}, massimo {numeri.Max()}");
+foreach (var n in numeri.Where(n => n > 2).OrderBy(n => n))
+    Console.WriteLine($"{n} → {Quadrato(n)}");
+
+static int Quadrato(int n) => n * n;
+`,
+  java: `// Scrittura rapida · Java — con Java 25 basta anche «void main() { ... }», senza classe.
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List<Integer> numeri = List.of(3, 1, 4, 1, 5, 9);
+        int somma = numeri.stream().mapToInt(Integer::intValue).sum();
+        System.out.println("somma " + somma);
+        for (int n : numeri) System.out.print(n * 2 + " ");
+        System.out.println();
+    }
+}
+`,
+  rust: `// Scrittura rapida · Rust — compilato con rustc.
+fn quadrato(n: i32) -> i32 {
+    n * n
+}
+
+fn main() {
+    let numeri = vec![3, 1, 4, 1, 5, 9];
+    let somma: i32 = numeri.iter().sum();
+    println!("somma {}", somma);
+    for n in &numeri {
+        println!("{} → {}", n, quadrato(*n));
+    }
+}
 `
 }
 
@@ -119,10 +185,11 @@ function emptyDoc(language: QuickLanguage, content = STARTERS[language]): QuickD
 interface Persisted {
   language: QuickLanguage
   docs: Record<QuickLanguage, QuickDoc>
+  stdin: Partial<Record<QuickLanguage, string>>
 }
 
 function load(): Persisted {
-  const fallback: Persisted = { language: 'javascript', docs: Object.fromEntries(QUICK_LANGUAGES.map((l) => [l, emptyDoc(l)])) as Record<QuickLanguage, QuickDoc> }
+  const fallback: Persisted = { language: 'javascript', docs: Object.fromEntries(QUICK_LANGUAGES.map((l) => [l, emptyDoc(l)])) as Record<QuickLanguage, QuickDoc>, stdin: {} }
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return fallback
@@ -133,7 +200,9 @@ function load(): Persisted {
       if (doc && typeof doc.content === 'string') docs[language] = { snippetId: doc.snippetId ?? null, title: doc.title ?? '', saved: doc.saved ?? '', content: doc.content }
     }
     const language = parsed.language && parsed.language in docs ? parsed.language : fallback.language
-    return { language, docs }
+    const stdin: Partial<Record<QuickLanguage, string>> = {}
+    for (const [key, value] of Object.entries(parsed.stdin ?? {})) if (key in docs && typeof value === 'string') stdin[key as QuickLanguage] = value
+    return { language, docs, stdin }
   } catch {
     return fallback
   }
@@ -144,7 +213,7 @@ function persist(state: Persisted): void {
   if (persistTimer) clearTimeout(persistTimer)
   persistTimer = setTimeout(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ language: state.language, docs: state.docs }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ language: state.language, docs: state.docs, stdin: state.stdin }))
     } catch {
       /* archiviazione non disponibile: la bozza resta solo in memoria */
     }
@@ -168,6 +237,8 @@ export const useQuick = create<QuickState>((set, get) => ({
   generating: false,
   promptOpen: false,
   pageUrl: null,
+  stdin: initial.stdin,
+  toolchains: null,
   setLanguage: (language) => {
     set({ language, events: [], summary: null, runId: null })
     persist(get())
@@ -205,7 +276,12 @@ export const useQuick = create<QuickState>((set, get) => ({
   setSchema: (engine, schema) => set((state) => ({ schemas: { ...state.schemas, [engine]: schema } })),
   setGenerating: (generating) => set({ generating }),
   setPromptOpen: (promptOpen) => set({ promptOpen }),
-  setPageUrl: (pageUrl) => set({ pageUrl })
+  setPageUrl: (pageUrl) => set({ pageUrl }),
+  setStdin: (language, text) => {
+    set((state) => ({ stdin: { ...state.stdin, [language]: text } }))
+    persist(get())
+  },
+  setToolchains: (toolchains) => set({ toolchains })
 }))
 
 export const quick = () => useQuick.getState()

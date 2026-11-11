@@ -73,4 +73,8 @@ via contratti), **consolidamento** (mai due modi di fare la stessa cosa).
   `asarUnpack` e il main li cerca in `app.asar.unpacked`. Un import da `@shared` creerebbe un chunk condiviso dentro asar.
 - Monaco mostra le decorazioni `after` su intervalli vuoti solo con `showIfCollapsed`; i modelli della Scrittura
   rapida usano lo schema `quick:` (fuori dai Problemi e dai suggerimenti dei file del progetto).
+- Linguaggi compilati della Scrittura rapida: si usano i compilatori del PC (`native-runner.ts`), mai
+  attraverso una shell; il PATH dei figli è quello del registro + le cartelle note (MSYS2, `.cargo`, JDK);
+  si chiude l'albero dei processi con `taskkill /T`. Java va forzato a UTF-8 (`-Dstdout.encoding`), C# riceve
+  in coda al file un `ModuleInitializer` che imposta la console in UTF-8. `LAB_IDE_NO_TOOLCHAINS` simula i mancanti.
 - Fermare `npm run dev` prima di `npm run dist`; `release/` e `*.exe` non vanno in git.

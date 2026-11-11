@@ -1,6 +1,6 @@
-// Modulo Scrittura rapida: codice JavaScript, TypeScript, Python, SQL o HTML scritto al volo,
+// Modulo Scrittura rapida: codice JavaScript, TypeScript, Python, SQL, HTML, C, C++, C#, Java o Rust scritto al volo,
 // eseguito subito, con aiuto AI a livelli e raccolta di salvataggi. Non crea né richiede un progetto.
-import { ASSIST_LEVEL_ORDER, QUICK_LANGUAGES, type AssistLevel, type QuickLanguage } from '@shared/contracts/quick'
+import { ASSIST_LEVEL_ORDER, QUICK_LANGUAGE_INFO, QUICK_LANGUAGES, type AssistLevel } from '@shared/contracts/quick'
 import { registerCommand } from '../../workbench/commands'
 import { dockApi, registerPanel, showPanel } from '../../workbench/layout'
 import { registerSettingsSection } from '../../workbench/settings-sections'
@@ -21,7 +21,6 @@ function showQuick(): void {
   if (panel && !panel.api.isMaximized()) panel.api.maximize()
 }
 
-const LANGUAGE_TITLES: Record<QuickLanguage, string> = { javascript: 'JavaScript', typescript: 'TypeScript', python: 'Python', sql: 'SQL', html: 'HTML' }
 const LEVEL_KEYS: Record<AssistLevel, 'quick.levelOff' | 'quick.levelLight' | 'quick.levelMedium' | 'quick.levelStrong'> = {
   off: 'quick.levelOff',
   light: 'quick.levelLight',
@@ -77,7 +76,7 @@ export function activateQuickCode(): void {
   for (const language of QUICK_LANGUAGES) {
     registerCommand({
       id: `quick.language.${language}`,
-      title: t('cmd.quickLanguage', { language: LANGUAGE_TITLES[language] }),
+      title: t('cmd.quickLanguage', { language: QUICK_LANGUAGE_INFO[language].title }),
       category,
       run: async () => {
         showQuick()

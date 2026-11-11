@@ -2959,3 +2959,112 @@ button.quick-line:hover {
 .quick-error-line {
   background: var(--danger-soft);
 }
+/* Scrittura rapida: linguaggi nativi, input da tastiera */
+.quick-toolbar .segmented button.native {
+  font-style: normal;
+}
+
+.quick-lang-badge.c,
+.quick-lang-badge.cpp {
+  background: #5c6bc0;
+}
+.quick-lang-badge.csharp {
+  background: #8e44ad;
+}
+.quick-lang-badge.java {
+  background: #c0392b;
+}
+.quick-lang-badge.rust {
+  background: #b7410e;
+}
+
+.quick-tool-chip {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.quick-toolchain-missing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-lg);
+  background: var(--warning-soft);
+  font-family: var(--font-ui);
+  font-size: 13px;
+}
+
+.quick-toolchain-missing p {
+  margin: 0;
+}
+
+.quick-command {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+}
+
+.quick-command code {
+  flex: 1;
+  font-family: var(--font-code);
+  font-size: 12px;
+  user-select: all;
+  word-break: break-all;
+}
+
+.quick-toolchain-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.quick-stdin {
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.quick-stdin-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quick-stdin-head:hover {
+  color: var(--text);
+}
+
+.quick-stdin textarea {
+  display: block;
+  width: calc(100% - 16px);
+  margin: 0 8px 8px;
+  padding: 6px 8px;
+  resize: vertical;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  color: var(--text);
+  font-family: var(--font-code);
+  font-size: 12.5px;
+}

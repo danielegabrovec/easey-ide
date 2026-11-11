@@ -1,12 +1,17 @@
-// Esecuzione della Scrittura rapida (JS, TS, Python), sempre in un worker che si può terminare:
+// Esecuzione della Scrittura rapida, sempre in qualcosa che si può terminare:
 //  - JS/TS: strumentazione → (TS: esbuild con source map) → quick-worker.mjs (contesto vm pulito);
-//  - Python: quick-python-worker.mjs con Pyodide; se ne tiene uno già caricato per partire subito.
-// Il tempo massimo conta da quando parte il codice dell'utente (non dal caricamento di Python).
+//  - Python: quick-python-worker.mjs con Pyodide; se ne tiene uno già caricato per partire subito;
+//  - C, C++, C#, Java, Rust: compilatori del PC in processi separati (native-runner.ts).
+// Il tempo massimo conta da quando parte il codice dell'utente (non dal caricamento o dalla compilazione).
 // Gli eventi arrivano al renderer a piccoli gruppi sul canale `quick:events`. Un programma alla volta:
 // uno nuovo ferma il precedente (esecuzione automatica mentre si scrive).
+import type { ChildProcess } from 'node:child_process'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { Worker } from 'node:worker_threads'
 import { performance } from 'node:perf_hooks'
-import type { QuickCodeLanguage, QuickRunEvent, QuickRunRequest } from '@shared/contracts/quick'
+import { isNativeLanguage, type NativeLanguage, type QuickCodeLanguage, type QuickRunEvent, type QuickRunRequest, type QuickToolchain } from '@shared/contracts/quick'
+import { NativeToolchains, killTree, runNative, type NativeContext } from './native-runner'
 import { QuickCodeError, instrumentQuick, wrapAsync } from '@shared/quick/instrument'
 import { SourceMapReader, type RawSourceMap } from '@shared/sourcemap'
 import { loadEsbuild } from '../esbuild-loader'
@@ -56,7 +61,7 @@ export function originalLine(compiled: CompiledQuick | null, at: { line: number;
 
 interface Running {
   runId: string
-  finish: (status: 'ok' | 'error' | 'timeout' | 'stopped') => void
+  finish: (status: 'ok' | 'error' | 'timeout' | 'stopped', exitCode?: number) => void
 }
 
 export class QuickRunner {
@@ -67,12 +72,20 @@ export class QuickRunner {
   constructor(
     /** Percorsi dei worker costruiti (out/main/*.mjs, fuori da asar nell'app installata). */
     private readonly files: () => QuickWorkerFiles,
-    private readonly emit: (events: QuickRunEvent[]) => void
+    private readonly emit: (events: QuickRunEvent[]) => void,
+    /** Linguaggi nativi: compilatori del PC e cartella di lavoro temporanea. */
+    private readonly native: { toolchains: NativeToolchains; workRoot: string } = { toolchains: new NativeToolchains(), workRoot: join(tmpdir(), 'easey-ide', 'quick') }
   ) {}
 
-  /** Prepara in anticipo ciò che serve (Python: carica Pyodide in un worker di riserva). */
+  /** Compilatori installati (C, C++, C#, Java, Rust); con `refresh` li cerca di nuovo. */
+  toolchains(refresh = false): Promise<QuickToolchain[]> {
+    return this.native.toolchains.list(refresh)
+  }
+
+  /** Prepara in anticipo ciò che serve (Python: carica Pyodide in un worker di riserva; nativi: cerca il compilatore). */
   prepare(language: QuickCodeLanguage): void {
     if (language === 'python' && !this.spare) this.spare = this.spawnPython()
+    else if (isNativeLanguage(language)) void this.native.toolchains.resolve(language)
   }
 
   private spawnPython(): Worker {
@@ -93,6 +106,8 @@ export class QuickRunner {
     let truncated = false
     let finished = false
     let worker: Worker | null = null
+    const children: ChildProcess[] = []
+    let lines = 0
     let limit: NodeJS.Timeout | null = null
     const flush = () => {
       if (flushTimer) clearTimeout(flushTimer)
@@ -105,17 +120,43 @@ export class QuickRunner {
     }
     const running: Running = {
       runId: request.runId,
-      finish: (status) => {
+      finish: (status, exitCode?: number) => {
         if (finished) return
         finished = true
         if (limit) clearTimeout(limit)
         void worker?.terminate()
-        push({ runId: request.runId, kind: 'done', status, durationMs: performance.now() - started, truncated })
+        children.forEach(killTree)
+        push({ runId: request.runId, kind: 'done', status, durationMs: performance.now() - started, truncated, exitCode })
         flush()
         if (this.current === running) this.current = null
       }
     }
     this.current = running
+
+    if (isNativeLanguage(request.language)) {
+      const context: NativeContext = {
+        push,
+        finish: (status, exitCode) => running.finish(status, exitCode),
+        finished: () => finished,
+        track: (child) => void children.push(child),
+        started: (extraMs = 0) => {
+          if (limit) clearTimeout(limit)
+          limit = setTimeout(() => running.finish('timeout'), request.timeoutMs + extraMs)
+        },
+        countLine: () => {
+          if (++lines <= MAX_EVENTS) return false
+          truncated = true
+          return true
+        }
+      }
+      try {
+        await runNative(context, request as QuickRunRequest & { language: NativeLanguage }, this.native.toolchains, this.native.workRoot)
+      } catch (error) {
+        push({ runId: request.runId, kind: 'error', phase: 'runtime', message: (error as Error).message })
+        running.finish('error')
+      }
+      return
+    }
 
     let compiled: CompiledQuick | null = null
     if (request.language !== 'python') {
@@ -132,7 +173,7 @@ export class QuickRunner {
     } else {
       worker = this.spare ?? this.spawnPython()
       this.spare = null
-      worker.postMessage({ code: request.code, maxEvents: MAX_EVENTS } satisfies QuickPythonJob)
+      worker.postMessage({ code: request.code, maxEvents: MAX_EVENTS, stdin: request.stdin ?? '' } satisfies QuickPythonJob)
       // Il prossimo programma Python troverà Pyodide già caricato.
       this.spare = this.spawnPython()
     }

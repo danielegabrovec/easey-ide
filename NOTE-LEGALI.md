@@ -58,7 +58,10 @@ compatibilità. Easey IDE non è affiliato né approvato da nessuno di loro.
      internet che contengono (i blocchi pronti del designer usano immagini segnaposto da `picsum.photos`).
   3. **Scrittura rapida**: Python (Pyodide) e i database SQL girano interamente sul PC, senza rete. Il
      codice JavaScript/TypeScript e le pagine HTML scritti dall'utente si collegano a internet solo se lo
-     fa il codice stesso (per esempio con `fetch` o con un'immagine presa da un sito).
+     fa il codice stesso (per esempio con `fetch` o con un'immagine presa da un sito). C, C++, C#, Java e Rust
+     usano i compilatori installati dall'utente (gcc/g++, .NET SDK, JDK, Rust), che restano prodotti dei
+     rispettivi autori con le loro licenze; per .NET l'IDE disattiva la telemetria (`DOTNET_CLI_TELEMETRY_OPTOUT`).
+     Easey IDE non installa nulla da solo: se un compilatore manca mostra il comando `winget` da usare.
   4. **Collegamenti** (installare Ollama o Git): si aprono nel browser predefinito.
 - Git lavora solo in locale: Easey IDE non invia nulla a GitHub o ad altri server.
 

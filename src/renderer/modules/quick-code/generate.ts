@@ -1,6 +1,7 @@
 // "Genera con AI": si descrive a parole cosa si vuole, il modello di chat scrive il codice
-// (JS, TS o SQL sullo schema del database in memoria) e lo inserisce nell'editor:
+// (in qualunque linguaggio; SQL sullo schema del database in memoria) e lo inserisce nell'editor:
 // sostituisce la selezione, o tutto se c'è solo l'esempio iniziale, altrimenti si aggiunge al cursore.
+import { QUICK_LANGUAGE_INFO } from '@shared/contracts/quick'
 import { schemaComment } from '@shared/sql/completion'
 import { activeModels, extractCode, streamChat, type ChatStream } from '../../services/ai-client'
 import { notify, notifyError } from '../../workbench/notifications'
@@ -10,7 +11,6 @@ import { quickEditor } from './quick-editor'
 import { STARTERS, quick } from './quick-store'
 import { runQuick } from './run'
 
-const LANGUAGE_NAMES = { javascript: 'JavaScript', typescript: 'TypeScript', python: 'Python 3', sql: 'SQL', html: 'HTML (CSS in <style>, JavaScript in <script>)' } as const
 let current: ChatStream | null = null
 
 export function cancelGeneration(): void {
@@ -27,7 +27,7 @@ export async function generateWithAi(description: string): Promise<boolean> {
     return false
   }
   const language = quick().language
-  const name = LANGUAGE_NAMES[language]
+  const name = QUICK_LANGUAGE_INFO[language].ai
   const selection = editor.getSelection()
   const selected = selection && !selection.isEmpty() ? model.getValueInRange(selection) : ''
   const text = model.getValue()

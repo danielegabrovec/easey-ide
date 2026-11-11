@@ -1,6 +1,7 @@
 // Esecuzione della Scrittura rapida dal renderer: JS/TS nel worker del main (eventi `quick:events`),
 // SQL nel database in memoria. Esecuzione automatica dopo una pausa nella scrittura.
 import { QUICK_PREVIEW_PAGE, type PreviewMessage, type SerializedValue } from '@shared/contracts/runner'
+import { isNativeLanguage, readsStdin, type QuickLanguage } from '@shared/contracts/quick'
 import { isReadOnlySql } from '@shared/sql/completion'
 import { ide } from '../../ipc'
 import { chordOf, runChord } from '../../workbench/commands'
@@ -10,6 +11,8 @@ import { quick, useQuick } from './quick-store'
 import { quickEditor, showRunDecorations, showSqlDecorations } from './quick-editor'
 
 const AUTO_RUN_DELAY = 700
+/** I linguaggi compilati costano di più: si aspetta una pausa un po' più lunga. */
+const AUTO_RUN_DELAY_NATIVE = 1300
 let counter = 0
 let sqlSequence = 0
 let autoTimer: ReturnType<typeof setTimeout> | null = null
@@ -89,7 +92,9 @@ export function connectRunEvents(): void {
   useQuick.subscribe((state, previous) => {
     if (state.events === previous.events && state.summary === previous.summary) return
     // Le decorazioni precedenti restano finché non arriva qualcosa dalla nuova esecuzione: niente sfarfallio.
-    if (state.events.length > 0 || state.summary) showRunDecorations(state.events, !state.runAuto)
+    // Errori di sintassi e di compilazione segnati sulle righe anche in automatico: per C, C++, C#, Java
+    // e Rust sono l'unico controllo mentre si scrive (l'elenco a destra li mostra smorzati).
+    if (state.events.length > 0 || state.summary) showRunDecorations(state.events, true)
   })
 }
 
@@ -123,7 +128,8 @@ export async function runQuick(auto = false): Promise<void> {
     return
   }
   try {
-    await ide.invoke('quick:run', { runId, language, code: code.text, timeoutMs: workbench().settings.quick.timeoutMs })
+    const stdin = readsStdin(language) ? (quick().stdin[language] ?? '') : undefined
+    await ide.invoke('quick:run', { runId, language, code: code.text, timeoutMs: workbench().settings.quick.timeoutMs, stdin })
   } catch (error) {
     notifyError(error)
   }
@@ -186,13 +192,31 @@ export async function loadSqlSchema(): Promise<void> {
 export function scheduleAutoRun(): void {
   cancelAutoRun()
   if (!workbench().settings.quick.autoRun) return
-  autoTimer = setTimeout(() => {
-    autoTimer = null
-    void runQuick(true)
-  }, AUTO_RUN_DELAY)
+  autoTimer = setTimeout(
+    () => {
+      autoTimer = null
+      void runQuick(true)
+    },
+    isNativeLanguage(quick().language) ? AUTO_RUN_DELAY_NATIVE : AUTO_RUN_DELAY
+  )
 }
 
 export function cancelAutoRun(): void {
   if (autoTimer) clearTimeout(autoTimer)
   autoTimer = null
+}
+
+/** Compilatori di C, C++, C#, Java e Rust (con `refresh` li cerca di nuovo, es. dopo averne installato uno). */
+export async function loadToolchains(refresh = false): Promise<void> {
+  try {
+    quick().setToolchains(await ide.invoke('quick:toolchains', refresh))
+  } catch (error) {
+    notifyError(error)
+  }
+}
+
+/** Prepara il linguaggio scelto: Python carica Pyodide in anticipo, i nativi cercano il compilatore. */
+export async function prepareLanguage(language: QuickLanguage): Promise<void> {
+  if (language === 'python') await ide.invoke('quick:prepare', 'python').catch(notifyError)
+  else if (isNativeLanguage(language) && !quick().toolchains) await loadToolchains()
 }

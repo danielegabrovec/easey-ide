@@ -23,6 +23,7 @@ import { HistoryService } from './services/workspace/history-service'
 import { createFromTemplate, listTemplates } from './services/workspace/templates'
 import { WorkspaceService } from './services/workspace/workspace-service'
 import { QuickRunner } from './services/quick/quick-runner'
+import { NativeToolchains } from './services/quick/native-runner'
 import { QuickSql } from './services/quick/quick-sql'
 import { QuickStore } from './services/quick/snippet-store'
 
@@ -96,7 +97,9 @@ const quickStore = new QuickStore(
 const unpacked = (file: string) => join(here, file).replace(/app\.asar([\\/])/, 'app.asar.unpacked$1')
 const quickRunner = new QuickRunner(
   () => ({ js: unpacked('quick-worker.mjs'), python: unpacked('quick-python-worker.mjs') }),
-  (events) => broadcast('quick:events', events)
+  (events) => broadcast('quick:events', events),
+  // Cartella di lavoro dei linguaggi compilati (C, C++, C#, Java, Rust): file sorgente ed eseguibili temporanei.
+  { toolchains: new NativeToolchains(), workRoot: join(app.getPath('temp'), 'easey-ide', 'quick') }
 )
 const quickSql = new QuickSql()
 
@@ -315,6 +318,7 @@ registerHandlers(
     },
     'quick:stop': (runId) => quickRunner.stop(runId),
     'quick:prepare': (language) => quickRunner.prepare(language),
+    'quick:toolchains': (refresh) => quickRunner.toolchains(refresh),
     'quick:page': (html) => preview.setQuickPage(html),
     'quick:sql': (engine, sql) => quickSql.execute(engine, sql),
     'quick:sqlSchema': (engine) => quickSql.schema(engine),

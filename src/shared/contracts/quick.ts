@@ -1,34 +1,112 @@
-// Contratto della "Scrittura rapida": codice JavaScript, TypeScript o SQL scritto al volo, eseguito
+// Contratto della "Scrittura rapida": codice scritto al volo in uno dei linguaggi qui sotto, eseguito
 // subito e salvato come file nella raccolta personale, senza creare né aprire un progetto.
 
 /**
  * Linguaggi della Scrittura rapida. JS e TS girano in un worker di Node, Python in Pyodide (Python
  * compilato in WebAssembly: nessuna installazione), SQL in un database in memoria, HTML (con CSS e
- * JS dentro la pagina) nell'anteprima `ide-preview://quick/`.
+ * JS dentro la pagina) nell'anteprima `ide-preview://quick/`. C, C++, C#, Java e Rust ("nativi") usano
+ * i compilatori installati sul PC (gcc/g++, .NET SDK 10, JDK, rustc), rilevati in automatico.
+ * Gli id coincidono con quelli dei linguaggi di Monaco.
  */
-export type QuickLanguage = 'javascript' | 'typescript' | 'python' | 'sql' | 'html'
-export type QuickCodeLanguage = 'javascript' | 'typescript' | 'python'
+export type NativeLanguage = 'c' | 'cpp' | 'csharp' | 'java' | 'rust'
+export type QuickLanguage = 'javascript' | 'typescript' | 'python' | 'sql' | 'html' | NativeLanguage
+/** Linguaggi eseguiti con `quick:run` (worker o compilatore). */
+export type QuickCodeLanguage = 'javascript' | 'typescript' | 'python' | NativeLanguage
 export type QuickSqlEngine = 'sqlite' | 'postgres'
 
-export const QUICK_LANGUAGES: QuickLanguage[] = ['javascript', 'typescript', 'python', 'sql', 'html']
+export const NATIVE_LANGUAGES: NativeLanguage[] = ['c', 'cpp', 'csharp', 'java', 'rust']
+export const QUICK_LANGUAGES: QuickLanguage[] = ['javascript', 'typescript', 'python', 'sql', 'html', ...NATIVE_LANGUAGES]
 
 /** Quanto aiuta l'editor mentre si scrive (vedi ASSIST_LEVELS). */
 export type AssistLevel = 'off' | 'light' | 'medium' | 'strong'
 
-export const QUICK_EXTENSIONS: Record<QuickLanguage, string> = { javascript: 'js', typescript: 'ts', python: 'py', sql: 'sql', html: 'html' }
+export const QUICK_EXTENSIONS: Record<QuickLanguage, string> = {
+  javascript: 'js',
+  typescript: 'ts',
+  python: 'py',
+  sql: 'sql',
+  html: 'html',
+  c: 'c',
+  cpp: 'cpp',
+  csharp: 'cs',
+  java: 'java',
+  rust: 'rs'
+}
+
+/** Nomi di ogni linguaggio: `title` per menu e titoli, `short` per i pulsanti, `ai` per i prompt dell'AI. */
+export const QUICK_LANGUAGE_INFO: Record<QuickLanguage, { title: string; short: string; ai: string }> = {
+  javascript: { title: 'JavaScript', short: 'JS', ai: 'JavaScript' },
+  typescript: { title: 'TypeScript', short: 'TS', ai: 'TypeScript' },
+  python: { title: 'Python', short: 'Python', ai: 'Python 3 (solo libreria standard)' },
+  sql: { title: 'SQL', short: 'SQL', ai: 'SQL' },
+  html: { title: 'HTML', short: 'HTML', ai: 'HTML (CSS in <style>, JavaScript in <script>)' },
+  c: { title: 'C', short: 'C', ai: 'C (C17, un solo file con main, solo libreria standard)' },
+  cpp: { title: 'C++', short: 'C++', ai: 'C++ (C++20, un solo file con main, solo libreria standard)' },
+  csharp: { title: 'C#', short: 'C#', ai: 'C# (.NET 10, un solo file con istruzioni di primo livello)' },
+  java: { title: 'Java', short: 'Java', ai: 'Java (un solo file; anche la forma compatta «void main() { … }» di Java 25)' },
+  rust: { title: 'Rust', short: 'Rust', ai: 'Rust (un solo file con fn main, solo libreria standard)' }
+}
+
+const EXTENSION_LANGUAGE: Record<string, QuickLanguage> = {
+  js: 'javascript',
+  mjs: 'javascript',
+  ts: 'typescript',
+  mts: 'typescript',
+  py: 'python',
+  sql: 'sql',
+  html: 'html',
+  htm: 'html',
+  c: 'c',
+  cpp: 'cpp',
+  cc: 'cpp',
+  cxx: 'cpp',
+  cs: 'csharp',
+  java: 'java',
+  rs: 'rust'
+}
 
 export function quickLanguageOf(fileName: string): QuickLanguage | null {
   const extension = /\.([^.]+)$/.exec(fileName)?.[1]?.toLowerCase()
-  if (extension === 'js' || extension === 'mjs') return 'javascript'
-  if (extension === 'ts' || extension === 'mts') return 'typescript'
-  if (extension === 'py') return 'python'
-  if (extension === 'sql') return 'sql'
-  if (extension === 'html' || extension === 'htm') return 'html'
-  return null
+  return (extension && EXTENSION_LANGUAGE[extension]) || null
+}
+
+export function isNativeLanguage(language: QuickLanguage): language is NativeLanguage {
+  return (NATIVE_LANGUAGES as QuickLanguage[]).includes(language)
 }
 
 export function isCodeLanguage(language: QuickLanguage): language is QuickCodeLanguage {
-  return language === 'javascript' || language === 'typescript' || language === 'python'
+  return language === 'javascript' || language === 'typescript' || language === 'python' || isNativeLanguage(language)
+}
+
+/** Linguaggi che leggono l'input da tastiera (stdin): lo si scrive prima nel riquadro «Input». */
+export function readsStdin(language: QuickLanguage): boolean {
+  return language === 'python' || isNativeLanguage(language)
+}
+
+/** Compilatore (o SDK) che serve a un linguaggio nativo, com'è stato trovato sul PC. */
+export interface QuickToolchain {
+  language: NativeLanguage
+  available: boolean
+  /** Programma usato (es. "gcc", o il percorso completo se trovato fuori dal PATH). */
+  command?: string
+  version?: string
+  /** Perché non si può usare (es. "serve il JDK, non solo il JRE"). */
+  problem?: string
+  install: { name: string; winget: string; url: string; note?: string }
+}
+
+/** Come installare ciò che manca (winget è incluso in Windows 10/11). */
+export const TOOLCHAIN_INSTALL: Record<NativeLanguage, QuickToolchain['install']> = {
+  c: { name: 'GCC (WinLibs)', winget: 'winget install -e --id BrechtSanders.WinLibs.POSIX.UCRT', url: 'https://winlibs.com/' },
+  cpp: { name: 'G++ (WinLibs)', winget: 'winget install -e --id BrechtSanders.WinLibs.POSIX.UCRT', url: 'https://winlibs.com/' },
+  csharp: { name: '.NET SDK 10', winget: 'winget install -e --id Microsoft.DotNet.SDK.10', url: 'https://dotnet.microsoft.com/download' },
+  java: { name: 'JDK (Eclipse Temurin 25)', winget: 'winget install -e --id EclipseAdoptium.Temurin.25.JDK', url: 'https://adoptium.net/' },
+  rust: {
+    name: 'Rust (rustup)',
+    winget: 'winget install -e --id Rustlang.Rustup',
+    url: 'https://www.rust-lang.org/tools/install',
+    note: 'Rust per Windows usa il linker di Visual Studio: se manca, installa anche «Build Tools per Visual Studio» con il carico «Sviluppo di applicazioni desktop con C++».'
+  }
 }
 
 /** Un salvataggio della raccolta: un file `<titolo>.<js|ts|sql>` nella cartella della Scrittura rapida. */
@@ -59,6 +137,8 @@ export interface QuickRunRequest {
   code: string
   /** Tempo massimo prima di fermare il programma (ms). */
   timeoutMs: number
+  /** Input da tastiera (Python e linguaggi nativi): righe lette da input(), scanf, cin, Scanner… */
+  stdin?: string
 }
 
 export type LogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug'
@@ -68,8 +148,8 @@ export type QuickRunEvent =
   | { runId: string; kind: 'log'; level: LogLevel; text: string; line?: number }
   /** Valore di un'espressione o di una variabile dichiarata (`name`) su quella riga. */
   | { runId: string; kind: 'value'; line: number; text: string; name?: string }
-  | { runId: string; kind: 'error'; message: string; line?: number; phase: 'syntax' | 'runtime' }
-  | { runId: string; kind: 'done'; status: 'ok' | 'error' | 'timeout' | 'stopped'; durationMs: number; truncated?: boolean }
+  | { runId: string; kind: 'error'; message: string; line?: number; phase: 'syntax' | 'compile' | 'runtime' }
+  | { runId: string; kind: 'done'; status: 'ok' | 'error' | 'timeout' | 'stopped'; durationMs: number; truncated?: boolean; exitCode?: number }
 
 export interface QuickSettings {
   level: AssistLevel

@@ -14,12 +14,14 @@ import type { QuickWorkerEvent, QuickWorkerMessage } from './quick-worker'
 export interface QuickPythonJob {
   code: string
   maxEvents: number
+  /** Testo del riquadro «Input»: le righe lette da input() (e sys.stdin). */
+  stdin: string
 }
 
 const port = parentPort!
 
 const HARNESS = String.raw`
-import ast, builtins, sys, traceback
+import ast, builtins, io, sys, traceback
 
 _FILENAME = "<scrittura-rapida>"
 
@@ -42,7 +44,7 @@ def _is_print(node):
 def _call(name, *args):
     return ast.Expr(ast.Call(func=ast.Name(name, ast.Load()), args=list(args), keywords=[]))
 
-def __easey_run(source, emit_log, emit_value, emit_error):
+def __easey_run(source, emit_log, emit_value, emit_error, stdin_text=""):
     try:
         tree = ast.parse(source, _FILENAME)
     except SyntaxError as error:
@@ -86,8 +88,15 @@ def __easey_run(source, emit_log, emit_value, emit_error):
             text += end
         emit_log(text, frame.f_lineno if frame is not None else 0, "error" if file is sys.stderr else "log")
 
+    lines = stdin_text.splitlines()
+    sys.stdin = io.StringIO(stdin_text)
+
     def easey_input(prompt=""):
-        raise RuntimeError("input() non è disponibile nella scrittura rapida: assegna il valore a una variabile (o crea un progetto console).")
+        if prompt:
+            easey_print(prompt, end="")
+        if not lines:
+            raise EOFError("input(): non ci sono altre righe nel riquadro Input (scrivile lì prima di eseguire)")
+        return lines.pop(0)
 
     scope = {"__name__": "__main__", "__builtins__": builtins, "__easey_v": value, "__easey_vd": declared, "print": easey_print, "input": easey_input}
     try:
@@ -139,7 +148,8 @@ port.once('message', async (job: QuickPythonJob) => {
       job.code,
       (text: string, line: number, level: 'log' | 'error') => post({ kind: 'log', level, text, line: line || undefined }),
       (line: number, text: string, name: string | undefined) => post({ kind: 'value', line, text, name: name ?? undefined }),
-      (message: string, line: number, phase: string) => post({ kind: 'error', message, at: line ? { line, column: 1 } : undefined, phase: phase === 'syntax' ? 'syntax' : 'runtime' })
+      (message: string, line: number, phase: string) => post({ kind: 'error', message, at: line ? { line, column: 1 } : undefined, phase: phase === 'syntax' ? 'syntax' : 'runtime' }),
+      job.stdin ?? ''
     )
   } catch (error) {
     post({ kind: 'error', message: (error as Error).message })

@@ -26,11 +26,21 @@ import {
   Zap
 } from 'lucide-react'
 import type { CellValue, QueryOutcome } from '@shared/contracts/db'
-import { ASSIST_LEVEL_ORDER, type AssistLevel, type QuickLanguage, type QuickRunEvent } from '@shared/contracts/quick'
+import {
+  ASSIST_LEVEL_ORDER,
+  QUICK_LANGUAGE_INFO,
+  QUICK_LANGUAGES,
+  isNativeLanguage,
+  readsStdin,
+  type AssistLevel,
+  type QuickLanguage,
+  type QuickRunEvent
+} from '@shared/contracts/quick'
 import { SAMPLE_DATABASES } from '@shared/sql/samples'
 import { ide } from '../../ipc'
 import { executeCommand } from '../../workbench/commands'
 import { dockApi } from '../../workbench/layout'
+import { notify } from '../../workbench/notifications'
 import { useWorkbench, workbench } from '../../workbench/store'
 import { updateSettings } from '../../workbench/workbench-commands'
 import { t } from '../../i18n'
@@ -39,17 +49,9 @@ import { useAssistBusy } from './assist'
 import { cancelGeneration, generateWithAi } from './generate'
 import { createQuickEditor, disposeQuickEditor, levelOptions, quickEditor, revealLine } from './quick-editor'
 import { isDirty, quick, useQuick } from './quick-store'
-import { loadSqlSchema, pageLoaded, resetSqlDatabase, runQuick, scheduleAutoRun, stopQuick } from './run'
+import { loadSqlSchema, loadToolchains, pageLoaded, prepareLanguage, resetSqlDatabase, runQuick, scheduleAutoRun, stopQuick } from './run'
 
-const LANGUAGES: { id: QuickLanguage; label: string }[] = [
-  { id: 'javascript', label: 'JS' },
-  { id: 'typescript', label: 'TS' },
-  { id: 'python', label: 'Python' },
-  { id: 'sql', label: 'SQL' },
-  { id: 'html', label: 'HTML' }
-]
-
-const BADGES: Record<QuickLanguage, string> = { javascript: 'JS', typescript: 'TS', python: 'PY', sql: 'SQL', html: 'HTML' }
+const BADGES: Record<QuickLanguage, string> = { javascript: 'JS', typescript: 'TS', python: 'PY', sql: 'SQL', html: 'HTML', c: 'C', cpp: 'C++', csharp: 'C#', java: 'JAVA', rust: 'RS' }
 
 const LEVEL_LABEL: Record<AssistLevel, () => string> = {
   off: () => t('quick.levelOff'),
@@ -133,9 +135,17 @@ function Toolbar({ api }: { api: IDockviewPanelProps['api'] }) {
         <Zap size={15} /> {t('quick.brand')}
       </span>
       <div className="segmented" role="tablist" aria-label={t('quick.language')}>
-        {LANGUAGES.map((l) => (
-          <button key={l.id} className={language === l.id ? 'active' : ''} onClick={() => void selectLanguage(l.id)} data-quick-language={l.id} role="tab" aria-selected={language === l.id}>
-            {l.label}
+        {QUICK_LANGUAGES.map((id) => (
+          <button
+            key={id}
+            className={`${language === id ? 'active' : ''}${isNativeLanguage(id) ? ' native' : ''}`}
+            onClick={() => void selectLanguage(id)}
+            data-quick-language={id}
+            role="tab"
+            aria-selected={language === id}
+            title={isNativeLanguage(id) ? t('quick.nativeHint', { language: QUICK_LANGUAGE_INFO[id].title }) : QUICK_LANGUAGE_INFO[id].title}
+          >
+            {QUICK_LANGUAGE_INFO[id].short}
           </button>
         ))}
       </div>
@@ -396,6 +406,7 @@ function EventRow({ event }: { event: QuickRunEvent }) {
         <div>
           <pre>
             {event.phase === 'syntax' && <strong>{t('quick.syntaxError')} </strong>}
+            {event.phase === 'compile' && <strong>{t('quick.compileError')} </strong>}
             {event.message}
           </pre>
           <button className="btn ghost small" onClick={() => askAiAboutError(event.message, event.line)}>
@@ -411,12 +422,13 @@ function EventRow({ event }: { event: QuickRunEvent }) {
 function Summary() {
   const summary = useQuick((s) => s.summary)
   const runId = useQuick((s) => s.runId)
+  const native = useQuick((s) => isNativeLanguage(s.language))
   const timeoutMs = useWorkbench((s) => s.settings.quick.timeoutMs)
   if (!runId) return null
   if (!summary)
     return (
       <span className="quick-status running" data-testid="quick-status" data-status="running">
-        <Loader2 size={13} className="spin" /> {t('quick.running')}
+        <Loader2 size={13} className="spin" /> {native ? t('quick.compiling') : t('quick.running')}
       </span>
     )
   const text: Record<string, ReactNode> = {
@@ -457,10 +469,11 @@ function CodeOutput() {
     const el = list.current
     if (el) el.scrollTop = el.scrollHeight
   }, [events.length])
-  // In esecuzione automatica un errore di sintassi è "sto ancora scrivendo": si mostra smorzato.
-  const softSyntax = auto && events.length === 1 && events[0]!.kind === 'error' && events[0]!.phase === 'syntax'
+  // In esecuzione automatica un errore di sintassi o di compilazione è "sto ancora scrivendo": si mostra smorzato.
+  const softSyntax = auto && events.length > 0 && events.every((e) => e.kind === 'error' ? e.phase !== 'runtime' : e.kind === 'log' && e.level === 'warn')
   return (
     <div className={`quick-output-list${softSyntax ? ' soft' : ''}`} ref={list} data-testid="quick-output">
+      <ToolchainNotice />
       {events.length === 0 && !summary && <p className="hint quick-empty">{t('quick.outputEmpty')}</p>}
       {events.length === 0 && summary?.status === 'ok' && <p className="hint quick-empty">{t('quick.outputNothing')}</p>}
       {events.map((event, index) => (
@@ -469,6 +482,104 @@ function CodeOutput() {
       {summary?.status === 'timeout' && <p className="quick-out error">{t('quick.timeoutExplain')}</p>}
       {summary?.truncated && <p className="hint">{t('quick.truncated')}</p>}
     </div>
+  )
+}
+
+/** Compilatore del linguaggio nativo scelto (null se non è nativo o non si sa ancora). */
+function useToolchain() {
+  const language = useQuick((s) => s.language)
+  const toolchains = useQuick((s) => s.toolchains)
+  return isNativeLanguage(language) ? (toolchains?.find((tc) => tc.language === language) ?? null) : null
+}
+
+/** C, C++, C#, Java, Rust senza compilatore sul PC: cosa installare e come (comando winget pronto). */
+function ToolchainNotice() {
+  const toolchain = useToolchain()
+  const [checking, setChecking] = useState(false)
+  if (!toolchain || toolchain.available) return null
+  const { install } = toolchain
+  return (
+    <div className="quick-toolchain-missing" data-testid="quick-toolchain-missing">
+      <strong>{t('quick.toolMissing', { language: QUICK_LANGUAGE_INFO[toolchain.language].title, tool: install.name })}</strong>
+      {toolchain.problem && <span className="hint">{toolchain.problem}</span>}
+      <p>{t('quick.toolInstall')}</p>
+      <div className="quick-command">
+        <code>{install.winget}</code>
+        <button
+          className="icon-btn"
+          title={t('quick.copy')}
+          onClick={() => {
+            void navigator.clipboard.writeText(install.winget)
+            notify(t('quick.commandCopied'), 'success')
+          }}
+        >
+          <Copy size={14} />
+        </button>
+      </div>
+      {install.note && <p className="hint">{install.note}</p>}
+      <div className="quick-toolchain-actions">
+        <button className="btn ghost" onClick={() => void executeCommand('app.openUrl', { url: install.url })}>
+          {t('quick.toolSite')}
+        </button>
+        <button
+          className="btn"
+          disabled={checking}
+          onClick={async () => {
+            setChecking(true)
+            await loadToolchains(true)
+            setChecking(false)
+            void runQuick(false)
+          }}
+        >
+          <RotateCcw size={13} /> {t('quick.toolRecheck')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** Nome e versione del compilatore usato, nell'intestazione dei risultati. */
+function ToolchainChip() {
+  const toolchain = useToolchain()
+  if (!toolchain?.available) return null
+  const name = toolchain.command?.split(/[\\/]/).pop()?.replace(/\.exe$/i, '') ?? ''
+  return (
+    <span className="quick-tool-chip" title={toolchain.command} data-testid="quick-toolchain">
+      {name} {toolchain.version}
+    </span>
+  )
+}
+
+/** Riquadro «Input»: ciò che il programma legge da tastiera (input(), scanf, cin, Scanner, read_line…). */
+function StdinBox() {
+  const language = useQuick((s) => s.language)
+  const text = useQuick((s) => s.stdin[s.language] ?? '')
+  const [open, setOpen] = useState(() => readLocal('easey.quick.stdin', '0') === '1')
+  if (!readsStdin(language)) return null
+  const toggle = () => {
+    setOpen(!open)
+    writeLocal('easey.quick.stdin', open ? '0' : '1')
+  }
+  return (
+    <section className={`quick-stdin${open ? ' open' : ''}`}>
+      <button className="quick-stdin-head" onClick={toggle} data-testid="quick-stdin-toggle" title={t('quick.stdinHint')}>
+        {open ? '▾' : '▸'} {t('quick.stdin')}
+        {!open && text && <span className="hint">{t('quick.stdinLines', { count: text.split('\n').filter(Boolean).length })}</span>}
+      </button>
+      {open && (
+        <textarea
+          value={text}
+          onChange={(e) => {
+            quick().setStdin(language, e.target.value)
+            scheduleAutoRun()
+          }}
+          placeholder={t('quick.stdinPlaceholder')}
+          spellCheck={false}
+          rows={4}
+          data-testid="quick-stdin"
+        />
+      )}
+    </section>
   )
 }
 
@@ -609,7 +720,7 @@ export function QuickPanel({ api }: IDockviewPanelProps) {
     })
     void quick().refreshSnippets()
     if (state.language === 'sql') void loadSqlSchema()
-    if (state.language === 'python') void ide.invoke('quick:prepare', 'python')
+    void prepareLanguage(state.language)
     editor.focus()
     // Prima esecuzione: si vede subito che cosa fa il codice.
     void runQuick(true)
@@ -678,11 +789,13 @@ export function QuickPanel({ api }: IDockviewPanelProps) {
             <span>{t('quick.output')}</span>
             {language === 'sql' ? <SqlSummary /> : <Summary />}
             <span className="spacer" />
+            <ToolchainChip />
             <button className="icon-btn" onClick={() => void copyQuick()} title={t('quick.copy')}>
               <Copy size={14} />
             </button>
           </header>
           {language === 'sql' ? <SqlOutput /> : language === 'html' ? <PageOutput /> : <CodeOutput />}
+          <StdinBox />
         </div>
       </div>
     </div>

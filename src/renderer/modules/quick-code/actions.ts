@@ -1,6 +1,6 @@
 // Azioni della Scrittura rapida sulla raccolta e sul documento: nuovo, apri, salva (anche copia),
 // rinomina, elimina, esporta, cambio di linguaggio. Le usano comandi, pulsanti e scorciatoie.
-import { QUICK_EXTENSIONS, type QuickLanguage } from '@shared/contracts/quick'
+import { QUICK_EXTENSIONS, QUICK_LANGUAGE_INFO, isNativeLanguage, type QuickLanguage } from '@shared/contracts/quick'
 import { ide } from '../../ipc'
 import { confirm, prompt } from '../../ui/dialogs'
 import { notify, notifyError } from '../../workbench/notifications'
@@ -8,9 +8,7 @@ import { t } from '../../i18n'
 import { quickEditor, replaceAll, switchLanguage } from './quick-editor'
 import { blankDoc, isDirty, quick, type QuickDoc } from './quick-store'
 import { workbench } from '../../workbench/store'
-import { cancelAutoRun, loadSqlSchema, runQuick } from './run'
-
-const LANGUAGE_LABELS: Record<QuickLanguage, string> = { javascript: 'JavaScript', typescript: 'TypeScript', python: 'Python', sql: 'SQL', html: 'HTML' }
+import { cancelAutoRun, loadSqlSchema, prepareLanguage, runQuick } from './run'
 
 function currentDoc(): { language: QuickLanguage; doc: QuickDoc } {
   const { language, docs } = quick()
@@ -18,17 +16,21 @@ function currentDoc(): { language: QuickLanguage; doc: QuickDoc } {
   return { language, doc: { ...docs[language], content } }
 }
 
+/** Inizio di un commento di riga per linguaggio (in C «#include» non è un commento!). */
+const COMMENT: Partial<Record<QuickLanguage, string>> = { python: '#', sql: '--', html: '<!--' }
+
 /** Titolo proposto: il primo commento del codice, altrimenti linguaggio + data e ora. */
 export function suggestTitle(content: string, language: QuickLanguage, now = new Date()): string {
-  const comment = /^\s*(?:\/\/|--|\/\*+|#|<!--)\s*(.+?)\s*(?:\*\/|-->)?\s*$/m.exec(content)?.[1]
+  const marker = COMMENT[language]?.replace(/[-]/g, '\\-') ?? '\\/\\/|\\/\\*+'
+  const comment = new RegExp(`^\\s*(?:${marker})\\s*(.+?)\\s*(?:\\*\\/|-->)?\\s*$`, 'm').exec(content)?.[1]
   const cleaned = comment
-    ?.replace(/^Scrittura rapida\s*·\s*\w+\s*[—-]\s*/i, '')
+    ?.replace(/^Scrittura rapida\s*·\s*[^—-]+?\s*[—-]\s*/i, '')
     .replace(/[.:;]+$/, '')
     .slice(0, 48)
     .trim()
   if (cleaned && cleaned.length >= 3) return cleaned
   const pad = (n: number) => String(n).padStart(2, '0')
-  return `${LANGUAGE_LABELS[language]} ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}.${pad(now.getMinutes())}`
+  return `${QUICK_LANGUAGE_INFO[language].title} ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}.${pad(now.getMinutes())}`
 }
 
 async function confirmDiscard(): Promise<boolean> {
@@ -43,7 +45,7 @@ export async function selectLanguage(language: QuickLanguage): Promise<void> {
   switchLanguage(language, quick().docs[language].content)
   quick().setLanguage(language)
   if (language === 'sql') await loadSqlSchema()
-  if (language === 'python') void ide.invoke('quick:prepare', 'python')
+  if (language === 'python' || isNativeLanguage(language)) void prepareLanguage(language)
   quickEditor()?.focus()
   // Si vede subito che cosa fa il codice di questo linguaggio (la pagina HTML, i risultati…).
   if (workbench().settings.quick.autoRun) void runQuick(true)
@@ -113,6 +115,7 @@ export async function openSnippet(id: string): Promise<void> {
       switchLanguage(snippet.language, snippet.content)
       quick().setLanguage(snippet.language)
       if (snippet.language === 'sql') await loadSqlSchema()
+      if (snippet.language === 'python' || isNativeLanguage(snippet.language)) void prepareLanguage(snippet.language)
     } else replaceAll(snippet.content)
     quickEditor()?.focus()
   } catch (error) {
