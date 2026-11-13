@@ -115,11 +115,57 @@ export function setVariable(css: string, name: string, value: string | null): st
   return setDeclarations(css, ':root', { [prop]: value })
 }
 
-/** Aggiunge un blocco di regole solo se il suo primo selettore non esiste già. */
+/** Chiave di una regola di primo livello: selettore, oppure @media/@keyframes con i suoi parametri. */
+function topLevelKey(node: postcss.ChildNode): string | null {
+  if (node.type === 'rule') return `rule:${node.selectors.map((s) => s.trim()).join(',')}`
+  if (node.type === 'atrule') {
+    // Una @media si confronta anche con i selettori che contiene: blocchi diversi possono avere la stessa @media.
+    const inner = (node.nodes ?? []).filter((n) => n.type === 'rule').map((n) => (n as Rule).selector.trim())
+    return `@${node.name}:${node.params.replace(/\s+/g, ' ').trim()}:${inner.join('|')}`
+  }
+  return null
+}
+
+/**
+ * Aggiunge le regole di un blocco una per una, saltando quelle che il foglio di stile ha già
+ * (stesso selettore): due blocchi che condividono una regola (es. `.lab-sezione`) non la duplicano,
+ * e le regole nuove arrivano anche se la prima c'era già.
+ */
 export function appendRulesOnce(css: string, rules: string): string {
-  const first = /^\s*([^{]+)\{/.exec(rules)?.[1]?.trim()
-  if (first && css.includes(`${first} {`)) return css
-  return `${css.replace(/\s*$/, '')}${css.trim() ? '\n\n' : ''}${rules.trim()}\n`
+  const incoming = safeParse(rules)
+  if (!incoming) return css
+  const existing = new Set<string>()
+  safeParse(css)?.each((node) => {
+    const key = topLevelKey(node)
+    if (key) existing.add(key)
+  })
+  const missing: string[] = []
+  incoming.each((node) => {
+    const key = topLevelKey(node)
+    if (key && existing.has(key)) return
+    if (key) existing.add(key)
+    node.raws.before = ''
+    missing.push(node.toString().trim())
+  })
+  if (!missing.length) return css
+  return `${css.replace(/\s*$/, '')}${css.trim() ? '\n\n' : ''}${missing.join('\n\n')}\n`
+}
+
+/** I quattro lati di margin/padding (alto, destra, basso, sinistra) da una scorciatoia CSS. */
+export function boxSides(value: string): [string, string, string, string] {
+  const parts = postcss.list.space(value.trim())
+  const [top = '', right = top, bottom = top, left = right] = parts
+  return [top, right, bottom, left]
+}
+
+/** La scorciatoia più corta per quattro lati; '' se sono tutti vuoti (un lato vuoto vale 0). */
+export function joinBoxSides(sides: [string, string, string, string]): string {
+  if (sides.every((s) => !s.trim())) return ''
+  const [top, right, bottom, left] = sides.map((s) => s.trim() || '0') as [string, string, string, string]
+  if (top === right && right === bottom && bottom === left) return top
+  if (top === bottom && right === left) return `${top} ${right}`
+  if (right === left) return `${top} ${right} ${bottom}`
+  return `${top} ${right} ${bottom} ${left}`
 }
 
 export function isColorValue(value: string): boolean {

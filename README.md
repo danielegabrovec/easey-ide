@@ -12,7 +12,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="Licenza MIT" src="https://img.shields.io/badge/licenza-MIT-6366f1"></a>
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4">
-  <img alt="Versione 1.2.0" src="https://img.shields.io/badge/versione-1.2.0-a855f7">
+  <img alt="Versione 1.3.0" src="https://img.shields.io/badge/versione-1.3.0-a855f7">
   <img alt="AI locale" src="https://img.shields.io/badge/AI-locale%20(Ollama%20%2F%20LM%20Studio)-f59e0b">
 </p>
 
@@ -96,6 +96,18 @@ appena cambiate si illuminano). Il modo migliore per capire cicli e funzioni.
 Costruisci la pagina **trascinando** titoli, pulsanti, immagini, moduli e sezioni pronte; scegli
 colori e caratteri da un pannello. Il codice HTML/CSS si aggiorna **solo dove serve** (il tuo codice
 non viene riformattato) e, se modifichi il codice, il disegno si aggiorna.
+
+Novità 1.3, per fare di più con meno clic:
+- **palette con ricerca** (scrivi «prezzi», «contatti», «domande»… e Invio inserisce) e riquadri con icona;
+- **sezioni pronte** nuove (caratteristiche, testimonianze, domande frequenti, invito all'azione, numeri,
+  squadra, contatti) e **pagine intere** in un clic (presentazione, portfolio, attività locale, contatti);
+- **stili pronti** adatti all'elemento selezionato: testi (titolo, sottotitolo, didascalia…), pulsanti
+  (pieno, contorno, pillola…), riquadri (scheda, vetro, in evidenza…) e disposizioni (in riga, in colonna,
+  al centro, griglie);
+- **temi del sito**: colori e caratteri come variabili CSS; i blocchi della palette li usano e si ricolorano;
+- **margini e spaziature lato per lato**, grassetto/corsivo/sottolineato, spaziatura delle lettere;
+- **copia e incolla lo stile** da un elemento all'altro (Ctrl+Alt+C / Ctrl+Alt+V o tasto destro);
+- **livelli** apribili e trascinabili per spostare un elemento prima, dopo o dentro un altro.
 
 ![Designer visuale](docs/screenshots/04-designer.png)
 
@@ -195,6 +207,7 @@ una lezione e ogni esercizio 🧪 un compito. Come scrivere un corso: [docs/CORS
 |---|---|
 | Autocompletamento in linea | scrivi: il suggerimento grigio si accetta con **Tab** |
 | Chat che conosce il tuo codice | Ctrl+Shift+A: file aperto, selezione ed errori vengono inviati come contesto |
+| Chiedi suggerimento (novità 1.3) | tasto destro → *Chiedi suggerimento…* o Ctrl+Alt+I: scrivi cosa ti serve, scegli dove va il codice (al cursore, righe selezionate, tutto il file) e confronti prima/dopo prima di applicarlo; anche nella Scrittura rapida |
 | Azioni rapide | tasto destro: *Spiega*, *Perché questo errore?*, *Proponi una correzione* (con confronto prima/dopo), *Aggiungi commenti*, *Scrivi test* |
 | SQL da descrizione | nel SQL Lab: «i clienti con più di 3 ordini» → query sulle tue tabelle reali, mostrata prima di eseguirla |
 | Modalità tutor | l'AI guida con domande e indizi invece di dare la soluzione |

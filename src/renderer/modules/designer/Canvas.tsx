@@ -6,7 +6,8 @@ import { FREE_CANVAS_CLASS, hasClass, isFreeElement, type ElementInfo } from '@s
 import type { InsertPosition } from '@shared/designer/html-edit'
 import { showContextMenu } from '../../ui/ContextMenu'
 import { t } from '../../i18n'
-import { duplicateSelected, insertBlock, moveSelectedTo, removeSelected, setElementText, setFreeBox, setStyles } from './actions'
+import { notify } from '../../workbench/notifications'
+import { copyStyle, duplicateSelected, endOfBody, insertBlock, moveSelectedTo, pasteStyle, removeSelected, setElementText, setFreeBox, setStyles } from './actions'
 import { redo, undo } from './document'
 import { keyOf, resolveSelection, useDesigner } from './designer-store'
 import { registerFrame } from './frame-access'
@@ -50,6 +51,11 @@ export function writeCanvas(iframe: HTMLIFrameElement | null, html: string): voi
     }
   }
   iframe.srcdoc = html
+}
+
+export function copyStyleWithNotice(element: ElementInfo): void {
+  const count = copyStyle(element)
+  notify(count ? t('designer.styleCopied', { count }) : t('designer.styleEmpty'), count ? 'success' : 'info')
 }
 
 function rectOf(element: Element | null): Rect | null {
@@ -339,7 +345,9 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     const placement = dropPlacement(x, y)
     if (!placement) return
     const target = placement.target
-    void insertBlock(blockId, 'freeIn' in target ? target : { targetId: target.id, where: target.where })
+    // Una pagina intera va sempre in fondo alla pagina, anche se la si lascia sopra una tavola libera.
+    if (blockId.startsWith('pagina-') && page) void insertBlock(blockId, endOfBody(page))
+    else void insertBlock(blockId, 'freeIn' in target ? target : { targetId: target.id, where: target.where })
   }
 
   const onKeyDown = (event: React.KeyboardEvent) => {
@@ -352,6 +360,13 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     } else if (ctrl && event.key.toLowerCase() === 'y') {
       event.preventDefault()
       redo()
+    } else if (ctrl && event.altKey && event.key.toLowerCase() === 'c' && selected) {
+      // Copia e incolla dello stile (non dell'elemento), come negli editor di grafica.
+      event.preventDefault()
+      copyStyleWithNotice(selected)
+    } else if (ctrl && event.altKey && event.key.toLowerCase() === 'v') {
+      event.preventDefault()
+      void pasteStyle()
     } else if (ctrl && event.key.toLowerCase() === 'd') {
       event.preventDefault()
       void duplicateSelected()
@@ -385,6 +400,9 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       ...(element.leafText ? [{ label: t('designer.editText'), run: () => startEditing(element) }] : []),
       { label: t('designer.duplicate'), run: () => void duplicateSelected() },
       ...(parent && parent.tag !== 'html' ? [{ label: t('designer.selectParent'), run: () => select(parent) }] : []),
+      'separator' as const,
+      { label: t('designer.copyStyle'), run: () => copyStyleWithNotice(element) },
+      ...(useDesigner.getState().styleClipboard > 0 ? [{ label: t('designer.pasteStyle'), run: () => void pasteStyle() }] : []),
       ...(isFreeElement(page!, element.id)
         ? [
             { label: t('designer.bringFront'), run: () => void setStyles({ 'z-index': '10' }) },

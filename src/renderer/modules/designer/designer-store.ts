@@ -23,6 +23,12 @@ interface DesignerState {
   targetClass: string
   leftTab: 'palette' | 'layers'
   rightTab: 'style' | 'element' | 'site'
+  /** Ricerca nella palette (resta mentre si passa ai Livelli e si torna). */
+  paletteQuery: string
+  /** Quante proprietà ha lo stile copiato (0 = niente da incollare). */
+  styleClipboard: number
+  setPaletteQuery: (query: string) => void
+  setStyleClipboard: (count: number) => void
   setPage: (path: string | null) => void
   setParsed: (html: HtmlModel, css: Record<string, string>, stylesheet: string | null) => void
   select: (key: SelectionKey | null) => void
@@ -55,6 +61,10 @@ export const useDesigner = create<DesignerState>((set) => ({
   targetClass: '',
   leftTab: 'palette',
   rightTab: 'style',
+  paletteQuery: '',
+  styleClipboard: 0,
+  setPaletteQuery: (paletteQuery) => set({ paletteQuery }),
+  setStyleClipboard: (styleClipboard) => set({ styleClipboard }),
   setPage: (path) => set({ path, html: null, selection: null, hoverId: null }),
   setParsed: (html, css, stylesheet) => set({ html, css, stylesheet }),
   select: (selection) => set({ selection }),

@@ -112,6 +112,60 @@ try {
   await wait(300)
   await run.shot('05-finale')
 
+  // Palette: ricerca e Invio = inserisce il primo risultato (dopo la selezione)
+  await clickIn('#pulsante')
+  await page.getByTestId('designer-palette-search').fill('domande')
+  const onlyFaq = await until(async () => (await page.locator('[data-testid="designer-palette"] [data-block]').count()) === 1, 3000)
+  check('palette: la ricerca «domande» trova solo le Domande frequenti', !!onlyFaq, String(await page.locator('[data-testid="designer-palette"] [data-block]').count()))
+  await page.getByTestId('designer-palette-search').press('Enter')
+  check('palette: Invio inserisce la sezione con le sue regole', !!(await until(() => html().includes('lab-faq') && css().includes('.lab-faq summary {'), 8000)))
+  await page.getByTestId('designer-palette-search').fill('')
+
+  // Stili pronti: «Titolo» sul titolo
+  await clickIn('#titolo')
+  await page.locator('[data-preset="text-titolo"]').click()
+  check('stili pronti: «Titolo» scrive più proprietà insieme', !!(await until(() => /#titolo \{[^}]*font-weight: 700;[^}]*letter-spacing: -0\.01em;/.test(css()), 8000)), css().slice(-300))
+
+  // Padding lato per lato
+  await clickIn('#pulsante')
+  await page.getByTestId('style-padding-top').fill('40px')
+  await page.getByTestId('style-padding-top').press('Enter')
+  check('padding: il solo lato alto diventa la scorciatoia «40px 0 0»', !!(await until(() => /#pulsante \{[^}]*padding: 40px 0 0;/.test(css()), 8000)), css().slice(-200))
+
+  // Copia stile dal titolo e incolla sul pulsante
+  await clickIn('#titolo')
+  await page.getByTestId('style-copy').click()
+  await clickIn('#pulsante')
+  await page.getByTestId('style-paste').click()
+  check('copia stile: il pulsante riceve lo stile del titolo', !!(await until(() => /#pulsante \{[^}]*letter-spacing: -0\.01em;/.test(css()), 8000)), css().slice(-300))
+
+  // Tema pronto dalla scheda Sito
+  await page.getByTestId('insp-tab-site').click()
+  await page.locator('[data-theme-id="foresta"]').click()
+  check('tema: variabili e pagina scritte nel CSS', !!(await until(() => css().includes('--colore-primario: #15803d;') && /body \{[^}]*background: var\(--colore-sfondo\)/.test(css()), 8000)), css().slice(0, 300))
+  check('tema: il canvas usa i colori nuovi', !!(await until(() => page.evaluate(() => getComputedStyle(document.querySelector('[data-testid="designer-frame"]').contentDocument.body).backgroundColor === 'rgb(251, 253, 248)'), 5000)))
+  check('tema: la scheda Sito lo mostra come attivo', !!(await until(async () => (await page.locator('[data-theme-id="foresta"].active').count()) === 1, 3000)))
+  await run.shot('07-tema')
+  await page.getByTestId('insp-tab-style').click()
+
+  // Pagina intera dalla palette: in fondo al body, prima degli script
+  await page.getByTestId('designer-palette-search').fill('pagina contatti')
+  await page.locator('[data-block="pagina-contatti"]').click()
+  const pageAdded = await until(() => {
+    const text = html()
+    const start = text.indexOf('class="lab-pagina"')
+    return start > 0 && text.indexOf('lab-faq', start) > start && text.indexOf('lab-piede', start) > start && start < text.indexOf('<script src="script.js">')
+  }, 8000)
+  check('pagina intera: intestazione, contatti, domande e piè di pagina in fondo al body', !!pageAdded)
+  await page.getByTestId('designer-palette-search').fill('')
+
+  // Livelli: trascino il titolo prima del pulsante
+  await page.getByTestId('designer-layers-tab').click()
+  await page.locator('[data-layer="titolo"]').dragTo(page.locator('[data-layer="pulsante"]'), { targetPosition: { x: 30, y: 2 } })
+  check('livelli: il titolo trascinato torna prima del pulsante', !!(await until(() => html().indexOf('<h1 id="titolo">') < html().indexOf('<button id="pulsante"'), 8000)))
+  await run.shot('08-livelli')
+  await page.locator('.designer-left .insp-tabs button').first().click()
+
   // Modello "Sito con il designer": pagina a sezioni con una tavola libera.
   await run.newProject('web-designer', 'Sito pronto')
   await page.getByTestId('open-designer').click()

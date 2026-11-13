@@ -1,10 +1,12 @@
 // Azioni del designer: ognuna diventa una modifica chirurgica di HTML e/o CSS in un unico passo annullabile.
 import { blockById } from '@shared/designer/blocks'
 import { appendRulesOnce, BREAKPOINTS, getDeclarations, setDeclarations } from '@shared/designer/css-edit'
+import { copyableStyles, themeRules, type SiteTheme, type StylePatch } from '@shared/designer/presets'
 import {
   duplicateElement,
   ensureId,
   insertHtml,
+  isInside,
   moveElement,
   removeElement,
   setAttribute,
@@ -166,6 +168,49 @@ export function moveSelectedTo(targetId: number, where: InsertPosition): Promise
   })
 }
 
+/** Sposta un elemento qualunque (es. trascinato nei Livelli) e, se ha un id, lo seleziona. */
+export function moveNode(id: number, targetId: number, where: InsertPosition): Promise<void> {
+  const page = useDesigner.getState().html
+  const element = page?.elements[id]
+  if (!page || !element || id === targetId || ['html', 'head', 'body'].includes(element.tag)) return Promise.resolve()
+  // Non si può mettere un elemento dentro sé stesso o un suo discendente.
+  if (isInside(page, id, targetId)) return Promise.resolve()
+  const key = element.attrs['id']
+  return withPage(({ editHtml }) => {
+    const html = editHtml((h) => moveElement(h, id, targetId, where))
+    const moved = key ? findByAttrId(html, key) : null
+    useDesigner.getState().selectElement(moved)
+  })
+}
+
+// ---------------------------------------------------------------- stili pronti, temi, copia stile
+
+export function applyPreset(styles: StylePatch): Promise<void> {
+  return setStyles(styles)
+}
+
+/** Un tema = variabili dei colori e dei caratteri in :root + pagina, titoli e link che le usano. */
+export function applyTheme(theme: SiteTheme): Promise<void> {
+  return withPage(async ({ editCss }) => {
+    await editCss((css) => themeRules(theme).reduce((next, rule) => setDeclarations(next, rule.selector, rule.styles), css))
+  })
+}
+
+let copiedStyle: Record<string, string> | null = null
+
+/** «Copia stile»: le proprietà del bersaglio scelto, senza posizione e livello. Restituisce quante sono. */
+export function copyStyle(element: ElementInfo): number {
+  copiedStyle = copyableStyles(currentRule(element).declarations)
+  const count = Object.keys(copiedStyle).length
+  useDesigner.getState().setStyleClipboard(count)
+  return count
+}
+
+export function pasteStyle(): Promise<void> {
+  if (!copiedStyle || !Object.keys(copiedStyle).length) return Promise.resolve()
+  return setStyles(copiedStyle)
+}
+
 /** Posizione e dimensioni di un elemento in una tavola libera (px). */
 export function setFreeBox(box: { left?: number; top?: number; width?: number; height?: number }): Promise<void> {
   const px = (v: number | undefined) => (v === undefined ? undefined : `${Math.round(v)}px`)
@@ -179,6 +224,15 @@ function withRootId(html: string, id: string): string {
 }
 
 export type Placement = { targetId: number | null; where: InsertPosition } | { freeIn: number; x: number; y: number }
+
+/** In fondo alla pagina ma prima degli <script> finali: il contenuto nuovo resta sopra il codice. */
+export function endOfBody(html: HtmlModel): Placement {
+  if (html.body === null) return { targetId: null, where: 'inside-end' }
+  const children = html.elements[html.body]!.children
+  let first = children.length
+  while (first > 0 && html.elements[children[first - 1]!]!.tag === 'script') first--
+  return first < children.length ? { targetId: children[first]!, where: 'before' } : { targetId: html.body, where: 'inside-end' }
+}
 
 export function insertBlock(blockId: string, placement: Placement, overrides?: { html?: string }): Promise<void> {
   const block = blockById(blockId)

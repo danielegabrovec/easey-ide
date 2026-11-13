@@ -1312,6 +1312,192 @@
   height: 22px;
 }
 
+/* Palette: ricerca, riquadri con icona, righe per sezioni e pagine */
+.palette-search {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 6px 2px;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  color: var(--text-faint);
+}
+
+.palette-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 6px 0;
+  outline: none;
+}
+
+.palette-search:focus-within {
+  border-color: var(--accent);
+}
+
+.designer-palette .palette-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.designer-palette .palette-items.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.designer-palette .palette-item.tile {
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 58px;
+  padding: 6px 4px;
+  text-align: center;
+  font-size: 11.5px;
+  line-height: 1.2;
+  border-color: var(--border);
+  background: var(--bg);
+}
+
+.designer-palette .palette-item.tile:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.designer-palette .palette-item svg {
+  flex: none;
+  color: var(--accent);
+}
+
+/* Livelli: rami apribili e trascinamento */
+.layer-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.layer-toggle {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.layer-row.drop-before {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+
+.layer-row.drop-after {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.layer-row.drop-inside-end {
+  outline: 1px dashed var(--accent);
+  outline-offset: -1px;
+  background: var(--accent-soft);
+}
+
+/* Ispettore: stili pronti, temi, lati di margin/padding */
+.preset-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.designer-inspector .chip {
+  padding: 3px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.designer-inspector .chip:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.theme-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.theme-card:hover,
+.theme-card.active {
+  border-color: var(--accent);
+}
+
+.theme-card.active {
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.theme-swatches {
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.theme-swatches i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+
+.theme-name {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.box-sides {
+  display: grid;
+  grid-template-columns: auto repeat(4, minmax(0, 1fr));
+  align-items: end;
+  gap: 4px;
+}
+
+.box-sides .bm-label {
+  align-self: center;
+}
+
 .designer-host {
   position: relative;
   overflow: hidden;

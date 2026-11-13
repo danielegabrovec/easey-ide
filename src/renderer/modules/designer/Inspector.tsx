@@ -1,13 +1,15 @@
 // Ispettore del designer: stili (con bersaglio: elemento, classe o in linea; e punto di interruzione),
 // proprietà dell'elemento e stile generale del sito (variabili, caratteri, sfondo).
 import { useEffect, useState, type ReactNode } from 'react'
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, ArrowUpToLine, ArrowDownToLine, Copy, CornerLeftUp, ImagePlus, Trash2 } from 'lucide-react'
-import { getDeclarations, getVariables, isColorValue } from '@shared/designer/css-edit'
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, ArrowUpToLine, ArrowDownToLine, Bold, ClipboardPaste, Copy, CornerLeftUp, ImagePlus, Italic, Paintbrush, Trash2, Underline } from 'lucide-react'
+import { boxSides, getDeclarations, getVariables, isColorValue, joinBoxSides } from '@shared/designer/css-edit'
 import { isFreeElement, type ElementInfo } from '@shared/designer/html-model'
+import { activeTheme, presetGroupsFor, PRESETS, THEMES, type PresetGroup } from '@shared/designer/presets'
 import { dirnameOf, relativeTo } from '@shared/paths'
 import { ide } from '../../ipc'
 import { t } from '../../i18n'
-import { currentRule, duplicateSelected, removeSelected, renameId, setElementAttribute, setElementText, setSiteRule, setStyles } from './actions'
+import { applyPreset, applyTheme, currentRule, duplicateSelected, pasteStyle, removeSelected, renameId, setElementAttribute, setElementText, setSiteRule, setStyles } from './actions'
+import { copyStyleWithNotice } from './Canvas'
 import { resolveSelection, useDesigner, type StyleTarget } from './designer-store'
 import { computedStyle, toHex } from './frame-access'
 
@@ -96,6 +98,70 @@ function SelectField({ label, value, options, onCommit, testId }: { label: strin
   )
 }
 
+const SIDES = ['top', 'right', 'bottom', 'left'] as const
+const SIDE_ARROWS = ['↑', '→', '↓', '←']
+
+/** Margin o padding lato per lato (come il riquadro dei margini degli editor visuali); scrive la scorciatoia più corta. */
+function BoxSidesField({ prop, value, hint, onCommit, testId }: { prop: 'margin' | 'padding'; value: string; hint: (p: string) => string; onCommit: (value: string) => void; testId: string }) {
+  const sides = boxSides(value)
+  return (
+    <div className="box-sides" data-testid={testId}>
+      <span className="bm-label">{prop}</span>
+      {SIDES.map((side, index) => (
+        <TextField
+          key={side}
+          label={SIDE_ARROWS[index]!}
+          value={value ? sides[index] : ''}
+          placeholder={hint(`${prop}-${side}`)}
+          onCommit={(next) => {
+            const updated = [...(value ? sides : ['', '', '', ''])] as [string, string, string, string]
+            updated[index] = next
+            onCommit(joinBoxSides(updated))
+          }}
+          testId={`${testId}-${side}`}
+        />
+      ))}
+    </div>
+  )
+}
+
+const PRESET_TITLES: Record<PresetGroup, 'designer.presetsText' | 'designer.presetsButton' | 'designer.presetsBox' | 'designer.presetsLayout'> = {
+  text: 'designer.presetsText',
+  button: 'designer.presetsButton',
+  box: 'designer.presetsBox',
+  layout: 'designer.presetsLayout'
+}
+
+/** Stili pronti adatti all'elemento: un clic applica più proprietà insieme (si annulla con Ctrl+Z). */
+function PresetChips({ groups }: { groups: PresetGroup[] }) {
+  if (!groups.length) return null
+  return (
+    <Section title={t('designer.presets')}>
+      {groups.map((group) => (
+        <div key={group} className="preset-group">
+          <span className="hint">{t(PRESET_TITLES[group])}</span>
+          <div className="preset-chips">
+            {PRESETS[group].map((preset) => (
+              <button
+                key={preset.id}
+                className="chip"
+                onClick={() => void applyPreset(preset.styles)}
+                data-preset={`${group}-${preset.id}`}
+                title={Object.entries(preset.styles)
+                  .filter(([, v]) => v !== null)
+                  .map(([k, v]) => `${k}: ${v}`)
+                  .join('\n')}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </Section>
+  )
+}
+
 function StyleTab({ element }: { element: ElementInfo }) {
   const page = useDesigner((s) => s.html)!
   const target = useDesigner((s) => s.target)
@@ -103,6 +169,7 @@ function StyleTab({ element }: { element: ElementInfo }) {
   const breakpoint = useDesigner((s) => s.breakpoint)
   const css = useDesigner((s) => s.css)
   const stylesheet = useDesigner((s) => s.stylesheet)
+  const styleClipboard = useDesigner((s) => s.styleClipboard)
   void css
   const { selector, declarations } = currentRule(element)
   const computed = computedStyle(element.id)
@@ -145,7 +212,17 @@ function StyleTab({ element }: { element: ElementInfo }) {
           {selector ?? t('designer.idWillBeAdded')}
           {breakpoint !== 'desktop' ? ` · ${breakpoint === 'tablet' ? t('designer.bpTablet') : t('designer.bpPhone')}` : ''}
         </code>
+        <div className="insp-buttons">
+          <button className="btn ghost" onClick={() => copyStyleWithNotice(element)} title={`${t('designer.copyStyle')} (Ctrl+Alt+C)`} data-testid="style-copy">
+            <Paintbrush size={13} /> {t('designer.copyStyle')}
+          </button>
+          <button className="btn ghost" disabled={styleClipboard === 0} onClick={() => void pasteStyle()} title={`${t('designer.pasteStyle')} (Ctrl+Alt+V)`} data-testid="style-paste">
+            <ClipboardPaste size={13} /> {t('designer.pasteStyle')}
+          </button>
+        </div>
       </div>
+
+      <PresetChips groups={presetGroupsFor(element.tag, element.attrs)} />
 
       {free && (
         <Section title={t('designer.position')}>
@@ -174,6 +251,23 @@ function StyleTab({ element }: { element: ElementInfo }) {
           <TextField label={t('designer.size')} value={get('font-size')} placeholder={hint('font-size')} onCommit={set('font-size')} testId="style-font-size" />
           <SelectField label={t('designer.weight')} value={get('font-weight')} options={[['300', 'Leggero'], ['400', 'Normale'], ['600', 'Seminegretto'], ['700', 'Grassetto'], ['900', 'Nero']]} onCommit={set('font-weight')} />
           <TextField label={t('designer.lineHeight')} value={get('line-height')} placeholder={hint('line-height')} onCommit={set('line-height')} />
+          <TextField label={t('designer.letterSpacing')} value={get('letter-spacing')} placeholder={hint('letter-spacing')} onCommit={set('letter-spacing')} />
+        </div>
+        <div className="insp-buttons">
+          {(
+            [
+              ['font-weight', '700', /^(bold|[6-9]00)$/, <Bold key="b" size={14} />, t('designer.bold')],
+              ['font-style', 'italic', /^italic$/, <Italic key="i" size={14} />, t('designer.italic')],
+              ['text-decoration', 'underline', /underline/, <Underline key="u" size={14} />, t('designer.underline')]
+            ] as [string, string, RegExp, ReactNode, string][]
+          ).map(([prop, on, test, icon, title]) => {
+            const active = test.test(get(prop) || hint(prop))
+            return (
+              <button key={prop} className={`icon-btn${active ? ' active' : ''}`} title={title} onClick={() => setStyles({ [prop]: active ? (prop === 'font-weight' ? '400' : 'none') : on })} data-testid={`style-${prop}`}>
+                {icon}
+              </button>
+            )
+          })}
         </div>
         <ColorField label={t('designer.color')} value={get('color')} computed={hint('color')} onCommit={set('color')} swatches={swatches} testId="style-color" />
         <div className="insp-buttons">
@@ -222,11 +316,9 @@ function StyleTab({ element }: { element: ElementInfo }) {
 
       <Section title={t('designer.spacing')}>
         <div className="box-model">
-          <span className="bm-label">margin</span>
-          <TextField label="" value={get('margin')} placeholder={['margin-top', 'margin-right', 'margin-bottom', 'margin-left'].map(hint).join(' ')} onCommit={set('margin')} wide />
+          <BoxSidesField prop="margin" value={get('margin')} hint={hint} onCommit={(v) => setStyles({ margin: v || null, 'margin-top': null, 'margin-right': null, 'margin-bottom': null, 'margin-left': null })} testId="style-margin" />
           <div className="bm-inner">
-            <span className="bm-label">padding</span>
-            <TextField label="" value={get('padding')} placeholder={['padding-top', 'padding-right', 'padding-bottom', 'padding-left'].map(hint).join(' ')} onCommit={set('padding')} testId="style-padding" wide />
+            <BoxSidesField prop="padding" value={get('padding')} hint={hint} onCommit={(v) => setStyles({ padding: v || null, 'padding-top': null, 'padding-right': null, 'padding-bottom': null, 'padding-left': null })} testId="style-padding" />
           </div>
         </div>
         <div className="insp-buttons">
@@ -320,8 +412,26 @@ function SiteTab() {
   const variables = getVariables(source)
   const body = getDeclarations(source, 'body')
   const [name, setName] = useState('')
+  const current = activeTheme(variables)
   return (
     <div className="insp-body">
+      <Section title={t('designer.themes')}>
+        <div className="theme-grid">
+          {THEMES.map((theme) => (
+            <button key={theme.id} className={`theme-card${current?.id === theme.id ? ' active' : ''}`} onClick={() => void applyTheme(theme)} data-theme-id={theme.id} title={t('designer.themeApply', { name: theme.label })}>
+              <span className="theme-swatches" style={{ background: theme.background }}>
+                <i style={{ background: theme.primary }} />
+                <i style={{ background: theme.secondary }} />
+                <i style={{ background: theme.text }} />
+              </span>
+              <span className="theme-name" style={{ fontFamily: theme.headingFont }}>
+                {theme.label}
+              </span>
+            </button>
+          ))}
+        </div>
+        <span className="hint">{t('designer.themesHint')}</span>
+      </Section>
       <Section title={t('designer.siteColors')}>
         {Object.entries(variables).map(([variable, value]) =>
           isColorValue(value) && !value.startsWith('var(') ? (
