@@ -50,19 +50,65 @@ try {
   check('nodi: esempio generato', !!(await until(() => read('logica.generato.js').includes('textContent = "Ciao dai nodi!"'), 10000)))
 
   // 5. Aggiungo "Scrivi in console" e lo collego dopo "Imposta il testo"
+  await page.waitForTimeout(700) // adattamento iniziale della vista
+  const viewport = () => page.locator('.react-flow__viewport').getAttribute('style')
+  const viewBefore = await viewport()
   await page.locator('[data-node-type="console"]').click()
   const consoleNode = page.locator('.react-flow__node:has([data-vnode="console"])')
   await consoleNode.waitFor({ timeout: 5000 })
-  await page.waitForTimeout(600) // la vista si riadatta al nuovo nodo (animazione)
-  const source = await page.locator('.react-flow__node[data-id="scrivi"] .react-flow__handle[data-handleid="poi"]').boundingBox()
-  const target = await consoleNode.locator('.react-flow__handle[data-handleid="in"]').boundingBox()
-  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2)
-  await page.mouse.down()
-  await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 10 })
-  await page.mouse.up()
-  const linked = await until(() => /textContent = "Ciao dai nodi!";\n(?:\s*__labStep\("console-[^"]+"\);\n)?\s*console\.log\("ciao"\);/.test(read('logica.generato.js')), 8000)
+  await page.waitForTimeout(500)
+  check('nodi: aggiungere un nodo non fa saltare la vista (P1-7)', (await viewport()) === viewBefore, `${viewBefore} → ${await viewport()}`)
+  const canvasBox = await page.locator('.vn-canvas').boundingBox()
+  const nodeBox = await consoleNode.boundingBox()
+  const nodeCentre = { x: nodeBox.x + nodeBox.width / 2, y: nodeBox.y + nodeBox.height / 2 }
+  check(
+    'nodi: il nodo nuovo nasce al centro della vista',
+    Math.abs(nodeCentre.x - (canvasBox.x + canvasBox.width / 2)) < canvasBox.width / 4 && Math.abs(nodeCentre.y - (canvasBox.y + canvasBox.height / 2)) < canvasBox.height / 4,
+    JSON.stringify({ nodeCentre, canvasBox })
+  )
+  const handle = (node, id) => node.locator(`.react-flow__handle[data-handleid="${id}"]`).boundingBox()
+  const scrivi = page.locator('.react-flow__node[data-id="scrivi"]')
+  const wireDrag = async (from, to) => {
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(to.x + (to.width ?? 0) / 2, to.y + (to.height ?? 0) / 2, { steps: 10 })
+    await page.mouse.up()
+  }
+  await wireDrag(await handle(scrivi, 'poi'), await handle(consoleNode, 'in'))
+  const consoleLinked = () => /textContent = "Ciao dai nodi!";\n(?:\s*__labStep\("console-[^"]+"\);\n)?\s*console\.log\("ciao"\);/.test(read('logica.generato.js'))
+  const linked = await until(consoleLinked, 8000)
   check('nodi: collegamento di flusso col mouse genera il passo successivo', !!linked, read('logica.generato.js').slice(-250))
   await run.shot('03-nodi')
+
+  // P1-6: un secondo filo dallo stesso «poi» sostituisce il primo (l'ordine si vede sempre).
+  const wiresFromPoi = () => page.locator('.react-flow__edge[data-id^="scrivi:poi->"]').count()
+  await page.locator('[data-node-type="messaggio"]').click()
+  const messageNode = page.locator('.react-flow__node:has([data-vnode="messaggio"])')
+  await messageNode.waitFor({ timeout: 5000 })
+  await page.waitForTimeout(300)
+  await wireDrag(await handle(scrivi, 'poi'), await handle(messageNode, 'in'))
+  check('nodi: un’uscita «poi» ha un solo filo', !!(await until(async () => (await wiresFromPoi()) === 1 && /alert\(/.test(read('logica.generato.js')) && !/console\.log\("ciao"\)/.test(read('logica.generato.js')), 8000)), `${await wiresFromPoi()} fili`)
+
+  // Ctrl+Z: torna il filo verso la console; Ctrl+Y lo rifà; di nuovo Ctrl+Z.
+  await page.locator('.vn-canvas .react-flow__pane').click({ position: { x: 20, y: 20 } })
+  await page.keyboard.press('Control+Z')
+  check('nodi: Ctrl+Z annulla l’ultimo collegamento', !!(await until(consoleLinked, 8000)), read('logica.generato.js').slice(-200))
+  await page.keyboard.press('Control+Y')
+  check('nodi: Ctrl+Y lo rifà', !!(await until(() => /alert\(/.test(read('logica.generato.js')) && !consoleLinked(), 8000)))
+  await page.keyboard.press('Control+Z')
+  await page.keyboard.press('Control+Z')
+  check('nodi: Ctrl+Z due volte toglie anche il nodo aggiunto', !!(await until(async () => (await messageNode.count()) === 0 && consoleLinked(), 8000)))
+
+  // Filo lasciato nel vuoto: menu dei nodi compatibili, il nodo scelto nasce già collegato.
+  const consoleOut = await handle(consoleNode, 'poi')
+  await wireDrag(consoleOut, { x: consoleOut.x + 160, y: consoleOut.y + 140 })
+  const menu = page.locator('.context-menu')
+  const menuShown = await until(async () => (await menu.count()) === 1, 3000)
+  check('nodi: filo nel vuoto → menu dei nodi compatibili', !!menuShown)
+  if (menuShown) {
+    await menu.getByText('Mostra un messaggio', { exact: true }).click()
+    check('nodi: il nodo scelto nasce collegato al filo', !!(await until(() => /console\.log\("ciao"\);\n(?:\s*__labStep\("messaggio-[^"]+"\);\n)?\s*alert\(/.test(read('logica.generato.js')), 8000)), read('logica.generato.js').slice(-200))
+  }
 
   // 6. Esecuzione e passo evidenziato
   await page.getByTestId('nodes-editor').getByTestId('visual-run').click()

@@ -2,9 +2,11 @@
 // l'ordine delle azioni; i dati (fili colorati) portano valori nei parametri. Il codice si genera accanto.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { IDockviewPanelProps } from 'dockview'
-import { Handle, MarkerType, Position, ReactFlowProvider, useEdges, useEdgesState, useNodesState, useReactFlow, type Connection, type Edge, type Node, type NodeProps } from '@xyflow/react'
+import { Handle, MarkerType, Position, ReactFlowProvider, useEdges, useEdgesState, useNodesState, useReactFlow, type Connection, type Edge, type FinalConnectionState, type Node, type NodeProps } from '@xyflow/react'
 import { basenameOf } from '@shared/paths'
+import { compatibleNodes, connectWire, History, reconnectWire, wireId } from '@shared/visual/graph-edit'
 import { generateNodesCode, NODE_SPECS, specOf, type NodeCategory, type NodeSpec } from '@shared/visual/nodes'
+import { showContextMenu } from '../../ui/ContextMenu'
 import { generatedPath, type ExportedFunction, type NodesProgram, type VisualProgram } from '@shared/visual/program'
 import { GraphCanvas } from '../../graph-canvas/GraphCanvas'
 import { on } from '../../workbench/events'
@@ -15,6 +17,10 @@ import { loadSymbols, readProgram, writeProgram, type ProjectSymbols } from './p
 import { VisualToolbar } from './VisualToolbar'
 
 type FlowNode = Node<{ type: string; values: Record<string, string>; active?: boolean }, 'visual'>
+interface Snapshot {
+  nodes: FlowNode[]
+  edges: Edge[]
+}
 
 const CATEGORY_LABEL: Record<NodeCategory, string> = { evento: 'Eventi', azione: 'Azioni', controllo: 'Controllo', valore: 'Valori' }
 
@@ -130,6 +136,7 @@ function Editor({ path }: { path: string }) {
   const [loaded, setLoaded] = useState(false)
   const flow = useReactFlow()
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const canvasRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     void Promise.all([readProgram(path, 'nodi'), loadSymbols()]).then(([p, s]) => {
@@ -178,14 +185,51 @@ function Editor({ path }: { path: string }) {
     })
   }, [setNodes])
 
-  const update = useCallback((id: string, name: string, value: string) => setNodes((list) => list.map((n) => (n.id === id ? { ...n, data: { ...n.data, values: { ...n.data.values, [name]: value } } } : n))), [setNodes])
+  // ---------------------------------------------------------------- Annulla / Ripeti (Ctrl+Z, Ctrl+Y)
+  const history = useRef(new History<Snapshot>())
+  const live = useRef<Snapshot>({ nodes: [], edges: [] })
+  live.current = { nodes, edges }
+  const lastField = useRef<{ key: string; at: number } | null>(null)
+  /** Istantanea dello stato com'è ora, prima di cambiarlo. */
+  const remember = useCallback(() => history.current.record({ nodes: live.current.nodes.map((n) => ({ ...n, data: { ...n.data, active: false } })), edges: live.current.edges }), [])
+  const restore = (snapshot: Snapshot | null) => {
+    if (!snapshot) return
+    setNodes(snapshot.nodes)
+    setEdges(snapshot.edges)
+  }
+  const undo = () => restore(history.current.undo(live.current))
+  const redo = () => restore(history.current.redo(live.current))
 
-  const addNode = (type: string, position?: { x: number; y: number }) => {
+  const update = useCallback(
+    (id: string, name: string, value: string) => {
+      // Scrivendo in un campo si salva un passo solo all'inizio (non a ogni lettera).
+      const key = `${id}.${name}`
+      const now = Date.now()
+      if (lastField.current?.key !== key || now - lastField.current.at > 1500) remember()
+      lastField.current = { key, at: now }
+      setNodes((list) => list.map((n) => (n.id === id ? { ...n, data: { ...n.data, values: { ...n.data.values, [name]: value } } } : n)))
+    },
+    [setNodes, remember]
+  )
+
+  /** Centro della parte visibile del canvas, in coordinate del grafo (i nodi nuovi nascono lì). */
+  const viewCenter = () => {
+    const box = canvasRef.current?.getBoundingClientRect()
+    const centre = box ? { x: box.left + box.width / 2, y: box.top + box.height / 2 } : { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+    // Uno accanto all'altro, non tutti sullo stesso punto.
+    const shift = (added.current++ % 6) * 24
+    const point = flow.screenToFlowPosition(centre)
+    return { x: point.x - 90 + shift, y: point.y - 40 + shift }
+  }
+  const added = useRef(0)
+
+  const addNode = (type: string, position?: { x: number; y: number }): string => {
     const spec = specOf(type)!
     const values = Object.fromEntries(spec.fields.filter((f) => f.default !== undefined).map((f) => [f.name, f.default!]))
-    const center = position ?? flow.screenToFlowPosition({ x: window.innerWidth / 2.4, y: window.innerHeight / 2.6 })
-    const id = `${type}-${Date.now().toString(36)}`
-    setNodes((list) => [...list, { id, type: 'visual', position: center, data: { type, values } }])
+    const id = `${type}-${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`
+    remember()
+    setNodes((list) => [...list, { id, type: 'visual', position: position ?? viewCenter(), data: { type, values } }])
+    return id
   }
 
   const isValidConnection = (connection: Connection | Edge) => {
@@ -196,18 +240,86 @@ function Editor({ path }: { path: string }) {
     return exec ? connection.targetHandle === 'in' : connection.targetHandle !== 'in'
   }
 
+  const wireOf = (connection: Connection) => {
+    const wire = { source: connection.source, sourceHandle: connection.sourceHandle ?? '', target: connection.target, targetHandle: connection.targetHandle ?? '' }
+    return edgeStyle({ ...wire, id: wireId(wire) })
+  }
+
   const onConnect = (connection: Connection) => {
     if (!connection.source || !connection.target) return
-    const edge = { id: `${connection.source}:${connection.sourceHandle}->${connection.target}:${connection.targetHandle}`, source: connection.source, sourceHandle: connection.sourceHandle ?? '', target: connection.target, targetHandle: connection.targetHandle ?? '' }
-    // Un ingresso di dati accetta un solo filo: quello nuovo sostituisce il vecchio.
-    setEdges((list) => [...list.filter((e) => edge.targetHandle === 'in' || !(e.target === edge.target && e.targetHandle === edge.targetHandle)), edgeStyle(edge)])
+    remember()
+    // Un'uscita di flusso ha un solo filo e un ingresso di dati un solo valore: il nuovo sostituisce il vecchio.
+    setEdges((list) => connectWire(list, wireOf(connection)))
+  }
+
+  // Si ricollega un filo trascinandone un capo su un'altra maniglia.
+  const reconnected = useRef(false)
+  const onReconnect = (old: Edge, connection: Connection) => {
+    reconnected.current = true
+    remember()
+    setEdges((list) => reconnectWire(list, old, wireOf(connection)))
+  }
+  // Un capo trascinato e lasciato nel vuoto stacca il filo.
+  const onReconnectEnd = (_event: unknown, old: Edge) => {
+    if (!reconnected.current) {
+      remember()
+      setEdges((list) => list.filter((e) => e.id !== old.id))
+    }
+    reconnected.current = false
+  }
+
+  // Filo lasciato nel vuoto: menu dei nodi compatibili, il nodo scelto nasce lì già collegato (come in Unreal).
+  const onConnectEnd = (event: MouseEvent | TouchEvent, state: FinalConnectionState) => {
+    if (state.isValid || !state.fromHandle || !state.fromNode) return
+    const point = 'changedTouches' in event ? event.changedTouches[0]! : event
+    const side = state.fromHandle.type
+    const handle = state.fromHandle.id ?? (side === 'source' ? 'poi' : 'in')
+    const from = state.fromNode.id
+    const choices = compatibleNodes(side, handle)
+    if (!choices.length) return
+    showContextMenu(
+      { clientX: point.clientX, clientY: point.clientY, preventDefault: () => undefined, stopPropagation: () => undefined },
+      choices.map(({ spec, handle: other }) => ({
+        label: spec.label,
+        run: () => {
+          const position = flow.screenToFlowPosition({ x: point.clientX, y: point.clientY })
+          const id = addNode(spec.type, side === 'source' ? position : { x: position.x - 220, y: position.y })
+          const connection = side === 'source' ? { source: from, sourceHandle: handle, target: id, targetHandle: other } : { source: id, sourceHandle: other, target: from, targetHandle: handle }
+          setEdges((list) => connectWire(list, wireOf(connection)))
+        }
+      }))
+    )
+  }
+
+  // Le cancellazioni (tasto Canc) e gli spostamenti finiscono nella cronologia.
+  const onNodesChangeWithHistory: typeof onNodesChange = (changes) => {
+    if (changes.some((c) => c.type === 'remove')) remember()
+    onNodesChange(changes)
+  }
+  const onEdgesChangeWithHistory: typeof onEdgesChange = (changes) => {
+    if (changes.some((c) => c.type === 'remove')) remember()
+    onEdgesChange(changes)
+  }
+
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    const target = event.target as HTMLElement
+    if (target.closest('input, textarea, select, [contenteditable="true"], .monaco-editor')) return
+    const ctrl = event.ctrlKey || event.metaKey
+    if (ctrl && event.key.toLowerCase() === 'z' && !event.shiftKey) {
+      event.preventDefault()
+      undo()
+    } else if (ctrl && (event.key.toLowerCase() === 'y' || (event.key.toLowerCase() === 'z' && event.shiftKey))) {
+      event.preventDefault()
+      redo()
+    }
   }
 
   const categories = Object.keys(CATEGORY_LABEL) as NodeCategory[]
 
   return (
     <Ctx.Provider value={{ symbols, update }}>
-      <div className="panel visual-panel" data-testid="nodes-editor">
+      {/* tabIndex -1: un clic nel canvas porta qui il fuoco, così Ctrl+Z e Ctrl+Y arrivano. */}
+      <div className="panel visual-panel" data-testid="nodes-editor" onKeyDown={onKeyDown} tabIndex={-1} style={{ outline: 'none' }}>
         {current && <VisualToolbar path={path} program={current} cleanCode={cleanCode} allowConsole={false} onChange={(next: VisualProgram) => setProgram({ ...(next as NodesProgram) })} flush={flush} />}
         <div className="visual-body nodes">
           <div className="vn-palette">
@@ -231,6 +343,7 @@ function Editor({ path }: { path: string }) {
           </div>
           <div
             className="vn-canvas"
+            ref={canvasRef}
             onDragOver={(e) => e.dataTransfer.types.includes('text/x-lab-node') && e.preventDefault()}
             onDrop={(e) => {
               const type = e.dataTransfer.getData('text/x-lab-node')
@@ -242,13 +355,19 @@ function Editor({ path }: { path: string }) {
                 nodes={nodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
+                onNodesChange={onNodesChangeWithHistory}
+                onEdgesChange={onEdgesChangeWithHistory}
+                onNodeDragStart={() => remember()}
                 onConnect={onConnect}
+                onConnectEnd={onConnectEnd}
+                edgesReconnectable
+                onReconnect={onReconnect}
+                onReconnectEnd={onReconnectEnd}
                 isValidConnection={isValidConnection}
                 fitViewOptions={{ maxZoom: 1 }}
                 minimap={nodes.length > 8}
-                fitKey={nodes.length}
+                // Si adatta la vista solo all'apertura: aggiungere un nodo non deve far saltare il punto su cui si lavora.
+                fitKey={path}
               />
             )}
           </div>
