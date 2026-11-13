@@ -56,7 +56,7 @@ async function checkHtml(files: Record<string, string>, entry: string, rules: Ht
     })
     const doc = frame.contentDocument
     const win = frame.contentWindow
-    if (!doc || !win) return { passed: false, items: [], error: 'Documento non disponibile' }
+    if (!doc || !win) return { passed: false, items: [], error: t('learn.noDocument') }
     const probe: DomProbe<Element> = {
       query: (selector) => [...doc.querySelectorAll(selector)],
       text: (el) => el.textContent ?? '',

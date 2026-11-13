@@ -209,15 +209,28 @@ function load(): Persisted {
 }
 
 let persistTimer: ReturnType<typeof setTimeout> | null = null
-function persist(state: Persisted): void {
+let pending: Persisted | null = null
+function writeDraft(): void {
   if (persistTimer) clearTimeout(persistTimer)
-  persistTimer = setTimeout(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ language: state.language, docs: state.docs, stdin: state.stdin }))
-    } catch {
-      /* archiviazione non disponibile: la bozza resta solo in memoria */
-    }
-  }, 300)
+  persistTimer = null
+  const state = pending
+  pending = null
+  if (!state) return
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ language: state.language, docs: state.docs, stdin: state.stdin }))
+  } catch {
+    /* archiviazione non disponibile: la bozza resta solo in memoria */
+  }
+}
+function persist(state: Persisted): void {
+  pending = state
+  if (persistTimer) clearTimeout(persistTimer)
+  persistTimer = setTimeout(writeDraft, 300)
+}
+
+/** Scrive subito la bozza in attesa (alla chiusura della finestra non si aspetta il ritardo). */
+export function flushQuickDraft(): void {
+  writeDraft()
 }
 
 const initial = load()

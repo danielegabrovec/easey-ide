@@ -173,6 +173,32 @@ try {
   check('modello "Sito con il designer": sezioni e tavola libera', !!ready)
   await run.shot('06-modello')
 
+  // Pagine del sito: nuova pagina con intestazione e piè di pagina comuni, poi si torna alla home.
+  const siteRoot = join(run.projects, 'Sito pronto')
+  await page.getByTestId('designer-new-page').click()
+  await page.locator('.dialog input').fill('Chi sono')
+  await page.keyboard.press('Enter')
+  const newFile = join(siteRoot, 'chi-sono.html')
+  const created = await until(() => {
+    try {
+      const text = readFileSync(newFile, 'utf8')
+      return text.includes('<title>Chi sono</title>') && text.includes('lab-intestazione') && text.includes('lab-piede') && text.includes('<h1>Chi sono</h1>') && !text.includes('tavola')
+    } catch {
+      return false
+    }
+  }, 8000)
+  check('pagine: nuova pagina con titolo, intestazione e piè di pagina del sito', !!created)
+  check('pagine: il designer apre la pagina nuova', !!(await until(async () => (await page.getByTestId('designer-page').inputValue()) === 'chi-sono.html' && (await frame.locator('main h1').innerText({ timeout: 500 })) === 'Chi sono', 10000)))
+  check('pagine: la pagina nuova usa lo stesso foglio di stile', (await frame.locator('header.lab-intestazione').count()) === 1)
+  await run.shot('09-nuova-pagina')
+  await page.getByTestId('designer-page').selectOption('index.html')
+  check('pagine: dal selettore si torna alla home', !!(await until(async () => (await frame.locator('.lab-hero h1').count()) === 1, 10000)))
+  const listed = await until(async () => {
+    const options = (await page.locator('[data-testid="designer-page"] option').allInnerTexts()).join(',')
+    return options === 'index.html,chi-sono.html' ? options : null
+  }, 5000)
+  check('pagine: il selettore elenca entrambe le pagine', !!listed, (await page.locator('[data-testid="designer-page"] option').allInnerTexts()).join(','))
+
   check('nessun errore JavaScript nella finestra', run.issues.length === 0, run.issues.join(' | '))
 } catch (error) {
   run.fail(error)

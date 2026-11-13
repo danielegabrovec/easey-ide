@@ -1,18 +1,13 @@
 // File del progetto visti dalla programmazione visuale: id degli elementi delle pagine (per "su quale
 // elemento"), funzioni esportate dai file JS/TS (per "chiama funzione"), lettura e scrittura dei programmi.
 import * as monaco from 'monaco-editor'
-import type { FileEntry } from '@shared/contracts/workspace'
 import { insertHtml } from '@shared/designer/html-edit'
 import { parseHtml } from '@shared/designer/html-model'
-import { dirnameOf, extensionOf, relativeTo } from '@shared/paths'
+import { dirnameOf, extensionOf, filePaths, relativeTo } from '@shared/paths'
 import { findExportedFunctions, generatedPath, parseProgram, serializeProgram, type ExportedFunction, type VisualKind, type VisualProgram } from '@shared/visual/program'
 import { ide } from '../../ipc'
 import { executeCommand } from '../../workbench/commands'
 import { workbench } from '../../workbench/store'
-
-function flatten(entries: FileEntry[]): string[] {
-  return entries.flatMap((e) => (e.kind === 'dir' ? flatten(e.children ?? []) : [e.path]))
-}
 
 async function textOf(path: string): Promise<string> {
   const model = (await executeCommand('editor.ensureModel', { path }).catch(() => null)) as monaco.editor.ITextModel | null
@@ -20,7 +15,7 @@ async function textOf(path: string): Promise<string> {
 }
 
 export function projectFiles(): string[] {
-  return flatten(workbench().tree)
+  return filePaths(workbench().tree)
 }
 
 export function htmlPages(): string[] {

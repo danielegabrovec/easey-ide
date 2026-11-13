@@ -68,7 +68,8 @@ export class WorkspaceService {
 
   async open(root: string): Promise<ProjectInfo> {
     const absoluteRoot = resolve(root)
-    const info = await stat(absoluteRoot)
+    const info = await stat(absoluteRoot).catch(() => null)
+    if (!info) throw new Error(`La cartella non esiste più: ${absoluteRoot}`)
     if (!info.isDirectory()) throw new Error(`Non è una cartella: ${absoluteRoot}`)
     this.close()
     this.current = { root: absoluteRoot, name: basename(absoluteRoot), config: { name: basename(absoluteRoot), run: { mode: 'web', entry: 'index.html' } } }

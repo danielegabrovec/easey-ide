@@ -1,10 +1,14 @@
 // Modulo Designer: progettazione visuale delle pagine HTML (stile Canva nelle tavole libere,
 // stile Wix a sezioni), con modifiche chirurgiche al codice HTML/CSS dell'utente.
-import { basenameOf, extensionOf } from '@shared/paths'
-import { registerCommand } from '../../workbench/commands'
+import { newPageHtml, pageFileName, pageFolder } from '@shared/designer/pages'
+import { basenameOf, extensionOf, filePaths } from '@shared/paths'
+import type * as Monaco from 'monaco-editor'
+import { ide } from '../../ipc'
+import { prompt } from '../../ui/dialogs'
+import { executeCommand, registerCommand } from '../../workbench/commands'
 import { on } from '../../workbench/events'
 import { closePanel, registerPanel, showPanel } from '../../workbench/layout'
-import { notify } from '../../workbench/notifications'
+import { notify, notifyError } from '../../workbench/notifications'
 import { workbench } from '../../workbench/store'
 import { t } from '../../i18n'
 import { DesignerPanel } from './DesignerPanel'
@@ -38,6 +42,13 @@ export function activateDesigner(): void {
       openDesigner(path)
     }
   })
+  registerCommand({
+    id: 'designer.newPage',
+    title: t('cmd.designerNewPage'),
+    category: t('category.design'),
+    when: () => workbench().project !== null,
+    run: () => newPage()
+  })
   on('project:closed', () => {
     closePanel('designer')
     useDesigner.getState().setPage(null)
@@ -46,4 +57,25 @@ export function activateDesigner(): void {
     const current = useDesigner.getState().path
     if (current && (current === path || current.startsWith(`${path}/`))) closePanel('designer')
   })
+}
+
+/** Pagina nuova accanto a quella aperta nel designer (o alla pagina d'ingresso), poi aperta nel designer. */
+async function newPage(): Promise<void> {
+  const project = workbench().project
+  if (!project) return
+  const active = workbench().activeFile
+  const from = useDesigner.getState().path ?? (isHtml(active) ? active : isHtml(project.config.run.entry) ? project.config.run.entry : null)
+  const title = await prompt({ title: t('designer.newPageTitle'), label: t('designer.newPageLabel'), okLabel: t('designer.newPageCreate') })
+  if (!title) return
+  try {
+    const path = pageFileName(title, filePaths(workbench().tree), pageFolder(from))
+    // Si parte dal testo nell'editor (anche non ancora salvato), non dal disco.
+    const model = from ? ((await executeCommand('editor.ensureModel', { path: from })) as Monaco.editor.ITextModel | null) : null
+    const html = newPageHtml(model?.getValue() ?? null, title, { intro: t('designer.newPageIntro'), lang: workbench().settings.language })
+    await ide.invoke('workspace:createFile', path, html)
+    openDesigner(path)
+    notify(t('designer.pageCreated', { path }), 'success')
+  } catch (error) {
+    notifyError(error)
+  }
 }

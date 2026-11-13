@@ -14,6 +14,8 @@ export interface WorkbenchEvents {
   'editor:cursor': { path: string; offset: number }
   /** Un programma visuale nell'anteprima sta eseguendo questo blocco/nodo. */
   'preview:step': { id: string }
+  /** La finestra sta per chiudersi: ogni modulo scrive subito ciò che ha in sospeso (bozze, timer). */
+  'app:closing': void
 }
 
 type Listener<T> = (payload: T) => void

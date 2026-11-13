@@ -7,6 +7,7 @@ import { ide } from './ipc'
 import { setLanguage } from './i18n'
 import { activateModules, restoreLastProject } from './modules'
 import { executeCommand, installKeybindings } from './workbench/commands'
+import { installCloseGuard } from './workbench/close-guard'
 import { registerWorkbenchCommands } from './workbench/workbench-commands'
 import { useWorkbench } from './workbench/store'
 import { Workbench } from './workbench/Workbench'
@@ -28,6 +29,7 @@ async function start(): Promise<void> {
   activateModules()
   installKeybindings()
   ide.on('menu:command', (id) => void executeCommand(id))
+  installCloseGuard()
 
   createRoot(document.getElementById('root')!).render(<Workbench />)
   // Il layout dockview si costruisce al primo render: si riapre il progetto subito dopo.

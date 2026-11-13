@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import { pickChatModel, pickCompletionModel, type AiChatMessage, type AiChatChunk, type AiStatus } from '@shared/contracts/ai'
 import { ide } from '../ipc'
 import { workbench } from '../workbench/store'
+import { t } from '../i18n'
 
 let counter = 0
 let refreshSeq = 0
@@ -68,7 +69,7 @@ export function streamChat(
   let text = ''
   const done = new Promise<string>((resolve, reject) => {
     if (!chosen) {
-      reject(new Error('Nessun modello AI disponibile: controlla che Ollama sia avviato.'))
+      reject(new Error(t('ai.noModel')))
       return
     }
     chunkListeners.set(requestId, (chunk) => {

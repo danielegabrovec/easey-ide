@@ -157,7 +157,8 @@ export async function restoreLastProject(): Promise<void> {
     const settings = await ide.invoke('settings:get')
     workbench().setSettings(settings)
     const last = settings.recent[0]
-    if (last) await openProject(last.root).catch(() => false)
+    // Se l'ultimo progetto non c'è più si parte dal Benvenuto, senza avvisi (resta nei recenti, da togliere lì).
+    if (last) await openProject(last.root, true)
   } catch (error) {
     notifyError(error)
   }

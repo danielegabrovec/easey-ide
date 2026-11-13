@@ -4,6 +4,7 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { broadcast, registerHandlers } from './ipc/router'
 import { buildMenu } from './menu'
+import { CloseGuard } from './close-guard'
 import { AiService } from './services/ai/ai-service'
 import { OllamaProvider } from './services/ai/ollama-provider'
 import { OpenAiCompatibleProvider } from './services/ai/openai-provider'
@@ -56,6 +57,7 @@ if (!app.requestSingleInstanceLock()) app.quit()
 registerPreviewScheme()
 
 let mainWindow: BrowserWindow | null = null
+let closeGuard: CloseGuard | null = null
 
 const settings = new SettingsService(join(app.getPath('userData'), 'settings.json'))
 const history = new HistoryService(join(app.getPath('userData'), 'history'))
@@ -193,6 +195,9 @@ registerHandlers(
       if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
     },
 
+    'app:closeReply': (decision) => {
+      if (closeGuard?.reply(decision)) mainWindow?.close()
+    },
     'app:saveFile': (defaultName, content, encoding) => saveAs(defaultName, encoding === 'base64' ? Buffer.from(content, 'base64') : content),
 
     'settings:get': () => settings.get(),
@@ -355,8 +360,24 @@ async function createWindow(): Promise<void> {
     clearTimeout(fallback)
     mainWindow?.show()
   })
+  // Prima di chiudere, il renderer salva il lavoro in sospeso (o chiede cosa fare se il salvataggio automatico è spento).
+  const guard = new CloseGuard()
+  closeGuard = guard
+  let rendererGone = false
+  mainWindow.webContents.on('render-process-gone', () => {
+    rendererGone = true
+  })
+  mainWindow.on('close', (event) => {
+    const window = mainWindow
+    if (!window) return
+    const { allow, ask } = guard.onClose(rendererGone || window.webContents.isDestroyed())
+    if (allow) return
+    event.preventDefault()
+    if (ask) window.webContents.send('app:closeRequested')
+  })
   mainWindow.on('closed', () => {
     mainWindow = null
+    closeGuard = null
   })
 
   // Link e popup: mai dentro l'app. I link web vanno al browser di sistema.

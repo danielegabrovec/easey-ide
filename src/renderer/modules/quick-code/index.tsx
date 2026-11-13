@@ -4,6 +4,7 @@ import type { EditorContext } from '@shared/contracts/editor'
 import { ASSIST_LEVEL_ORDER, QUICK_EXTENSIONS, QUICK_LANGUAGE_INFO, QUICK_LANGUAGES, type AssistLevel } from '@shared/contracts/quick'
 import { schemaComment } from '@shared/sql/completion'
 import { executeCommand, registerCommand } from '../../workbench/commands'
+import { on } from '../../workbench/events'
 import { dockApi, registerPanel, showPanel } from '../../workbench/layout'
 import { registerSettingsSection } from '../../workbench/settings-sections'
 import { useWorkbench, workbench } from '../../workbench/store'
@@ -12,7 +13,7 @@ import { t } from '../../i18n'
 import { newQuick, saveQuick, selectLanguage } from './actions'
 import { registerQuickAssist } from './assist'
 import { quickEditor } from './quick-editor'
-import { quick } from './quick-store'
+import { flushQuickDraft, quick } from './quick-store'
 import { QuickPanel } from './QuickPanel'
 import { connectRunEvents, runQuick, stopQuick } from './run'
 
@@ -107,6 +108,7 @@ export function activateQuickCode(): void {
   registerQuickAssist()
   connectRunEvents()
   registerSettingsSection({ id: 'quick', title: t('quick.brand'), render: QuickSettingsSection })
+  on('app:closing', flushQuickDraft)
 
   const category = t('quick.brand')
   const isOpen = () => dockApi()?.getPanel(QUICK_PANEL) !== undefined

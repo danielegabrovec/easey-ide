@@ -597,3 +597,22 @@ kbd {
   align-items: center;
   gap: 12px;
 }
+
+/* Il dialogo riceve il fuoco quando non ha campi: niente contorno sul riquadro intero. */
+.dialog:focus {
+  outline: none;
+}
+
+.shortcuts-search {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.shortcuts-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.shortcuts-table td {
+  padding: 4px 8px 4px 0;
+}

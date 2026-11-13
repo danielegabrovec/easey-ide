@@ -35,6 +35,8 @@ export interface InvokeChannels {
   'app:legal': (doc: 'licenza' | 'note' | 'terze-parti') => string
   /** Dialogo Salva con nome; restituisce il percorso scelto o null. */
   'app:saveFile': (defaultName: string, content: string, encoding?: 'utf8' | 'base64') => string | null
+  /** Risposta a `app:closeRequested`: chiudi ora, aspetta (dialogo aperto) o annulla la chiusura. */
+  'app:closeReply': (decision: CloseDecision) => void
 
   'settings:get': () => Settings
   'settings:update': (patch: Partial<Settings>) => Settings
@@ -141,7 +143,11 @@ export interface EventChannels {
   'menu:command': string
   'ai:chunk': AiChatChunk
   'quick:events': QuickRunEvent[]
+  /** La finestra sta per chiudersi: il renderer salva il lavoro e risponde con `app:closeReply`. */
+  'app:closeRequested': void
 }
+
+export type CloseDecision = 'close' | 'wait' | 'cancel'
 
 export type InvokeChannel = keyof InvokeChannels
 export type EventChannel = keyof EventChannels
@@ -152,6 +158,7 @@ export const INVOKE_CHANNELS = [
   'app:openExternal',
   'app:legal',
   'app:saveFile',
+  'app:closeReply',
   'settings:get',
   'settings:update',
   'workspace:templates',
@@ -226,7 +233,7 @@ export const INVOKE_CHANNELS = [
   'quick:sqlReset'
 ] as const satisfies readonly InvokeChannel[]
 
-export const EVENT_CHANNELS = ['workspace:changed', 'terminal:data', 'terminal:exit', 'menu:command', 'ai:chunk', 'quick:events'] as const satisfies readonly EventChannel[]
+export const EVENT_CHANNELS = ['workspace:changed', 'terminal:data', 'terminal:exit', 'menu:command', 'ai:chunk', 'quick:events', 'app:closeRequested'] as const satisfies readonly EventChannel[]
 
 /** Ciò che il preload espone come `window.ide`. */
 export interface IdeBridge {

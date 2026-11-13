@@ -1,15 +1,18 @@
 // Pannello del designer visuale: palette/livelli a sinistra, canvas al centro, ispettore a destra.
 // La pagina mostrata si ricostruisce a ogni modifica dell'HTML o del CSS (anche fatta a mano nel codice).
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type * as Monaco from 'monaco-editor'
 import type { IDockviewPanelProps } from 'dockview'
-import { Code2, Globe, Laptop, Monitor, Redo2, Smartphone, Tablet, Undo2 } from 'lucide-react'
+import { Code2, FilePlus2, Globe, Laptop, Monitor, Redo2, Smartphone, Tablet, Undo2 } from 'lucide-react'
 import { buildCanvasDocument, resolveRelative } from '@shared/designer/canvas-document'
 import type { Breakpoint } from '@shared/designer/css-edit'
 import { linkedStylesheets } from '@shared/designer/html-edit'
 import { elementAtOffset, parseHtml } from '@shared/designer/html-model'
+import { htmlPages } from '@shared/designer/pages'
+import { filePaths } from '@shared/paths'
 import { executeCommand } from '../../workbench/commands'
 import { on } from '../../workbench/events'
+import { useWorkbench } from '../../workbench/store'
 import { notifyError } from '../../workbench/notifications'
 import { t } from '../../i18n'
 import { Canvas } from './Canvas'
@@ -72,6 +75,35 @@ function useCanvasDocument(path: string): string {
   return html
 }
 
+/** Pagine del sito: si passa da una all'altra e se ne crea una nuova (con intestazione e piè di pagina comuni). */
+function PagePicker({ path }: { path: string }) {
+  const tree = useWorkbench((s) => s.tree)
+  const pages = useMemo(() => {
+    const found = htmlPages(filePaths(tree))
+    return found.includes(path) ? found : [path, ...found]
+  }, [tree, path])
+  return (
+    <div className="designer-pages">
+      <select
+        value={path}
+        onChange={(e) => executeCommand('designer.open', { path: e.target.value })}
+        aria-label={t('designer.page')}
+        title={t('designer.page')}
+        data-testid="designer-page"
+      >
+        {pages.map((page) => (
+          <option key={page} value={page}>
+            {page}
+          </option>
+        ))}
+      </select>
+      <button className="icon-btn" title={t('cmd.designerNewPage')} aria-label={t('cmd.designerNewPage')} onClick={() => executeCommand('designer.newPage')} data-testid="designer-new-page">
+        <FilePlus2 size={14} />
+      </button>
+    </div>
+  )
+}
+
 export function DesignerPanel({ params }: IDockviewPanelProps<{ path: string }>) {
   const path = params.path
   const breakpoint = useDesigner((s) => s.breakpoint)
@@ -111,7 +143,8 @@ export function DesignerPanel({ params }: IDockviewPanelProps<{ path: string }>)
   return (
     <div className="panel designer-panel" data-testid="designer">
       <div className="panel-toolbar">
-        <span className="title">{t('designer.title', { path })}</span>
+        <span className="title">{t('designer.titleShort')}</span>
+        <PagePicker path={path} />
         <div className="segmented" role="tablist" aria-label={t('designer.breakpoint')}>
           {(
             [

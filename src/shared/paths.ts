@@ -1,4 +1,5 @@
 // Utilità pure sui percorsi relativi del progetto (separatore "/").
+import type { FileEntry } from './contracts/workspace'
 
 /** Normalizza un percorso relativo: "\" → "/", niente "./", niente "/" iniziale o finale. Rifiuta "..". */
 export function normalizeRelative(input: string): string {
@@ -28,6 +29,11 @@ export function dirnameOf(path: string): string {
 
 export function joinRelative(dir: string, name: string): string {
   return normalizeRelative(dir ? `${dir}/${name}` : name)
+}
+
+/** Tutti i file (non le cartelle) di un albero del progetto, come percorsi relativi. */
+export function filePaths(entries: FileEntry[]): string[] {
+  return entries.flatMap((e) => (e.kind === 'dir' ? filePaths(e.children ?? []) : [e.path]))
 }
 
 const LANGUAGE_BY_EXTENSION: Record<string, string> = {

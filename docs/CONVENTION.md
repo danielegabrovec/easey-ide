@@ -51,6 +51,10 @@ via contratti), **consolidamento** (mai due modi di fare la stessa cosa).
   es. Ctrl+S / Ctrl+Invio / F5 nella Scrittura rapida).
 - `setStatusItem` per una voce nella barra di stato (es. `✦ modello AI`).
 - `registerSettingsSection` per una sezione nel dialogo Impostazioni.
+- Evento `app:closing` del workbench: la finestra sta per chiudersi, il modulo scrive subito ciò che ha in sospeso
+  (bozze, timer). Il guscio poi salva i file (`workbench/close-guard.tsx`) e risponde al main (`app:closeReply`).
+- `Modal` (`ui/dialogs.tsx`) gestisce da sé fuoco iniziale, Tab dentro il dialogo, Esc sul dialogo in cima e fuoco
+  restituito alla chiusura: i dialoghi nuovi lo usano invece di riscriverlo.
 
 ## Aggiungere un modulo (es. SQL Lab)
 

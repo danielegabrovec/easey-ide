@@ -1,9 +1,9 @@
 // Pagina di benvenuto: nuovo progetto, apri cartella, progetti recenti, scorciatoie principali.
-import { FolderOpen, Plus, Clock, GraduationCap, Zap } from 'lucide-react'
+import { FolderOpen, Plus, Clock, GraduationCap, X, Zap } from 'lucide-react'
 import { executeCommand } from '../../workbench/commands'
 import { useWorkbench } from '../../workbench/store'
 import { t } from '../../i18n'
-import { openProject } from './project'
+import { forgetRecent, openRecent } from './project'
 import logo from '../../assets/logo.svg'
 
 export function WelcomePanel() {
@@ -38,10 +38,19 @@ export function WelcomePanel() {
             </h2>
             <ul className="recent-list">
               {recent.map((item) => (
-                <li key={item.root}>
-                  <button onClick={() => openProject(item.root)} title={item.root} disabled={project?.root === item.root}>
+                <li key={item.root} data-recent={item.name}>
+                  <button className="recent-open" onClick={() => openRecent(item.root)} title={item.root} disabled={project?.root === item.root}>
                     <strong>{item.name}</strong>
                     <span className="hint">{item.root}</span>
+                  </button>
+                  <button
+                    className="icon-btn recent-forget"
+                    onClick={() => forgetRecent(item.root)}
+                    title={t('welcome.removeRecent')}
+                    aria-label={t('welcome.removeRecentNamed', { name: item.name })}
+                    data-testid="recent-forget"
+                  >
+                    <X size={14} />
                   </button>
                 </li>
               ))}

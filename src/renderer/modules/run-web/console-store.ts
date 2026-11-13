@@ -6,6 +6,7 @@ import { firstProjectFrame } from '@shared/stack'
 import { ide } from '../../ipc'
 import { emit } from '../../workbench/events'
 import { chordOf, runChord } from '../../workbench/commands'
+import { t } from '../../i18n'
 
 export type EntryKind = ConsoleLevel | 'table' | 'result' | 'input' | 'system'
 
@@ -96,7 +97,7 @@ export function handlePreviewMessage(message: PreviewMessage): void {
     case 'compile-error':
       store.add({
         kind: 'error',
-        args: [str(`Errore di compilazione: ${message.message}`)],
+        args: [str(`${t('quick.compileError')} ${message.message}`)],
         location: { path: message.path, line: message.line, column: message.column },
         group: 0
       })

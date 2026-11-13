@@ -1,5 +1,5 @@
 // Comandi del guscio: palette, tema, zoom, disposizione, impostazioni, informazioni.
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { Settings, ShellOption } from '@shared/contracts'
 import { ide } from '../ipc'
 import { Modal, openDialog } from '../ui/dialogs'
@@ -23,6 +23,7 @@ export async function updateSettings(patch: Partial<Settings>): Promise<void> {
 function SettingsDialog({ close, shells }: { close: () => void; shells: ShellOption[] }) {
   const settings = useWorkbench((s) => s.settings)
   const [fontSize, setFontSize] = useState(String(settings.fontSize))
+  const id = useId()
   return (
     <Modal
       title={t('settings.title')}
@@ -34,23 +35,24 @@ function SettingsDialog({ close, shells }: { close: () => void; shells: ShellOpt
       }
     >
       <div className="field">
-        <label>{t('settings.theme')}</label>
-        <select value={settings.theme} onChange={(e) => updateSettings({ theme: e.target.value as Settings['theme'] })}>
+        <label htmlFor={`${id}-theme`}>{t('settings.theme')}</label>
+        <select id={`${id}-theme`} value={settings.theme} onChange={(e) => updateSettings({ theme: e.target.value as Settings['theme'] })}>
           <option value="dark">{t('settings.themeDark')}</option>
           <option value="light">{t('settings.themeLight')}</option>
         </select>
       </div>
       <div className="field">
-        <label>{t('settings.language')}</label>
-        <select value={settings.language} onChange={(e) => updateSettings({ language: e.target.value as Settings['language'] })}>
+        <label htmlFor={`${id}-language`}>{t('settings.language')}</label>
+        <select id={`${id}-language`} aria-describedby={`${id}-language-hint`} value={settings.language} onChange={(e) => updateSettings({ language: e.target.value as Settings['language'] })}>
           <option value="it">Italiano</option>
           <option value="en">English</option>
         </select>
-        <span className="hint">{t('settings.languageHint')}</span>
+        <span className="hint" id={`${id}-language-hint`}>{t('settings.languageHint')}</span>
       </div>
       <div className="field">
-        <label>{t('settings.fontSize')}</label>
+        <label htmlFor={`${id}-font`}>{t('settings.fontSize')}</label>
         <input
+          id={`${id}-font`}
           type="number"
           min={10}
           max={32}
@@ -69,8 +71,8 @@ function SettingsDialog({ close, shells }: { close: () => void; shells: ShellOpt
         {t('settings.autoRun')}
       </label>
       <div className="field">
-        <label>{t('settings.shell')}</label>
-        <select value={settings.defaultShell} onChange={(e) => updateSettings({ defaultShell: e.target.value })}>
+        <label htmlFor={`${id}-shell`}>{t('settings.shell')}</label>
+        <select id={`${id}-shell`} value={settings.defaultShell} onChange={(e) => updateSettings({ defaultShell: e.target.value })}>
           {shells.map((shell) => (
             <option key={shell.id} value={shell.id}>
               {shell.label}
@@ -89,16 +91,29 @@ function SettingsDialog({ close, shells }: { close: () => void; shells: ShellOpt
 }
 
 function ShortcutsDialog({ close }: { close: () => void }) {
+  const [query, setQuery] = useState('')
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean)
   const commands = listCommands()
     .filter((c) => c.keybinding)
-    .sort((a, b) => a.title.localeCompare(b.title, 'it'))
+    .filter((c) => words.every((w) => `${c.category ?? ''} ${c.title} ${c.keybinding}`.toLowerCase().includes(w)))
+    .sort((a, b) => (a.category ?? '').localeCompare(b.category ?? '', 'it') || a.title.localeCompare(b.title, 'it'))
   return (
     <Modal title={t('shortcuts.title')} onClose={close} footer={<button className="btn primary" onClick={close}>{t('common.close')}</button>}>
-      <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+      <input
+        className="shortcuts-search"
+        type="search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={t('shortcuts.search')}
+        aria-label={t('shortcuts.search')}
+        data-testid="shortcuts-search"
+      />
+      <table className="shortcuts-table">
         <tbody>
           {commands.map((c) => (
-            <tr key={c.id}>
-              <td style={{ padding: '4px 0' }}>{c.title}</td>
+            <tr key={c.id} data-shortcut={c.id}>
+              <td className="hint">{c.category}</td>
+              <td>{c.title}</td>
               <td style={{ textAlign: 'right' }}>
                 <kbd>{c.keybinding}</kbd>
               </td>
@@ -106,6 +121,7 @@ function ShortcutsDialog({ close }: { close: () => void }) {
           ))}
         </tbody>
       </table>
+      {commands.length === 0 && <p className="hint">{t('shortcuts.none')}</p>}
     </Modal>
   )
 }

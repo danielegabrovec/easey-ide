@@ -1,5 +1,5 @@
 // Dialoghi modali: prompt, conferma e dialoghi personalizzati, aperti con una promessa.
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { create } from 'zustand'
 import { t } from '../i18n'
 
@@ -39,21 +39,63 @@ export function DialogHost() {
   )
 }
 
+/** Dialoghi aperti, dal più vecchio al più recente: Esc e Tab valgono solo per quello in cima. */
+const modalStack: number[] = []
+let nextModalId = 1
+
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+function focusables(root: HTMLElement): HTMLElement[] {
+  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null || el === document.activeElement)
+}
+
 export function Modal({ title, children, footer, onClose, wide }: { title: string; children: ReactNode; footer?: ReactNode; onClose: () => void; wide?: boolean }) {
+  const dialog = useRef<HTMLDivElement>(null)
+  const titleId = useId()
+  const closeRef = useRef(onClose)
+  closeRef.current = onClose
+
+  // Accessibilità: il fuoco entra nel dialogo, Tab gira al suo interno, alla chiusura torna dov'era.
   useEffect(() => {
+    const id = nextModalId++
+    modalStack.push(id)
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const root = dialog.current
+    if (root && !root.contains(document.activeElement)) {
+      const content = root.querySelector<HTMLElement>('.content')
+      const first = (content && focusables(content)[0]) ?? focusables(root)[0]
+      ;(first ?? root).focus()
+    }
     const onKey = (event: KeyboardEvent) => {
+      if (modalStack[modalStack.length - 1] !== id || !root) return
       if (event.key === 'Escape') {
         event.stopPropagation()
-        onClose()
+        closeRef.current()
+      } else if (event.key === 'Tab') {
+        const items = focusables(root)
+        if (items.length === 0) return
+        const active = document.activeElement
+        const first = items[0]!
+        const last = items[items.length - 1]!
+        if (!root.contains(active) || (event.shiftKey && active === first) || (!event.shiftKey && active === last)) {
+          event.preventDefault()
+          ;(event.shiftKey ? last : first).focus()
+        }
       }
     }
     window.addEventListener('keydown', onKey, true)
-    return () => window.removeEventListener('keydown', onKey, true)
-  }, [onClose])
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      modalStack.splice(modalStack.indexOf(id), 1)
+      // Si torna all'elemento di prima solo se il fuoco era rimasto nel dialogo (non se l'azione lo ha già spostato).
+      if (previous?.isConnected && (!document.activeElement || document.activeElement === document.body || root?.contains(document.activeElement))) previous.focus()
+    }
+  }, [])
+
   return (
     <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`dialog${wide ? ' wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
-        <header>{title}</header>
+      <div ref={dialog} className={`dialog${wide ? ' wide' : ''}`} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
+        <header id={titleId}>{title}</header>
         <div className="content">{children}</div>
         {footer && <footer>{footer}</footer>}
       </div>
@@ -75,6 +117,7 @@ interface PromptOptions {
 function PromptDialog({ options, done }: { options: PromptOptions; done: (value: string | null) => void }) {
   const [value, setValue] = useState(options.value ?? '')
   const input = useRef<HTMLInputElement>(null)
+  const inputId = useId()
   const error = options.validate?.(value) ?? null
   useEffect(() => {
     const el = input.current
@@ -102,8 +145,8 @@ function PromptDialog({ options, done }: { options: PromptOptions; done: (value:
       }
     >
       <div className="field">
-        <label>{options.label}</label>
-        <input ref={input} value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} spellCheck={false} />
+        <label htmlFor={inputId}>{options.label}</label>
+        <input id={inputId} ref={input} value={value} aria-invalid={!!(error && value)} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} spellCheck={false} />
         {error && value && <span className="error-text">{error}</span>}
       </div>
     </Modal>

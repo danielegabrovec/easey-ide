@@ -1,6 +1,6 @@
 // Palette dei comandi (Ctrl+Shift+P) e "Vai al file" (Ctrl+P): cerca ed esegue comandi o apre file.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { FileEntry } from '@shared/contracts/workspace'
+import { filePaths } from '@shared/paths'
 import { executeCommand, listCommands } from './commands'
 import { useWorkbench } from './store'
 import { t } from '../i18n'
@@ -15,10 +15,6 @@ function score(text: string, query: string): number {
     total += index === 0 ? 3 : /[\s/._-]/.test(haystack[index - 1] ?? '') ? 2 : 1
   }
   return total
-}
-
-function flatten(entries: FileEntry[]): string[] {
-  return entries.flatMap((e) => (e.kind === 'dir' ? flatten(e.children ?? []) : [e.path]))
 }
 
 interface Item {
@@ -49,7 +45,7 @@ export function CommandPalette() {
   const items = useMemo<Item[]>(() => {
     if (!open) return []
     if (mode === 'files') {
-      const files = flatten(tree)
+      const files = filePaths(tree)
       const ranked = query.trim()
         ? files
             .map((path) => ({ path, value: score(path, query) + (score(path.slice(path.lastIndexOf('/') + 1), query) >= 0 ? 5 : 0) }))

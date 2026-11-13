@@ -8,12 +8,13 @@ import { resolveRelative } from '@shared/designer/canvas-document'
 import { insertHtml } from '@shared/designer/html-edit'
 import { ide } from '../../ipc'
 import { executeCommand } from '../../workbench/commands'
+import { t } from '../../i18n'
 
 type Model = monaco.editor.ITextModel
 
 export async function modelFor(path: string): Promise<Model> {
   const model = (await executeCommand('editor.ensureModel', { path })) as Model | null
-  if (!model) throw new Error(`Impossibile aprire ${path}`)
+  if (!model) throw new Error(t('designer.cannotOpen', { path }))
   return model
 }
 
