@@ -46,10 +46,10 @@ import {
   X,
   Zap
 } from 'lucide-react'
-import { CATEGORY_LABELS, searchBlocks, type Block, type BlockCategory } from '@shared/designer/blocks'
+import { blockById, CATEGORY_LABELS, searchBlocks, type Block, type BlockCategory } from '@shared/designer/blocks'
 import { FREE_CANVAS_CLASS, hasClass, isFreeElement } from '@shared/designer/html-model'
 import { t } from '../../i18n'
-import { canContain, defaultInsertTarget } from '@shared/designer/drop'
+import { canContain, defaultInsertTarget, sectionAnchor } from '@shared/designer/drop'
 import { endOfBody, insertBlock, placePage } from './actions'
 import { selectedElement, useDesigner } from './designer-store'
 import { visibleContainer } from './frame-access'
@@ -130,7 +130,9 @@ function insertWithClick(blockId: string): void {
     return
   }
   useDesigner.getState().setRevealSelection(true)
-  void insertBlock(blockId, { targetId: selected.id, where: 'after' })
+  // Una sezione pronta va dopo la sezione che contiene la selezione, non dentro una scheda o una griglia.
+  const anchor = blockById(blockId)?.category === 'sezioni' ? sectionAnchor(page, selected.id) : selected.id
+  void insertBlock(blockId, { targetId: anchor, where: 'after' })
 }
 
 function PaletteItem({ block, tile }: { block: Block; tile: boolean }) {

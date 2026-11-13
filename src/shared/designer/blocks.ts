@@ -104,6 +104,10 @@ const SECTION_CSS = `.lab-sezione {
   padding: 64px 24px;
   max-width: 1080px;
   margin: 0 auto;
+}
+
+.lab-sezione + .lab-sezione {
+  padding-top: 0;
 }`
 
 const BASE_BLOCKS: Block[] = [
@@ -176,9 +180,9 @@ const BASE_BLOCKS: Block[] = [
     id: 'galleria',
     label: 'Galleria di immagini',
     category: 'sezioni',
-    html: '<section class="lab-galleria">\n  <img src="img/segnaposto-foto-1.svg" alt="Descrivi la foto 1" width="1200" height="800">\n  <img src="img/segnaposto-foto-2.svg" alt="Descrivi la foto 2" width="1200" height="800">\n  <img src="img/segnaposto-foto-3.svg" alt="Descrivi la foto 3" width="1200" height="800">\n</section>',
-    keywords: 'foto immagini album portfolio',
-    css: '.lab-galleria {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));\n  gap: 16px;\n  max-width: 1080px;\n  margin: 0 auto;\n  padding: 48px 24px;\n}\n\n.lab-galleria img {\n  display: block;\n  width: 100%;\n  height: auto;\n  aspect-ratio: 4 / 3;\n  object-fit: cover;\n  border-radius: 12px;\n}'
+    html: '<section class="lab-sezione">\n  <h2>I nostri lavori</h2>\n  <div class="lab-galleria">\n    <img src="img/segnaposto-foto-1.svg" alt="Descrivi la foto 1" width="1200" height="800">\n    <img src="img/segnaposto-foto-2.svg" alt="Descrivi la foto 2" width="1200" height="800">\n    <img src="img/segnaposto-foto-3.svg" alt="Descrivi la foto 3" width="1200" height="800">\n  </div>\n</section>',
+    keywords: 'foto immagini album portfolio lavori',
+    css: `${SECTION_CSS}\n\n.lab-galleria {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));\n  gap: 16px;\n}\n\n.lab-galleria img {\n  display: block;\n  width: 100%;\n  height: auto;\n  aspect-ratio: 4 / 3;\n  object-fit: cover;\n  border-radius: 12px;\n}`
   },
   {
     id: 'piede',
@@ -225,7 +229,7 @@ const BASE_BLOCKS: Block[] = [
     category: 'sezioni',
     html: '<section class="lab-cta">\n  <h2>Pronto a iniziare?</h2>\n  <p>Bastano due minuti.</p>\n  <a class="lab-bottone" href="#">Contattaci</a>\n</section>',
     keywords: 'cta call to action contatto banner finale',
-    css: `.lab-cta {\n  margin: 32px auto;\n  max-width: 1080px;\n  padding: 64px 24px;\n  border-radius: 24px;\n  text-align: center;\n  color: #ffffff;\n  background: linear-gradient(135deg, ${PRIMARY}, ${SECONDARY});\n}\n\n${BUTTON_CSS}`
+    css: `.lab-cta {\n  width: min(1080px, 100% - 32px);\n  margin: 32px auto;\n  padding: 64px 24px;\n  border-radius: 24px;\n  text-align: center;\n  color: #ffffff;\n  background: linear-gradient(135deg, ${PRIMARY}, ${SECONDARY});\n}\n\n${BUTTON_CSS}`
   },
   {
     id: 'numeri',

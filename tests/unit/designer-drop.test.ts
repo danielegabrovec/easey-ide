@@ -1,7 +1,7 @@
 // Dove finisce un elemento rilasciato nel designer (P0-1, P1-2, P1-3 della revisione) e la selezione
 // dopo uno spostamento (P1-1).
 import { describe, expect, it } from 'vitest'
-import { appendTarget, clampBox, decideDrop, defaultInsertTarget, flowAxis, freeStyleChange, gridColumns, landsInFreeCanvas, targetParent, type Axis, type Box } from '@shared/designer/drop'
+import { appendTarget, clampBox, decideDrop, defaultInsertTarget, flowAxis, sectionAnchor, freeStyleChange, gridColumns, landsInFreeCanvas, targetParent, type Axis, type Box } from '@shared/designer/drop'
 import { applyEdits, moveElementAt } from '@shared/designer/html-edit'
 import { findByAttrId, parseHtml, type HtmlModel } from '@shared/designer/html-model'
 
@@ -199,5 +199,14 @@ describe('defaultInsertTarget: clic nella palette senza selezione', () => {
   it('senza <main>: in fondo al body ma prima degli script', () => {
     const plain = parseHtml('<body>\n  <h1>a</h1>\n  <script src="x.js"></script>\n</body>')
     expect(defaultInsertTarget(plain)).toEqual({ id: byTag(plain, 'h1').id, where: 'after' })
+  })
+
+  it('una sezione pronta va dopo la sezione che contiene la selezione, non dentro una griglia', () => {
+    const page = parseHtml('<html><body><div class="lab-pagina"><header>x</header><section class="lab-sezione"><h2>T</h2><div class="lab-griglia"><article><h3>A</h3></article></div></section></div></body></html>')
+    const h3 = byTag(page, 'h3').id
+    expect(page.elements[sectionAnchor(page, h3)]!.tag).toBe('section')
+    expect(page.elements[sectionAnchor(page, byTag(page, 'header').id)]!.tag).toBe('header')
+    const plain = parseHtml('<html><body><main><p>a</p></main></body></html>')
+    expect(page.elements.length && plain.elements[sectionAnchor(plain, byTag(plain, 'p').id)]!.tag).toBe('p')
   })
 })

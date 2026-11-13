@@ -24,7 +24,8 @@ describe('palette: blocchi, sezioni e pagine intere', () => {
     const css = appendRulesOnce('', landing.css!)
     for (const selector of ['.lab-hero', '.lab-bottone', '.lab-scheda', '.lab-cta', '.lab-piede']) expect(css).toContain(`${selector} {`)
     // .lab-sezione e .lab-griglia compaiono in più sezioni ma nel foglio una volta sola.
-    expect(css.split('.lab-sezione {').length).toBe(2)
+    expect(css.split(/^\.lab-sezione \{/m).length).toBe(2)
+    expect(css.split('.lab-sezione + .lab-sezione {').length).toBe(2)
     expect(css.split('.lab-griglia {').length).toBe(2)
   })
 

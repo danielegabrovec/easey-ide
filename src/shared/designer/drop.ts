@@ -225,6 +225,24 @@ export function elementLabel(element: ElementInfo): string {
   return `${element.tag}${id}${cls}`
 }
 
+/** Contenitori «di pagina»: le sezioni pronte stanno loro dentro, una dopo l'altra. */
+const isPageLevel = (element: ElementInfo): boolean => element.tag === 'body' || element.tag === 'main' || hasClass(element, 'lab-pagina')
+
+/**
+ * Sezione che contiene l'elemento (antenato, o sé stesso, figlio diretto di body, main o della pagina
+ * intera): una sezione pronta inserita «dopo la selezione» va dopo questa, non dentro una scheda.
+ */
+export function sectionAnchor(model: HtmlModel, id: number): number {
+  let current = id
+  for (;;) {
+    const parent = model.elements[current]?.parent
+    if (parent === null || parent === undefined) return current
+    const parentElement = model.elements[parent]!
+    if (isPageLevel(parentElement) || parentElement.tag === 'html') return current
+    current = parent
+  }
+}
+
 /** Punto in cui sale un elemento inserito con un clic senza selezione: il contenitore principale. */
 export function defaultInsertTarget(model: HtmlModel, visibleContainer?: number | null): DropTarget | { freeIn: number } | null {
   if (model.body === null) return null
