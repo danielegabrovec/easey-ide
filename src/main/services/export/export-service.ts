@@ -3,6 +3,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { dirname, extname, join, posix } from 'node:path'
 import { IGNORED_DIRS } from '@shared/paths'
+import { LEGACY_PROJECT_CONFIG_FILE, PROJECT_CONFIG_FILE } from '@shared/contracts/workspace'
 import { loadEsbuild } from '../esbuild-loader'
 import { buildZip, type ZipEntry } from './zip'
 
@@ -39,6 +40,21 @@ export async function exportZip(root: string, name: string): Promise<Buffer> {
 
 const isExternal = (url: string) => /^([a-z]+:|\/\/|#|data:)/i.test(url)
 
+/** Immagini piccole citate dal CSS (`url(img/sfondo.png)`, relative al foglio di stile) → data URI. */
+async function inlineCssImages(css: string, cssDir: string): Promise<string> {
+  let out = css
+  for (const [whole, quote, url] of [...css.matchAll(/url\(\s*(["']?)([^"')]+)\1\s*\)/gi)]) {
+    if (isExternal(url!)) continue
+    const file = url!.split(/[?#]/)[0]!
+    const mime = MIME[extname(file).toLowerCase()]
+    if (!mime) continue
+    const data = await readFile(join(cssDir, file)).catch(() => null)
+    if (!data || data.length > MAX_INLINE_IMAGE) continue
+    out = out.replace(whole, () => `url(${quote}data:${mime};base64,${data.toString('base64')}${quote})`)
+  }
+  return out
+}
+
 /** Un'unica pagina: CSS collegati e script locali (anche TypeScript, con import) incorporati. */
 export async function exportSingleHtml(root: string, entry: string): Promise<string> {
   const htmlPath = join(root, entry)
@@ -53,8 +69,12 @@ export async function exportSingleHtml(root: string, entry: string): Promise<str
     if (!/rel\s*=\s*["']?stylesheet/i.test(tag)) continue
     const href = /href\s*=\s*["']([^"']+)["']/i.exec(tag)?.[1]
     if (!href || isExternal(href)) continue
-    const css = await readFile(resolveLocal(href), 'utf8').catch(() => null)
-    if (css !== null) html = html.replace(tag, () => `<style>\n${css}\n</style>`)
+    const cssPath = resolveLocal(href)
+    const css = await readFile(cssPath, 'utf8').catch(() => null)
+    if (css !== null) {
+      const inlined = await inlineCssImages(css, dirname(cssPath))
+      html = html.replace(tag, () => `<style>\n${inlined}\n</style>`)
+    }
   }
 
   // Script locali → impacchettati con esbuild (TypeScript e import compresi).
@@ -90,4 +110,24 @@ export async function exportSingleHtml(root: string, entry: string): Promise<str
     html = html.replace(tag, () => tag.replace(src!, `data:${mime};base64,${data.toString('base64')}`))
   }
   return html
+}
+
+/** File che servono solo a scrivere il sito (sorgenti TypeScript, configurazioni): non si pubblicano. */
+const SOURCE_ONLY = /\.(ts|tsx|mts|cts)$/i
+const CONFIG_ONLY = new Set([PROJECT_CONFIG_FILE, LEGACY_PROJECT_CONFIG_FILE, 'tsconfig.json', 'jsconfig.json'])
+
+/**
+ * Sito pronto da pubblicare (Netlify Drop, GitHub Pages, un hosting qualsiasi): ZIP con ogni pagina HTML
+ * del progetto resa autonoma come nella «pagina unica» (CSS e script incorporati, TypeScript compilato),
+ * più immagini, caratteri e gli altri file; i link fra le pagine restano validi perché i percorsi non cambiano.
+ */
+export async function exportSite(root: string, name: string): Promise<Buffer> {
+  const entries: ZipEntry[] = []
+  for (const entry of await collect(root)) {
+    const file = posix.basename(entry.path)
+    if (SOURCE_ONLY.test(file) || (CONFIG_ONLY.has(file) && !entry.path.includes('/'))) continue
+    const data = /\.html?$/i.test(file) ? Buffer.from(await exportSingleHtml(root, entry.path), 'utf8') : entry.data
+    entries.push({ ...entry, path: `${name}/${entry.path}`, data })
+  }
+  return buildZip(entries)
 }

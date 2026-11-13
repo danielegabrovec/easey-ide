@@ -795,7 +795,30 @@ export const it = {
   'designer.newPageLabel': 'Titolo della pagina (es. Chi sono, Contatti): il file prende lo stesso nome',
   'designer.newPageCreate': 'Crea pagina',
   'designer.newPageIntro': 'Scrivi qui il contenuto della pagina, oppure trascina sezioni ed elementi dalla palette.',
-  'designer.pageCreated': 'Pagina creata: {path}'
+  'designer.pageCreated': 'Pagina creata: {path}',
+  'cmd.exportSite': 'Esporta il sito pronto da pubblicare (ZIP)…',
+  'image.size': '{width} × {height} px',
+  'image.fit': 'Adatta al pannello',
+  'image.actual': 'Grandezza reale',
+  'image.error': 'Non riesco a mostrare l’immagine {path}: il file potrebbe essere danneggiato o in un formato non supportato.',
+  'designer.themeFontHeadings': 'Carattere dei titoli (tema)',
+  'designer.themeFontBody': 'Carattere del testo (tema)',
+  'designer.themeVariable': 'Variabile del tema {name}',
+  'menu.file': 'File',
+  'menu.edit': 'Modifica',
+  'menu.create': 'Crea',
+  'menu.run': 'Esegui',
+  'menu.view': 'Visualizza',
+  'menu.help': 'Aiuto',
+  'menu.quit': 'Esci',
+  'menu.undo': 'Annulla',
+  'menu.redo': 'Ripeti',
+  'menu.cut': 'Taglia',
+  'menu.copy': 'Copia',
+  'menu.paste': 'Incolla',
+  'menu.selectAll': 'Seleziona tutto',
+  'menu.fullscreen': 'Schermo intero',
+  'menu.devTools': 'Strumenti per sviluppatori'
 }
 
 export type MessageKey = keyof typeof it

@@ -2,7 +2,7 @@
 import type * as Monaco from 'monaco-editor'
 import type { EditorContext, ReplaceRangeArgs } from '@shared/contracts/editor'
 import { basenameOf, isTextFile } from '@shared/paths'
-import { openerFor } from '../../workbench/openers'
+import { openerFor, registerFileOpener } from '../../workbench/openers'
 import { notify } from '../../workbench/notifications'
 import { executeCommand, registerCommand } from '../../workbench/commands'
 import { on } from '../../workbench/events'
@@ -12,6 +12,7 @@ import { openDialog } from '../../ui/dialogs'
 import { t } from '../../i18n'
 import { EditorPanel, activeEditor, editorFor } from './EditorPanel'
 import { HistoryDialog } from './HistoryDialog'
+import { ImageViewer, isImageFile } from './ImageViewer'
 import { ProblemsPanel, trackProblemCounts } from './ProblemsPanel'
 import { loadNodeTypes, monaco, setupMonaco } from './monaco-setup'
 import { disposeAll, disposeModel, ensureModel, getModel, loadProjectModels, modelPaths, save, saveAll, syncFromDisk } from './models'
@@ -53,6 +54,15 @@ export function activateEditor(): void {
   trackProblemCounts()
   registerPanel('editor', EditorPanel)
   registerPanel('problems', ProblemsPanel)
+  registerPanel('image', ImageViewer)
+  // Le immagini del progetto si guardano (stesso id di pannello degli editor: rinomina ed eliminazione valgono anche qui).
+  registerFileOpener({ id: 'image', matches: isImageFile, command: 'editor.openImage' })
+  registerCommand<{ path: string }>({
+    id: 'editor.openImage',
+    title: 'editor.openImage',
+    palette: false,
+    run: (args) => args && showPanel({ id: panelId(args.path), component: 'image', title: basenameOf(args.path), area: 'center', params: { path: args.path } })
+  })
 
   const category = t('category.edit')
   registerCommand<{ path: string }>({

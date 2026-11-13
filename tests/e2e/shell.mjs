@@ -1,12 +1,16 @@
 // Collaudo del guscio dell'IDE (`npm run build` prima):
 //  1. chiusura subito dopo una modifica: il salvataggio automatico in sospeso arriva comunque su disco
 //  2. salvataggio automatico spento: alla chiusura si chiede cosa fare (Annulla tiene aperto, Salva e chiudi salva)
+//  2b. immagini del progetto nel visualizzatore; menu dell'applicazione costruito dai comandi
 //  3. progetti recenti: all'avvio un progetto sparito non dà errori; aprendolo si propone di toglierlo; la X lo toglie
-import { readFileSync, rmSync } from 'node:fs'
+//  4. interfaccia in inglese: anche il menu nativo è tradotto
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createRun, ensureBuilt, until, wait } from './helpers.mjs'
 
 ensureBuilt()
+// PNG di 3×2 pixel.
+const PNG_3x2 = 'iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAIAAAASFvFNAAAAF0lEQVR4nGP4z8DAAMFcInIaRjZuAVEAM1kEwOQkmMsAAAAASUVORK5CYII='
 const run = createRun('shell')
 const { check } = run
 
@@ -78,6 +82,34 @@ try {
   await page.keyboard.press('Escape')
   await page.locator('.dialog').waitFor({ state: 'detached' })
 
+  // Immagini: un PNG 3×2 si apre nel visualizzatore invece dell'avviso «non è un file di testo».
+  writeFileSync(join(root, 'foto.png'), Buffer.from(PNG_3x2, 'base64'))
+  await page.locator('[data-path="foto.png"]').waitFor({ timeout: 8000 })
+  await page.locator('[data-path="foto.png"]').click()
+  const size = await until(async () => (await page.getByTestId('image-size').innerText().catch(() => '')) || null, 8000)
+  check('immagini: il PNG si apre nel visualizzatore con le dimensioni', size === '3 × 2 px', String(size))
+  check('immagini: nessun avviso di file non di testo', (await page.locator('.toast.error').count()) === 0)
+  await page.getByTestId('image-zoom').click()
+  check('immagini: grandezza reale', (await page.locator('.image-stage.actual').count()) === 1)
+  await run.shot('00-immagine')
+
+  // Menu dell'applicazione: sezioni tradotte, voci prese dai comandi (con le scorciatoie), clic che esegue il comando.
+  const menu = await run.app.evaluate(({ Menu }) =>
+    Menu.getApplicationMenu()?.items.map((i) => ({ label: i.label, items: i.submenu?.items.map((s) => ({ label: s.label, accelerator: s.accelerator ?? '' })) ?? [] })) ?? []
+  )
+  check('menu: sezioni in italiano', menu.map((m) => m.label).join(',') === 'File,Modifica,Crea,Esegui,Visualizza,Aiuto', menu.map((m) => m.label).join(','))
+  const create = menu.find((m) => m.label === 'Crea')?.items ?? []
+  check('menu: «Crea» ha designer, nuova pagina e database', ['Nuova pagina del sito…', 'Apri la pagina nel designer visuale'].every((l) => create.some((i) => i.label === l)) && create.length >= 5, create.map((i) => i.label).join(' | '))
+  const save = menu.find((m) => m.label === 'File')?.items.find((i) => i.label === 'Salva')
+  check('menu: la scorciatoia viene dal comando', save?.accelerator === 'Ctrl+S', JSON.stringify(save))
+  await run.app.evaluate(({ Menu }) => {
+    const help = Menu.getApplicationMenu()?.items.find((i) => i.label === 'Aiuto')
+    help?.submenu?.items.find((i) => i.label === 'Scorciatoie da tastiera')?.click()
+  })
+  check('menu: il clic esegue il comando', !!(await until(() => page.getByTestId('shortcuts-search').isVisible(), 5000)))
+  await page.keyboard.press('Escape')
+  await page.locator('.dialog').waitFor({ state: 'detached' })
+
   await page.keyboard.press('Control+,')
   // Casella controllata dalle impostazioni (salvate dal main): si clicca e si aspetta il nuovo stato.
   const autoSave = page.getByLabel('Salva automaticamente mentre scrivi')
@@ -126,6 +158,17 @@ try {
   check('recenti: il progetto ancora esistente resta', (await page.locator('[data-recent="Guscio"]').count()) === 1)
   const settingsFile = JSON.parse(readFileSync(join(run.work, 'userData', 'settings.json'), 'utf8'))
   check('recenti: l’elenco aggiornato è salvato', settingsFile.recent.length === 1 && settingsFile.recent[0].name === 'Guscio')
+
+  // 4. Interfaccia in inglese (la lingua vale dal riavvio): anche il menu nativo segue.
+  await closeWindow()
+  writeFileSync(join(run.work, 'userData', 'settings.json'), JSON.stringify({ ...JSON.parse(readFileSync(join(run.work, 'userData', 'settings.json'), 'utf8')), language: 'en' }))
+  page = await run.launch()
+  await page.waitForSelector('.shell', { timeout: 20000 })
+  const english = await until(async () => {
+    const labels = await run.app.evaluate(({ Menu }) => Menu.getApplicationMenu()?.items.map((i) => i.label).join(',') ?? '')
+    return labels === 'File,Edit,Create,Run,View,Help' ? labels : null
+  }, 8000)
+  check('menu: in inglese con l’interfaccia in inglese', !!english)
 
   check('nessun errore nella console dell IDE', run.issues.length === 0, run.issues.slice(0, 3).join(' | '))
 } catch (error) {

@@ -88,7 +88,12 @@ export function Modal({ title, children, footer, onClose, wide }: { title: strin
       window.removeEventListener('keydown', onKey, true)
       modalStack.splice(modalStack.indexOf(id), 1)
       // Si torna all'elemento di prima solo se il fuoco era rimasto nel dialogo (non se l'azione lo ha già spostato).
-      if (previous?.isConnected && (!document.activeElement || document.activeElement === document.body || root?.contains(document.activeElement))) previous.focus()
+      // Dopo l'evento in corso: un Invio che ha confermato il dialogo non deve «premere» anche il pulsante
+      // che lo aveva aperto (il keypress arriva all'elemento che ha il fuoco in quel momento).
+      setTimeout(() => {
+        const active = document.activeElement
+        if (previous?.isConnected && (!active || active === document.body || root?.contains(active))) previous.focus()
+      }, 0)
     }
   }, [])
 
@@ -146,7 +151,11 @@ function PromptDialog({ options, done }: { options: PromptOptions; done: (value:
     >
       <div className="field">
         <label htmlFor={inputId}>{options.label}</label>
-        <input id={inputId} ref={input} value={value} aria-invalid={!!(error && value)} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} spellCheck={false} />
+        <input id={inputId} ref={input} value={value} aria-invalid={!!(error && value)} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => {
+            if (e.key !== 'Enter') return
+            e.preventDefault()
+            submit()
+          }} spellCheck={false} />
         {error && value && <span className="error-text">{error}</span>}
       </div>
     </Modal>

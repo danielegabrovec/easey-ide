@@ -6,7 +6,7 @@ import { inflateRawSync } from 'node:zlib'
 import { afterAll, describe, expect, it } from 'vitest'
 import { GitService, parsePorcelain } from '../../src/main/services/git/git-service'
 import { buildZip, crc32 } from '../../src/main/services/export/zip'
-import { exportSingleHtml, exportZip } from '../../src/main/services/export/export-service'
+import { exportSingleHtml, exportSite, exportZip } from '../../src/main/services/export/export-service'
 
 const temp = mkdtempSync(join(tmpdir(), 'lab-growth-'))
 afterAll(() => rmSync(temp, { recursive: true, force: true }))
@@ -53,6 +53,31 @@ describe('ZIP', () => {
     writeFileSync(join(root, 'src', 'main.js'), 'console.log(1)')
     writeFileSync(join(root, 'node_modules', 'x', 'y.js'), '')
     expect(Object.keys(readZip(await exportZip(root, 'Sito'))).sort()).toEqual(['Sito/index.html', 'Sito/src/main.js'])
+  })
+})
+
+describe('sito pronto da pubblicare', () => {
+  it('ogni pagina autonoma, TypeScript compilato, sorgenti e configurazioni esclusi, immagini copiate', async () => {
+    const root = join(temp, 'sito-progetto')
+    mkdirSync(join(root, 'img'), { recursive: true })
+    mkdirSync(join(root, 'src'), { recursive: true })
+    writeFileSync(join(root, 'index.html'), '<link rel="stylesheet" href="style.css"><a href="chi-sono.html">Chi sono</a><script type="module" src="src/main.ts"></script>')
+    writeFileSync(join(root, 'chi-sono.html'), '<link rel="stylesheet" href="style.css"><h1>Chi sono</h1><img src="img/foto.png" alt="">')
+    writeFileSync(join(root, 'style.css'), 'body { background: url(img/sfondo.png) }')
+    writeFileSync(join(root, 'src', 'main.ts'), 'const n: number = 1\nconsole.log(n)\n')
+    writeFileSync(join(root, 'img', 'foto.png'), Buffer.from('PNG finto'))
+    writeFileSync(join(root, 'img', 'sfondo.png'), Buffer.from('PNG finto'))
+    writeFileSync(join(root, 'easey.json'), '{}')
+    writeFileSync(join(root, 'tsconfig.json'), '{}')
+    const files = readZip(await exportSite(root, 'Sito'))
+    expect(Object.keys(files).sort()).toEqual(['Sito/chi-sono.html', 'Sito/img/foto.png', 'Sito/img/sfondo.png', 'Sito/index.html', 'Sito/style.css'])
+    expect(files['Sito/index.html']).toContain('<style>')
+    // Lo sfondo citato dal CSS viaggia con la pagina.
+    expect(files['Sito/index.html']).toContain(`url(data:image/png;base64,${Buffer.from('PNG finto').toString('base64')})`)
+    expect(files['Sito/index.html']).toContain('href="chi-sono.html"')
+    expect(files['Sito/index.html']).toContain('console.log(n)')
+    expect(files['Sito/index.html']).not.toContain(': number')
+    expect(files['Sito/chi-sono.html']).toContain('src="data:image/png;base64,')
   })
 })
 

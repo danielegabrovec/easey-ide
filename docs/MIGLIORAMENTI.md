@@ -20,18 +20,21 @@ Priorità: **A** = buco in un flusso principale o rischio di perdere lavoro; **B
 | 6 | **Scorciatoie da tastiera**: ricerca nell'elenco e colonna della categoria | Elenco lungo (60+ voci) senza filtro | B | S | ✅ fatto |
 | 7 | **Designer: pagine del sito** (Webflow «Pages»): selettore della pagina nella barra del designer e «Nuova pagina…» che crea `chi-sono.html` accanto alla pagina aperta con la stessa testa (fogli di stile), la stessa intestazione/navigazione e lo stesso piè di pagina | Il flusso crea progetto → designer si fermava a una pagina: il modello «Sito» ha i link Home/Chi sono/Contatti ma le altre pagine andavano create a mano nel codice | A | M | ✅ fatto |
 | 8 | Consolidamento: una sola funzione `filePaths()` (in `shared/paths.ts`) al posto di due copie di `flatten` (palette dei comandi, programmazione visuale) | Regola «una sola fonte» | C | S | ✅ fatto |
-| 9 | **Esporta il sito pronto da pubblicare** (ZIP con tutte le pagine, TypeScript compilato, CSS e script incorporati, immagini e altri file copiati) | Lo ZIP attuale contiene i `.ts` sorgente (non si aprono nel browser) e la «pagina HTML unica» esporta solo la pagina d'ingresso: un sito di più pagine non si poteva pubblicare (Netlify Drop, GitHub Pages, hosting) senza passaggi manuali | A | M | da fare |
-| 10 | **Immagini del progetto**: aprendo un `.png/.jpg/.svg` dall'albero c'è solo l'avviso «non è un file di testo» → visualizzatore con dimensioni | VS Code/Replit mostrano l'immagine; i principianti controllano così le immagini importate | B | M | da fare |
-| 11 | **Menu dell'applicazione tradotto** e con le voci mancanti (Designer, Database, Diagrammi, Esporta sito): oggi il menu nativo è scritto in italiano nel main e ignora la lingua scelta | i18n incompleta; scopribilità delle funzioni | B | M | da fare |
+| 9 | **Esporta il sito pronto da pubblicare** (ZIP con tutte le pagine, TypeScript compilato, CSS e script incorporati, immagini e altri file copiati) | Lo ZIP attuale contiene i `.ts` sorgente (non si aprono nel browser) e la «pagina HTML unica» esporta solo la pagina d'ingresso: un sito di più pagine non si poteva pubblicare (Netlify Drop, GitHub Pages, hosting) senza passaggi manuali | A | M | ✅ fatto |
+| 10 | **Immagini del progetto**: aprendo un `.png/.jpg/.svg` dall'albero c'è solo l'avviso «non è un file di testo» → visualizzatore con dimensioni | VS Code/Replit mostrano l'immagine; i principianti controllano così le immagini importate | B | M | ✅ fatto |
+| 11 | **Menu dell'applicazione tradotto** e con le voci mancanti (Designer, Database, Diagrammi, Esporta sito): oggi il menu nativo è scritto in italiano nel main e ignora la lingua scelta | i18n incompleta; scopribilità delle funzioni | B | M | ✅ fatto (menu descritto dal renderer, `app:setMenu`; nuova sezione «Crea») |
 | 12 | Blocchi Blockly, terminale SQL e messaggi del terminale ancora solo in italiano | i18n per chi usa l'inglese | C | M | da fare |
-| 13 | Ispettore del designer: nel menu «Carattere» la variabile del tema appare come `--font-titoli` invece di «Carattere dei titoli (tema)» | Rifinitura | C | S | da fare |
+| 13 | Ispettore del designer: nel menu «Carattere» la variabile del tema appare come `--font-titoli` invece di «Carattere dei titoli (tema)» | Rifinitura | C | S | ✅ fatto |
 | 14 | Designer: spostare un elemento a flusso con la tastiera (Alt+↑/↓ = prima/dopo il fratello), oggi solo trascinando nei Livelli o con le frecce dei Livelli | Tastiera e accessibilità | C | S | da fare |
 | 15 | Prestazioni: il bundle del renderer supera 6 MB (Monaco, Blockly, PGlite client, React Flow nello stesso chunk) → caricare a richiesta Blockly/diagrammi/SQL | Avvio più rapido sui PC lenti delle scuole | C | L | da fare |
-| 16 | Esportazione «pagina HTML unica»: le immagini di sfondo nel CSS (`url(...)`) non vengono incorporate | Pagina esportata senza sfondi | C | S | da fare |
+| 16 | Esportazione «pagina HTML unica»: le immagini di sfondo nel CSS (`url(...)`) non vengono incorporate | Pagina esportata senza sfondi | C | S | ✅ fatto |
 
 ## Note
 
-- Ogni voce fatta ha i suoi test: unitari (`close-guard.test.ts`, `designer-pages.test.ts`) ed e2e
-  (`tests/e2e/shell.mjs` nuova suite del guscio; scenario «pagine» in `designer.mjs`).
+- Ogni voce fatta ha i suoi test: unitari (`close-guard.test.ts`, `designer-pages.test.ts`, `menu.test.ts`,
+  esportazione del sito in `growth.test.ts`) ed e2e (`tests/e2e/shell.mjs` nuova suite del guscio: chiusura, dialoghi,
+  recenti, immagini, menu anche in inglese; scenario «pagine» in `designer.mjs`; «sito pronto» in `growth.mjs`).
+- Rimasti (priorità C): 12 (anche le etichette degli stili pronti in `shared/designer/presets.ts` sono solo in
+  italiano), 14, 15. Sono rifiniture o lavori lunghi (code splitting del renderer) da pianificare a parte.
 - Il canale IPC nuovo segue la regola della whitelist: `app:closeReply` (invoke) e `app:closeRequested` (evento)
   in `src/shared/contracts/ipc.ts`; la logica di attesa è pura in `src/main/close-guard.ts`.

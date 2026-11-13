@@ -12,7 +12,7 @@ import { DbService } from './services/db/db-service'
 import { LearnService } from './services/learn/learn-service'
 import { traceFile } from './services/trace/tracer'
 import { GitService } from './services/git/git-service'
-import { exportSingleHtml, exportZip } from './services/export/export-service'
+import { exportSingleHtml, exportSite, exportZip } from './services/export/export-service'
 import { SAMPLE_DATABASES } from '@shared/sql/samples'
 import { DEFAULT_SETTINGS } from '@shared/contracts/settings'
 import { cpSync, existsSync } from 'node:fs'
@@ -195,6 +195,7 @@ registerHandlers(
       if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
     },
 
+    'app:setMenu': (sections) => buildMenu(sections),
     'app:closeReply': (decision) => {
       if (closeGuard?.reply(decision)) mainWindow?.close()
     },
@@ -306,6 +307,7 @@ registerHandlers(
       const name = info.name.replace(/[<>:"/\\|?*]+/g, '-')
       const outside = dirname(root)
       if (kind === 'zip') return saveAs(`${name}.zip`, await exportZip(root, name), outside)
+      if (kind === 'site') return saveAs(`${name}-sito.zip`, await exportSite(root, name), outside)
       const entry = /\.html?$/i.test(info.config.run.entry) ? info.config.run.entry : 'index.html'
       return saveAs(`${name}.html`, await exportSingleHtml(root, entry), outside)
     },
@@ -393,7 +395,8 @@ async function createWindow(): Promise<void> {
   // Anche le pagine dell'anteprima non possono aprire finestre dell'app.
   mainWindow.webContents.on('did-create-window', (child) => child.close())
 
-  buildMenu(() => mainWindow)
+  // Il menu vero arriva dal renderer appena ha caricato lingua e comandi (`app:setMenu`).
+  buildMenu([])
 
   const dev = devUrl()
   if (dev) await mainWindow.loadURL(dev.toString())

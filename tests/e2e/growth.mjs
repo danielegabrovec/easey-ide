@@ -104,6 +104,16 @@ try {
   const htmlPath = join(saveDir, 'Crescita.html')
   const single = await until(() => (existsSync(htmlPath) ? readFileSync(htmlPath, 'utf8') : null), 10000)
   check('HTML unico: CSS e TypeScript incorporati', !!single && single.includes('h1 { color: teal }') && single.includes('document.title = titolo') && !single.includes('src="app.ts"'))
+  await run.palette('Esporta il sito pronto da pubblicare')
+  const sitePath = join(saveDir, 'Crescita-sito.zip')
+  check('sito: ZIP esportato', !!(await until(() => existsSync(sitePath) && readFileSync(sitePath).subarray(0, 2).toString() === 'PK', 10000)))
+  if (process.platform === 'win32') {
+    const tar = join(process.env.SystemRoot ?? 'C:\Windows', 'System32', 'tar.exe')
+    const listing = execFileSync(tar, ['-tf', sitePath]).toString()
+    check('sito: pagine e file pubblicabili, senza sorgenti TypeScript né easey.json', listing.includes('Crescita/index.html') && listing.includes('Crescita/style.css') && !listing.includes('app.ts') && !listing.includes('easey.json'), listing.split('\n').slice(0, 8).join(', '))
+    const page1 = execFileSync(tar, ['-xOf', sitePath, 'Crescita/index.html']).toString()
+    check('sito: la pagina ha il TypeScript compilato e incorporato', page1.includes('document.title = titolo') && !page1.includes(': string'))
+  }
 
   // 4. Fornitore AI compatibile OpenAI
   await run.palette('Impostazioni')

@@ -42,7 +42,7 @@ export function activateExplorer(): void {
   })
   // Per gli altri moduli (es. didattica): apre una cartella nota come progetto. Restituisce true se aperta.
   registerCommand<{ root: string }>({ id: 'workspace.openPath', title: 'workspace.openPath', palette: false, run: (args) => (args ? openProject(args.root) : false) })
-  const exportProject = async (kind: 'zip' | 'html') => {
+  const exportProject = async (kind: 'zip' | 'html' | 'site') => {
     try {
       await executeCommand('editor.saveAll')
       const path = await ide.invoke('project:export', kind)
@@ -53,6 +53,7 @@ export function activateExplorer(): void {
   }
   registerCommand({ id: 'project.exportZip', title: t('cmd.exportZip'), category, when: hasProject, run: () => exportProject('zip') })
   registerCommand({ id: 'project.exportHtml', title: t('cmd.exportHtml'), category, when: hasProject, run: () => exportProject('html') })
+  registerCommand({ id: 'project.exportSite', title: t('cmd.exportSite'), category, when: hasProject, run: () => exportProject('site') })
   registerCommand({ id: 'workspace.close', title: t('cmd.closeProject'), category, when: hasProject, run: () => closeProject() })
   registerCommand({ id: 'explorer.show', title: t('cmd.showExplorer'), category: t('category.view'), keybinding: 'Ctrl+Shift+E', run: () => showPanel({ id: 'explorer', component: 'explorer', title: t('panel.explorer'), area: 'left' }) })
   registerCommand({ id: 'workbench.welcome', title: t('cmd.welcome'), category: t('category.help'), run: () => showPanel({ id: 'welcome', component: 'welcome', title: t('panel.welcome'), area: 'center' }) })

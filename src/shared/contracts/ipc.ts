@@ -8,6 +8,7 @@ import type { GitCommit, GitStatus } from './git'
 import type { CheckResult, Course, CourseProgress, CourseSummary, LearnEvent } from './learn'
 import type { CreateDatabaseRequest, DbConnectionInfo, DbSchema, DbSnapshot, QueryOutcome, QueryPlan } from './db'
 import type { AppInfo, Settings } from './settings'
+import type { MenuSection } from './menu'
 import type { QuickCodeLanguage, QuickRunEvent, QuickRunRequest, QuickSaveRequest, QuickSnippet, QuickSnippetInfo, QuickSqlEngine, QuickToolchain } from './quick'
 import type {
   CreateProjectRequest,
@@ -35,6 +36,8 @@ export interface InvokeChannels {
   'app:legal': (doc: 'licenza' | 'note' | 'terze-parti') => string
   /** Dialogo Salva con nome; restituisce il percorso scelto o null. */
   'app:saveFile': (defaultName: string, content: string, encoding?: 'utf8' | 'base64') => string | null
+  /** Menu dell'applicazione descritto dal renderer (testi tradotti, scorciatoie dal registro dei comandi). */
+  'app:setMenu': (sections: MenuSection[]) => void
   /** Risposta a `app:closeRequested`: chiudi ora, aspetta (dialogo aperto) o annulla la chiusura. */
   'app:closeReply': (decision: CloseDecision) => void
 
@@ -111,8 +114,8 @@ export interface InvokeChannels {
   'git:log': () => GitCommit[]
   'git:discard': (path: string) => void
 
-  /** Esporta il progetto (ZIP o pagina HTML unica) con il dialogo Salva; restituisce il percorso o null. */
-  'project:export': (kind: 'zip' | 'html') => string | null
+  /** Esporta il progetto (ZIP dei sorgenti, pagina HTML unica o sito pronto da pubblicare) con il dialogo Salva; restituisce il percorso o null. */
+  'project:export': (kind: 'zip' | 'html' | 'site') => string | null
 
   /** Scrittura rapida (senza progetto): raccolta di file nei Documenti, esecuzione JS/TS isolata, SQL in memoria. */
   'quick:list': () => QuickSnippetInfo[]
@@ -159,6 +162,7 @@ export const INVOKE_CHANNELS = [
   'app:legal',
   'app:saveFile',
   'app:closeReply',
+  'app:setMenu',
   'settings:get',
   'settings:update',
   'workspace:templates',

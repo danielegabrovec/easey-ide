@@ -82,6 +82,13 @@ function ColorField({ label, value, computed, onCommit, swatches, testId }: { la
   )
 }
 
+/** Nome leggibile dei caratteri del tema (variabili CSS scritte dalla scheda Sito). */
+function fontVariableLabel(variable: string): string {
+  if (variable === '--font-titoli') return t('designer.themeFontHeadings')
+  if (variable === '--font-testo') return t('designer.themeFontBody')
+  return t('designer.themeVariable', { name: variable })
+}
+
 function SelectField({ label, value, options, onCommit, testId }: { label: string; value: string; options: [string, string][]; onCommit: (value: string) => void; testId?: string }) {
   return (
     <label className="insp-field">
@@ -247,7 +254,7 @@ function StyleTab({ element }: { element: ElementInfo }) {
 
       <Section title={t('designer.text')}>
         <div className="insp-grid">
-          <SelectField label={t('designer.font')} value={get('font-family')} options={[...FONTS.map(([v, l]) => [v, l] as [string, string]), ...Object.keys(variables).filter((v) => /font/.test(v)).map((v) => [`var(${v})`, v] as [string, string])]} onCommit={set('font-family')} />
+          <SelectField label={t('designer.font')} value={get('font-family')} options={[...FONTS.map(([v, l]) => [v, l] as [string, string]), ...Object.keys(variables).filter((v) => /font/.test(v)).map((v) => [`var(${v})`, fontVariableLabel(v)] as [string, string])]} onCommit={set('font-family')} />
           <TextField label={t('designer.size')} value={get('font-size')} placeholder={hint('font-size')} onCommit={set('font-size')} testId="style-font-size" />
           <SelectField label={t('designer.weight')} value={get('font-weight')} options={[['300', 'Leggero'], ['400', 'Normale'], ['600', 'Seminegretto'], ['700', 'Grassetto'], ['900', 'Nero']]} onCommit={set('font-weight')} />
           <TextField label={t('designer.lineHeight')} value={get('line-height')} placeholder={hint('line-height')} onCommit={set('line-height')} />

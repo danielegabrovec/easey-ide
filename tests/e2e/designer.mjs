@@ -189,6 +189,8 @@ try {
   }, 8000)
   check('pagine: nuova pagina con titolo, intestazione e piè di pagina del sito', !!created)
   check('pagine: il designer apre la pagina nuova', !!(await until(async () => (await page.getByTestId('designer-page').inputValue()) === 'chi-sono.html' && (await frame.locator('main h1').innerText({ timeout: 500 })) === 'Chi sono', 10000)))
+  await wait(500)
+  check('pagine: l’Invio che conferma non riapre il dialogo (fuoco restituito dopo l’evento)', (await page.locator('.dialog').count()) === 0)
   check('pagine: la pagina nuova usa lo stesso foglio di stile', (await frame.locator('header.lab-intestazione').count()) === 1)
   await run.shot('09-nuova-pagina')
   await page.getByTestId('designer-page').selectOption('index.html')

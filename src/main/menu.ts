@@ -1,88 +1,32 @@
-// Menu dell'applicazione. Ogni voce invia un id di comando al renderer, che lo esegue
-// col registro dei comandi del workbench (una sola fonte di verità per le azioni).
-import { Menu, type BrowserWindow, type MenuItemConstructorOptions } from 'electron'
+// Menu dell'applicazione: la struttura e i testi (tradotti) arrivano dal renderer (`app:setMenu`),
+// qui si controllano e si traducono nel menu nativo. Ogni voce invia un id di comando al renderer,
+// che lo esegue col registro dei comandi del workbench (una sola fonte di verità per le azioni).
+import { Menu, type MenuItemConstructorOptions } from 'electron'
+import { isMenuAccelerator, MENU_ROLES, type MenuEntry, type MenuSection } from '@shared/contracts/menu'
 import { broadcast } from './ipc/router'
 
-const command = (label: string, id: string, accelerator?: string): MenuItemConstructorOptions => ({
-  label,
-  accelerator,
-  // L'acceleratore è gestito dal renderer (registerAccelerator: false) per non duplicare le scorciatoie.
-  registerAccelerator: false,
-  click: () => broadcast('menu:command', id)
-})
+const COMMAND_ID = /^[\w.-]{1,80}$/
 
-export function buildMenu(getWindow: () => BrowserWindow | null): void {
-  const template: MenuItemConstructorOptions[] = [
-    {
-      label: 'File',
-      submenu: [
-        command('Nuovo progetto…', 'workspace.newProject', 'Ctrl+Shift+N'),
-        command('Apri cartella…', 'workspace.openFolder', 'Ctrl+O'),
-        command('Scrittura rapida (senza progetto)', 'quick.open', 'Ctrl+Shift+Q'),
-        command('Chiudi progetto', 'workspace.close'),
-        { type: 'separator' },
-        command('Nuovo file', 'explorer.newFile', 'Ctrl+N'),
-        command('Vai al file…', 'workbench.quickOpen', 'Ctrl+P'),
-        command('Salva', 'editor.save', 'Ctrl+S'),
-        command('Salva tutto', 'editor.saveAll', 'Ctrl+Alt+S'),
-        { type: 'separator' },
-        command('Esporta come ZIP…', 'project.exportZip'),
-        command('Esporta come pagina HTML unica…', 'project.exportHtml'),
-        { type: 'separator' },
-        { role: 'quit', label: 'Esci' }
-      ]
-    },
-    {
-      label: 'Modifica',
-      submenu: [
-        { role: 'undo', label: 'Annulla' },
-        { role: 'redo', label: 'Ripeti' },
-        { type: 'separator' },
-        { role: 'cut', label: 'Taglia' },
-        { role: 'copy', label: 'Copia' },
-        { role: 'paste', label: 'Incolla' },
-        { role: 'selectAll', label: 'Seleziona tutto' }
-      ]
-    },
-    {
-      label: 'Esegui',
-      submenu: [
-        command('Esegui progetto', 'run.project', 'F5'),
-        command('Esegui file nel terminale', 'run.fileInTerminal', 'Ctrl+F5'),
-        command('Apri anteprima web', 'run.preview'),
-        { type: 'separator' },
-        command('Esegui passo passo', 'trace.run', 'Ctrl+F10'),
-        command('REPL JavaScript', 'terminal.repl')
-      ]
-    },
-    {
-      label: 'Visualizza',
-      submenu: [
-        command('Palette dei comandi…', 'workbench.commandPalette', 'Ctrl+Shift+P'),
-        command('Nuovo terminale', 'terminal.new', 'Ctrl+Shift+`'),
-        command('Esplora file', 'explorer.show', 'Ctrl+Shift+E'),
-        command('Console', 'run.showConsole'),
-        command('Problemi', 'editor.showProblems', 'Ctrl+Shift+M'),
-        command('Git', 'git.show', 'Ctrl+Alt+G'),
-        command('Lezioni ed esercizi', 'learn.show', 'Ctrl+Alt+L'),
-        command('Ripristina disposizione pannelli', 'workbench.resetLayout'),
-        { type: 'separator' },
-        command('Tema chiaro/scuro', 'workbench.toggleTheme'),
-        command('Ingrandisci testo', 'workbench.zoomIn', 'Ctrl+='),
-        command('Riduci testo', 'workbench.zoomOut', 'Ctrl+-'),
-        { type: 'separator' },
-        { role: 'togglefullscreen', label: 'Schermo intero' },
-        {
-          label: 'Strumenti per sviluppatori',
-          accelerator: 'Ctrl+Shift+I',
-          click: () => getWindow()?.webContents.toggleDevTools()
-        }
-      ]
-    },
-    {
-      label: 'Aiuto',
-      submenu: [command('Scorciatoie da tastiera', 'workbench.shortcuts'), command('Informazioni', 'workbench.about')]
-    }
-  ]
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+function item(entry: MenuEntry): MenuItemConstructorOptions | null {
+  if (!entry || typeof entry !== 'object') return null
+  if (entry.kind === 'separator') return { type: 'separator' }
+  const label = String(entry.label ?? '').slice(0, 120)
+  // L'acceleratore è gestito dal renderer (registerAccelerator: false) per non duplicare le scorciatoie;
+  // fanno eccezione gli strumenti per sviluppatori, che il renderer non conosce.
+  const accelerator = isMenuAccelerator(entry.accelerator) ? entry.accelerator : undefined
+  if (entry.kind === 'role') return MENU_ROLES.includes(entry.role) ? { role: entry.role, label, accelerator, registerAccelerator: entry.role === 'toggleDevTools' } : null
+  if (entry.kind === 'command' && COMMAND_ID.test(String(entry.command))) {
+    const command = entry.command
+    return { label, accelerator, registerAccelerator: false, click: () => broadcast('menu:command', command) }
+  }
+  return null
+}
+
+/** Costruisce il menu nativo dalla descrizione del renderer (voci sconosciute scartate). */
+export function buildMenu(sections: MenuSection[]): void {
+  const template: MenuItemConstructorOptions[] = (Array.isArray(sections) ? sections : []).slice(0, 12).map((section) => ({
+    label: String(section?.label ?? '').slice(0, 60),
+    submenu: (Array.isArray(section?.items) ? section.items : []).slice(0, 60).map(item).filter((i): i is MenuItemConstructorOptions => i !== null)
+  }))
+  Menu.setApplicationMenu(template.length ? Menu.buildFromTemplate(template) : null)
 }
