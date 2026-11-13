@@ -11,7 +11,7 @@ import { t } from '../i18n'
  * diagrammi, Scrittura rapida) nascondono da soli i pannelli di servizio, MAI l'Esplora; tornando a
  * un file riappaiono. Niente più gruppi ingranditi senza un pulsante per tornare indietro.
  */
-export const useLayout = create<{ sidebar: boolean; panels: boolean }>(() => ({ sidebar: true, panels: true }))
+export const useLayout = create<{ sidebar: boolean; panels: boolean; split: string[] }>(() => ({ sidebar: true, panels: true, split: [] }))
 
 /** Pannelli che hanno bisogno di spazio: aperti, nascondono anteprima e console. */
 const WIDE_PANELS = ['designer', 'quick', 'visual:', 'diagram:']
@@ -22,8 +22,12 @@ export function isWidePanel(id: string): boolean {
 
 /** I pannelli di servizio sono stati nascosti dall'apertura di un editor grafico (non dall'utente). */
 let autoHidden = false
-/** L'utente li ha rimostrati mentre era attivo un editor grafico: non li si nasconde di nuovo. */
-let keptByUser = false
+/**
+ * L'editor grafico per cui l'utente li ha rimostrati (pulsante, Ctrl+J, Esegui…): per lui non si
+ * nascondono di nuovo; aprendo un ALTRO editor grafico sì.
+ */
+let keptFor: string | null = null
+const keptIfWide = (id: string | undefined) => (id && isWidePanel(id) ? id : null)
 
 export type Area = 'left' | 'center' | 'right' | 'bottom'
 
@@ -45,16 +49,73 @@ export function panelComponents(): Record<string, PanelComponent> {
 export function setDockApi(next: DockviewApi | null): void {
   api = next
   next?.onDidActivePanelChange((panel) => onActivePanel(panel ?? null))
+  next?.onDidRemovePanel((panel) => {
+    if (companions.delete(panel.id)) useLayout.setState((s) => ({ split: s.split.filter((id) => id !== panel.id) }))
+  })
+}
+
+/** Pannelli di codice aperti accanto a un editor grafico (vista affiancata): non cambiano la disposizione. */
+const companions = new Set<string>()
+/** Ultimo editor grafico attivo (a lui si riferisce «Affianca codice»). */
+let lastWide: string | null = null
+
+export function lastWidePanel(): string | null {
+  return lastWide && api?.getPanel(lastWide) ? lastWide : null
+}
+
+/**
+ * Apre un pannello in un gruppo a destra di `beside` (il pannello grafico), senza attivarlo: il grafico
+ * resta a sinistra e col fuoco. Se il pannello è già aperto nello stesso gruppo del grafico, si sposta.
+ */
+export function showBeside(options: ShowPanelOptions, beside: string): IDockviewPanel | null {
+  if (!api) return null
+  const reference = api.getPanel(beside)
+  if (!reference) return showPanel(options)
+  companions.add(options.id)
+  useLayout.setState((s) => ({ split: s.split.includes(options.id) ? s.split : [...s.split, options.id] }))
+  const existing = api.getPanel(options.id)
+  if (existing) {
+    if (existing.group.id === reference.group.id) existing.api.moveTo({ group: reference.group, position: 'right', skipSetActive: true })
+    reference.api.setActive()
+    return existing
+  }
+  // (non `inactive`: un gruppo nuovo con l'unico pannello inattivo resterebbe vuoto) — subito dopo il
+  // grafico torna attivo e il fuoco torna dov'era.
+  const focused = document.activeElement as HTMLElement | null
+  const panel = api.addPanel({
+    id: options.id,
+    component: options.component,
+    title: options.title,
+    params: options.params ?? {},
+    renderer: options.renderer,
+    position: { referencePanel: beside, direction: 'right' }
+  })
+  // Metà e metà: riaprendo dopo una chiusura dockview può ridare al gruppo nuovo la larghezza 0 di prima.
+  const total = reference.group.api.width + panel.group.api.width
+  if (panel.group.api.width < total / 4) panel.group.api.setSize({ width: Math.round(total / 2) })
+  reference.api.setActive()
+  focused?.focus?.()
+  return panel
+}
+
+export function closeBeside(id: string): void {
+  closePanel(id)
+}
+
+export function isBeside(id: string): boolean {
+  return companions.has(id) && !!api?.getPanel(id)
 }
 
 function onActivePanel(panel: IDockviewPanel | null): void {
   if (!panel || !api) return
   // Le schede dei gruppi laterali (Esplora, anteprima, console) non cambiano la disposizione.
   if ([areaGroups.left, areaGroups.right, areaGroups.bottom].includes(panel.group.id)) return
+  if (companions.has(panel.id)) return
   if (isWidePanel(panel.id)) {
-    if (useLayout.getState().panels && !keptByUser) setPanelsVisible(false, true)
+    lastWide = panel.id
+    if (useLayout.getState().panels && keptFor !== panel.id) setPanelsVisible(false, true)
   } else {
-    keptByUser = false
+    keptFor = null
     if (autoHidden) setPanelsVisible(true)
   }
 }
@@ -84,7 +145,7 @@ export function setPanelsVisible(visible: boolean, auto = false): void {
   setGroupVisible('right', visible)
   setGroupVisible('bottom', visible)
   autoHidden = !visible && auto
-  if (!auto) keptByUser = visible && isWidePanel(api.activePanel?.id ?? '')
+  if (!auto) keptFor = visible ? keptIfWide(api.activePanel?.id) : null
   useLayout.setState({ panels: visible })
 }
 
@@ -102,7 +163,7 @@ function revealGroupOf(panel: IDockviewPanel): void {
     setGroupVisible('right', true)
     setGroupVisible('bottom', true)
     autoHidden = false
-    keptByUser = isWidePanel(api?.activePanel?.id ?? '')
+    keptFor = keptIfWide(api?.activePanel?.id)
     useLayout.setState({ panels: true })
   }
 }
@@ -180,8 +241,10 @@ export function buildDefaultLayout(): void {
   api.clear()
   for (const key of Object.keys(areaGroups) as Area[]) delete areaGroups[key]
   autoHidden = false
-  keptByUser = false
-  useLayout.setState({ sidebar: true, panels: true })
+  keptFor = null
+  companions.clear()
+  lastWide = null
+  useLayout.setState({ sidebar: true, panels: true, split: [] })
   const welcome = api.addPanel({ id: 'welcome', component: 'welcome', title: t('panel.welcome') })
   areaGroups.center = welcome.group.id
   const preview = api.addPanel({

@@ -1,5 +1,7 @@
 // Editor a blocchi (Blockly): i blocchi si incastrano, il codice JavaScript si genera accanto e si salva.
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { idAtLine, mapSteps, type CodeMap } from '@shared/visual/code-map'
+import { useCodeSideOpen } from './code-side'
 import type { IDockviewPanelProps } from 'dockview'
 import { basenameOf } from '@shared/paths'
 import { generatedHeader, STEP_HELPER, type BlocksProgram, type VisualProgram } from '@shared/visual/program'
@@ -24,8 +26,10 @@ export function BlocksPanel({ params }: IDockviewPanelProps<{ path: string }>) {
   const host = useRef<HTMLDivElement>(null)
   const workspace = useRef<Blockly.WorkspaceSvg | null>(null)
   const [program, setProgram] = useState<BlocksProgram | null>(null)
-  const [code, setCode] = useState('')
   const [cleanCode, setCleanCode] = useState('')
+  const [codeMap, setCodeMap] = useState<CodeMap>({ clean: '', ranges: {} })
+  const [selectedBlock, setSelectedBlock] = useState<string | null>(null)
+  const sideOpen = useCodeSideOpen(`visual:${path}`)
   const programRef = useRef<BlocksProgram | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const theme = useWorkbench((s) => s.settings.theme)
@@ -37,8 +41,9 @@ export function BlocksPanel({ params }: IDockviewPanelProps<{ path: string }>) {
     const next: BlocksProgram = { ...current, workspace: Blockly.serialization.workspaces.save(ws) }
     const withSteps = next.highlight && next.target === 'pagina'
     const generated = fullCode(path, generateBlocksCode(ws, withSteps), next, true)
-    setCode(generated)
     setCleanCode(fullCode(path, generateBlocksCode(ws, false), next, false))
+    // Mappa blocco ↔ righe del codice pulito (dai segnali dei passi, sempre generati per la mappa).
+    setCodeMap(mapSteps(fullCode(path, generateBlocksCode(ws, true), next, false)))
     programRef.current = next
     return { program: next, code: generated }
   }, [path])
@@ -84,6 +89,8 @@ export function BlocksPanel({ params }: IDockviewPanelProps<{ path: string }>) {
       }
       regenerate()
       ws.addChangeListener((event: Blockly.Events.Abstract) => {
+        // Blocco selezionato → le sue righe si illuminano nel codice accanto.
+        if (event.type === B.Events.SELECTED) setSelectedBlock((event as Blockly.Events.Selected).newElementId ?? null)
         if (event.isUiEvent) return
         scheduleSave()
       })
@@ -125,6 +132,23 @@ export function BlocksPanel({ params }: IDockviewPanelProps<{ path: string }>) {
     return () => observer.disconnect()
   }, [])
 
+  // Blocco selezionato → righe nel codice: un blocco di valore conta come l'istruzione che lo contiene.
+  let mapped: string | null = selectedBlock
+  for (let block = mapped ? workspace.current?.getBlockById(mapped) : null; block && !codeMap.ranges[block.id]; block = block.getParent()) mapped = block.getParent()?.id ?? null
+  const range = mapped ? codeMap.ranges[mapped] : undefined
+  const rangeKey = range ? `${mapped}:${range.startLine}-${range.endLine}` : ''
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const highlight = useMemo(() => range ?? null, [rangeKey])
+  // Codice → grafica: clic su una riga = il suo blocco selezionato e portato in vista.
+  const onLineClick = (line: number) => {
+    const id = idAtLine(codeMap.ranges, line)
+    const ws = workspace.current
+    const block = id ? ws?.getBlockById(id) : null
+    if (!ws || !block) return
+    block.select()
+    ws.centerOnBlock(block.id)
+  }
+
   const change = (next: VisualProgram) => {
     const blocks = next as BlocksProgram
     programRef.current = blocks
@@ -136,14 +160,16 @@ export function BlocksPanel({ params }: IDockviewPanelProps<{ path: string }>) {
   return (
     <div className="panel visual-panel" data-testid="blocks-editor">
       {program && <VisualToolbar path={path} program={program} cleanCode={cleanCode} allowConsole onChange={change} flush={flush} />}
-      <div className="visual-body">
+      <div className={`visual-body${sideOpen ? '' : ' no-side'}`}>
         <div ref={host} className="blockly-host" />
-        <div className="visual-side">
-          <div className="panel-toolbar">
-            <span className="title">{t('visual.generated')}</span>
+        {sideOpen && (
+          <div className="visual-side">
+            <div className="panel-toolbar">
+              <span className="title">{t('visual.generated')}</span>
+            </div>
+            <CodePreview code={codeMap.clean || cleanCode} highlight={highlight} onLineClick={onLineClick} />
           </div>
-          <CodePreview code={code} />
-        </div>
+        )}
       </div>
     </div>
   )

@@ -57,6 +57,7 @@ const SPEC: Spec[] = [
       'terminal.new',
       'workbench.toggleSidebar',
       'workbench.togglePanels',
+      'view.splitCode',
       'explorer.show',
       'run.showConsole',
       'editor.showProblems',

@@ -326,6 +326,12 @@ body.side-resizing webview {
   background: var(--bg-hover);
 }
 
+/* Pulsante a due stati acceso (es. «Affianca codice»). */
+.btn.ghost.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .btn.danger {
   color: var(--danger);
 }

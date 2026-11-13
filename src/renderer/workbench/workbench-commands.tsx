@@ -8,6 +8,7 @@ import logo from '../assets/logo.svg'
 import { t } from '../i18n'
 import { listCommands, registerCommand } from './commands'
 import { buildDefaultLayout, togglePanels, toggleSidebar } from './layout'
+import { registerSplitCommand } from './split-code'
 import { settingsSections } from './settings-sections'
 import { notifyError } from './notifications'
 import { useWorkbench, workbench } from './store'
@@ -158,6 +159,7 @@ export function registerWorkbenchCommands(): void {
   // Come in VS Code: Ctrl+B mostra/nasconde la barra laterale (Esplora), Ctrl+J i pannelli (anteprima e console).
   registerCommand({ id: 'workbench.toggleSidebar', title: t('cmd.toggleSidebar'), category, keybinding: 'Ctrl+B', run: () => toggleSidebar() })
   registerCommand({ id: 'workbench.togglePanels', title: t('cmd.togglePanels'), category, keybinding: 'Ctrl+J', run: () => togglePanels() })
+  registerSplitCommand()
   registerCommand({
     id: 'workbench.settings',
     title: t('cmd.settings'),

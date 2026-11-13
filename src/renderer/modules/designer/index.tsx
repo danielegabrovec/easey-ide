@@ -7,7 +7,8 @@ import { ide } from '../../ipc'
 import { prompt } from '../../ui/dialogs'
 import { executeCommand, registerCommand } from '../../workbench/commands'
 import { on } from '../../workbench/events'
-import { closePanel, registerPanel, showPanel } from '../../workbench/layout'
+import { closePanel, isBeside, registerPanel, showPanel } from '../../workbench/layout'
+import { registerSplitProvider, rememberedSplit } from '../../workbench/split-code'
 import { notify, notifyError } from '../../workbench/notifications'
 import { workbench } from '../../workbench/store'
 import { t } from '../../i18n'
@@ -17,14 +18,34 @@ import { useDesigner } from './designer-store'
 const isHtml = (path: string | null | undefined): path is string => !!path && ['html', 'htm'].includes(extensionOf(path))
 
 export function openDesigner(path: string): void {
-  // Un solo designer alla volta: se si cambia pagina, il pannello si riapre sulla nuova.
-  if (useDesigner.getState().path && useDesigner.getState().path !== path) closePanel('designer')
+  // Un solo designer alla volta: se si cambia pagina, il pannello si riapre sulla nuova (e il codice affiancato segue).
+  const previous = useDesigner.getState().path
+  const wasSplit = !!previous && isBeside(`editor:${previous}`)
+  if (previous && previous !== path) {
+    closePanel('designer')
+    if (wasSplit) void executeCommand('editor.closeBeside', { path: previous })
+  }
   // Il designer ha bisogno di spazio: anteprima e console si nascondono da sole (layout.ts), l'Esplora resta.
   showPanel({ id: 'designer', component: 'designer', title: `${t('panel.designer')} · ${basenameOf(path)}`, area: 'center', params: { path }, renderer: 'always' })
+  // Vista affiancata grafica ↔ codice, se l'utente l'aveva scelta.
+  if (wasSplit || rememberedSplit('designer')) void executeCommand('editor.openBeside', { path, beside: 'designer' })
 }
 
 export function activateDesigner(): void {
   registerPanel('designer', DesignerPanel)
+  registerSplitProvider({
+    kind: 'designer',
+    matches: (id) => id === 'designer',
+    isOpen: () => {
+      const path = useDesigner.getState().path
+      return !!path && isBeside(`editor:${path}`)
+    },
+    setOpen: async (_id, open) => {
+      const path = useDesigner.getState().path
+      if (!path) return
+      await executeCommand(open ? 'editor.openBeside' : 'editor.closeBeside', { path, beside: 'designer' })
+    }
+  })
   registerCommand<{ path?: string }>({
     id: 'designer.open',
     title: t('cmd.designerOpen'),

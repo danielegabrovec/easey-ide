@@ -6,7 +6,7 @@ import { openerFor, registerFileOpener } from '../../workbench/openers'
 import { notify } from '../../workbench/notifications'
 import { executeCommand, registerCommand } from '../../workbench/commands'
 import { on } from '../../workbench/events'
-import { closePanel, findPanels, registerPanel, showPanel } from '../../workbench/layout'
+import { closeBeside, closePanel, findPanels, registerPanel, showBeside, showPanel } from '../../workbench/layout'
 import { workbench } from '../../workbench/store'
 import { openDialog } from '../../ui/dialogs'
 import { t } from '../../i18n'
@@ -190,6 +190,10 @@ export function activateEditor(): void {
     palette: false,
     run: (args) => (args ? ensureModel(args.path) : null)
   })
+  // Grafica → codice (vista affiancata): seleziona l'intervallo, lo porta al centro e lo evidenzia con
+  // uno sfondo che sfuma, SENZA prendere il fuoco. Niente cicli: l'editor segnala il cursore
+  // (editor:cursor) solo quando ha il fuoco, e qui il fuoco resta alla grafica.
+  const flashes = new Map<Monaco.editor.IStandaloneCodeEditor, { collection: Monaco.editor.IEditorDecorationsCollection; timer: ReturnType<typeof setTimeout> | null }>()
   registerCommand<{ path: string; start: number; end: number }>({
     id: 'editor.highlight',
     title: 'editor.highlight',
@@ -198,12 +202,34 @@ export function activateEditor(): void {
       if (!args) return
       const editor = await editorFor(args.path, 0)
       const model = editor?.getModel()
-      if (!editor || !model || editor.hasTextFocus()) return
+      if (!editor || !model) return
       const range = monaco.Range.fromPositions(model.getPositionAt(args.start), model.getPositionAt(args.end))
       editor.setSelection(range)
-      editor.revealRangeInCenterIfOutsideViewport(range)
+      editor.revealRangeInCenterIfOutsideViewport(range, monaco.editor.ScrollType.Smooth)
+      let flash = flashes.get(editor)
+      if (!flash) {
+        flash = { collection: editor.createDecorationsCollection(), timer: null }
+        flashes.set(editor, flash)
+        editor.onDidDispose(() => flashes.delete(editor))
+      }
+      flash.collection.set([{ range, options: { className: 'link-flash', isWholeLine: false } }])
+      if (flash.timer) clearTimeout(flash.timer)
+      const current = flash
+      current.timer = setTimeout(() => current.collection.clear(), 1600)
     }
   })
+  // Apre un file in un gruppo accanto (a destra) a un pannello grafico, senza prendergli il fuoco.
+  registerCommand<{ path: string; beside: string }>({
+    id: 'editor.openBeside',
+    title: 'editor.openBeside',
+    palette: false,
+    run: async (args) => {
+      if (!args) return
+      await ensureModel(args.path)
+      showBeside({ id: panelId(args.path), component: 'editor', title: basenameOf(args.path), area: 'center', params: { path: args.path } }, args.beside)
+    }
+  })
+  registerCommand<{ path: string }>({ id: 'editor.closeBeside', title: 'editor.closeBeside', palette: false, run: (args) => args && closeBeside(panelId(args.path)) })
   registerCommand<{ text: string }>({
     id: 'editor.insertText',
     title: 'editor.insertText',

@@ -11,6 +11,12 @@ export function computedStyle(id: number | null | undefined): CSSStyleDeclaratio
   return node ? frame.contentWindow.getComputedStyle(node) : null
 }
 
+/** Porta in vista un elemento nel canvas (es. selezionato dal codice). */
+export function revealElement(id: number): void {
+  const node = frame?.contentDocument?.querySelector(`[data-lab-id="${id}"]`)
+  node?.scrollIntoView({ block: 'nearest' })
+}
+
 /**
  * Contenitore (non il body) che si vede al centro del canvas: lì va un elemento inserito con un clic
  * nella palette senza selezione. `accepts` dice se un elemento può ricevere figli.

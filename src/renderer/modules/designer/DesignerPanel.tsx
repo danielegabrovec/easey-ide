@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type * as Monaco from 'monaco-editor'
 import type { IDockviewPanelProps } from 'dockview'
-import { Code2, FilePlus2, Globe, Laptop, Monitor, Redo2, Smartphone, Tablet, Undo2 } from 'lucide-react'
+import { Columns2, FilePlus2, Globe, Laptop, Monitor, Redo2, Smartphone, Tablet, Undo2 } from 'lucide-react'
 import { buildCanvasDocument, resolveRelative } from '@shared/designer/canvas-document'
 import type { Breakpoint } from '@shared/designer/css-edit'
 import { linkedStylesheets } from '@shared/designer/html-edit'
@@ -13,6 +13,9 @@ import { filePaths } from '@shared/paths'
 import { executeCommand } from '../../workbench/commands'
 import { on } from '../../workbench/events'
 import { useWorkbench } from '../../workbench/store'
+import { useLayout } from '../../workbench/layout'
+import { toggleSplitCode } from '../../workbench/split-code'
+import { revealElement } from './frame-access'
 import { notifyError } from '../../workbench/notifications'
 import { t } from '../../i18n'
 import { Canvas } from './Canvas'
@@ -114,18 +117,19 @@ export function DesignerPanel({ params }: IDockviewPanelProps<{ path: string }>)
     useDesigner.getState().setPage(path)
   }, [path])
 
-  // Selezione nel designer → evidenzia il tag nel codice (se il file è aperto).
+  // Grafica → codice: l'elemento selezionato si seleziona e si illumina nel codice (se il file è aperto),
+  // senza togliere il fuoco al designer. Il flag evita il rimbalzo quando la selezione arriva dal codice.
   useEffect(
     () =>
       useDesigner.subscribe((state, previous) => {
         if (state.selection === previous.selection || selectionFromEditor) return
         const element = resolveSelection(state.html, state.selection)
-        if (element) void executeCommand('editor.highlight', { path, start: element.start, end: element.startTagEnd })
+        if (element && !['html', 'body'].includes(element.tag)) void executeCommand('editor.highlight', { path, start: element.start, end: element.end })
       }),
     [path]
   )
 
-  // Cursore nel codice → selezione nel designer.
+  // Codice → grafica: il cursore nel codice seleziona l'elemento e lo porta in vista nel canvas.
   useEffect(
     () =>
       on('editor:cursor', ({ path: cursorPath, offset }) => {
@@ -136,9 +140,11 @@ export function DesignerPanel({ params }: IDockviewPanelProps<{ path: string }>)
         selectionFromEditor = true
         useDesigner.getState().selectElement(element)
         selectionFromEditor = false
+        revealElement(element.id)
       }),
     [path]
   )
+  const split = useLayout((s) => s.split.includes(`editor:${path}`))
 
   return (
     <div className="panel designer-panel" data-testid="designer">
@@ -165,8 +171,8 @@ export function DesignerPanel({ params }: IDockviewPanelProps<{ path: string }>)
         <button className="icon-btn" title={`${t('designer.redo')} (Ctrl+Y)`} onClick={() => redo()}>
           <Redo2 size={14} />
         </button>
-        <button className="btn ghost" onClick={() => executeCommand('editor.open', { path })} title={t('designer.showCode')}>
-          <Code2 size={14} /> {t('designer.code')}
+        <button className={`btn ghost${split ? ' active' : ''}`} onClick={() => void toggleSplitCode('designer')} title={t('split.buttonHint')} aria-pressed={split} data-testid="split-code">
+          <Columns2 size={14} /> {t('split.button')}
         </button>
         <button className="btn ghost" onClick={() => executeCommand('run.preview', { entry: path })} title={t('designer.realPreview')}>
           <Globe size={14} /> {t('toolbar.preview')}

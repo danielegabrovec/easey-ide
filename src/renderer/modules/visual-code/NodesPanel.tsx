@@ -5,6 +5,8 @@ import type { IDockviewPanelProps } from 'dockview'
 import { Handle, MarkerType, Position, ReactFlowProvider, useEdges, useEdgesState, useNodesState, useReactFlow, type Connection, type Edge, type FinalConnectionState, type Node, type NodeProps } from '@xyflow/react'
 import { basenameOf } from '@shared/paths'
 import { compatibleNodes, connectWire, History, reconnectWire, wireId } from '@shared/visual/graph-edit'
+import { idAtLine, mapSteps } from '@shared/visual/code-map'
+import { useCodeSideOpen } from './code-side'
 import { generateNodesCode, NODE_SPECS, specOf, type NodeCategory, type NodeSpec } from '@shared/visual/nodes'
 import { showContextMenu } from '../../ui/ContextMenu'
 import { generatedPath, type ExportedFunction, type NodesProgram, type VisualProgram } from '@shared/visual/program'
@@ -162,6 +164,29 @@ function Editor({ path }: { path: string }) {
   const options = useMemo(() => ({ outputPath: generatedPath(path), sourceName: basenameOf(path), functions: symbols.functions }), [path, symbols])
   const code = useMemo(() => (current ? generateNodesCode(current, options) : ''), [current, options])
   const cleanCode = useMemo(() => (current ? generateNodesCode({ ...current, highlight: false }, options) : ''), [current, options])
+  // Mappa nodo ↔ righe del codice pulito (vista affiancata grafica ↔ codice).
+  const codeMap = useMemo(() => {
+    if (!current) return { clean: '', ranges: {} }
+    const headers = new Set(current.nodes.filter((n) => specOf(n.type)?.category === 'evento').map((n) => n.id))
+    return mapSteps(generateNodesCode({ ...current, highlight: true }, options), headers)
+  }, [current, options])
+  const selectedId = useMemo(() => {
+    const selected = nodes.filter((n) => n.selected)
+    return selected.length === 1 ? selected[0]!.id : null
+  }, [nodes])
+  const selectedRange = selectedId ? codeMap.ranges[selectedId] : undefined
+  const rangeKey = selectedRange ? `${selectedId}:${selectedRange.startLine}-${selectedRange.endLine}` : ''
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const highlight = useMemo(() => selectedRange ?? null, [rangeKey])
+  const sideOpen = useCodeSideOpen(`visual:${path}`)
+  // Codice → grafica: clic su una riga = il suo nodo selezionato e portato in vista.
+  const onLineClick = (line: number) => {
+    const id = idAtLine(codeMap.ranges, line)
+    const target = id ? nodes.find((n) => n.id === id) : undefined
+    if (!target) return
+    setNodes((list) => list.map((n) => (n.selected === (n.id === id) ? n : { ...n, selected: n.id === id })))
+    void flow.setCenter(target.position.x + (target.measured?.width ?? 180) / 2, target.position.y + (target.measured?.height ?? 80) / 2, { zoom: flow.getZoom(), duration: 250 })
+  }
 
   const flush = useCallback(async () => {
     if (timer.current) clearTimeout(timer.current)
@@ -321,7 +346,7 @@ function Editor({ path }: { path: string }) {
       {/* tabIndex -1: un clic nel canvas porta qui il fuoco, così Ctrl+Z e Ctrl+Y arrivano. */}
       <div className="panel visual-panel" data-testid="nodes-editor" onKeyDown={onKeyDown} tabIndex={-1} style={{ outline: 'none' }}>
         {current && <VisualToolbar path={path} program={current} cleanCode={cleanCode} allowConsole={false} onChange={(next: VisualProgram) => setProgram({ ...(next as NodesProgram) })} flush={flush} />}
-        <div className="visual-body nodes">
+        <div className={`visual-body nodes${sideOpen ? '' : ' no-side'}`}>
           <div className="vn-palette">
             {categories.map((category) => (
               <section key={category}>
@@ -371,12 +396,14 @@ function Editor({ path }: { path: string }) {
               />
             )}
           </div>
-          <div className="visual-side">
-            <div className="panel-toolbar">
-              <span className="title">{t('visual.generated')}</span>
+          {sideOpen && (
+            <div className="visual-side">
+              <div className="panel-toolbar">
+                <span className="title">{t('visual.generated')}</span>
+              </div>
+              <CodePreview code={codeMap.clean} highlight={highlight} onLineClick={onLineClick} />
             </div>
-            <CodePreview code={code} />
-          </div>
+          )}
         </div>
       </div>
     </Ctx.Provider>

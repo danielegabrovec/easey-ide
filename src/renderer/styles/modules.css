@@ -1975,11 +1975,20 @@ button.ai-chip:hover {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(360px, 1fr) minmax(280px, 34%);
+  grid-template-columns: minmax(260px, 1fr) minmax(240px, 34%);
 }
 
 .visual-body.nodes {
-  grid-template-columns: 190px minmax(360px, 1fr) minmax(260px, 30%);
+  grid-template-columns: 170px minmax(260px, 1fr) minmax(220px, 30%);
+}
+
+/* Codice generato nascosto («Affianca codice» spento): tutto lo spazio al grafico. */
+.visual-body.no-side {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.visual-body.nodes.no-side {
+  grid-template-columns: 170px minmax(0, 1fr);
 }
 
 .blockly-host,
@@ -2582,6 +2591,22 @@ button.ai-chip:hover {
   background: none;
   padding: 0;
   font-size: inherit;
+}
+
+/* ---------- Vista affiancata grafica ↔ codice: il codice dell'elemento scelto si illumina e sfuma ---------- */
+.link-flash {
+  background: rgba(109, 124, 255, 0.35);
+  border-radius: 2px;
+  animation: link-flash-fade 1.5s ease-out forwards;
+}
+
+@keyframes link-flash-fade {
+  from {
+    background: rgba(109, 124, 255, 0.45);
+  }
+  to {
+    background: rgba(109, 124, 255, 0);
+  }
 }
 
 /* ---------- Passo passo ---------- */

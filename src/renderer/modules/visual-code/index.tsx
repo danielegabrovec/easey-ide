@@ -10,6 +10,7 @@ import { workbench } from '../../workbench/store'
 import { prompt } from '../../ui/dialogs'
 import { t } from '../../i18n'
 import { BlocksPanel } from './BlocksPanel'
+import { registerVisualSplit } from './code-side'
 import { NodesPanel } from './NodesPanel'
 import { htmlPages, linkToPage, loadSymbols } from './project-files'
 
@@ -73,6 +74,7 @@ async function createProgram(kind: VisualKind): Promise<void> {
 export function activateVisualCode(): void {
   registerPanel('visual-blocks', BlocksPanel)
   registerPanel('visual-nodes', NodesPanel)
+  registerVisualSplit()
   const category = t('category.visual')
   const hasProject = () => workbench().project !== null
   registerCommand({ id: 'visual.newBlocks', title: t('visual.newBlocks'), category, when: hasProject, run: () => createProgram('blocchi') })

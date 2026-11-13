@@ -1,6 +1,8 @@
 // Barra comune agli editor visuali: destinazione, pagina collegata, passi evidenziati, Esegui, Converti in codice.
 import { useEffect, useState } from 'react'
-import { FileCode2, Link2, Play } from 'lucide-react'
+import { Columns2, FileCode2, Link2, Play } from 'lucide-react'
+import { toggleSplitCode } from '../../workbench/split-code'
+import { useCodeSideOpen } from './code-side'
 import type { VisualProgram, VisualTarget } from '@shared/visual/program'
 import { generatedPath } from '@shared/visual/program'
 import { ide } from '../../ipc'
@@ -21,6 +23,7 @@ interface Props {
 }
 
 export function VisualToolbar({ path, program, cleanCode, allowConsole, onChange, flush }: Props) {
+  const split = useCodeSideOpen(`visual:${path}`)
   const [page, setPage] = useState<string | null>(null)
   const [pages, setPages] = useState<string[]>([])
 
@@ -108,6 +111,9 @@ export function VisualToolbar({ path, program, cleanCode, allowConsole, onChange
         </>
       )}
       <span style={{ flex: 1 }} />
+      <button className={`btn ghost${split ? ' active' : ''}`} onClick={() => void toggleSplitCode(`visual:${path}`)} title={t('split.buttonHint')} aria-pressed={split} data-testid="split-code">
+        <Columns2 size={14} /> {t('split.button')}
+      </button>
       <button className="btn ghost" onClick={eject} title={t('visual.ejectHint')}>
         <FileCode2 size={14} /> {t('visual.eject')}
       </button>

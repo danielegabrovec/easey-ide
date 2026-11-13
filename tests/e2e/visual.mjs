@@ -12,6 +12,9 @@ try {
   await page.waitForSelector('.welcome', { timeout: 20000 })
   const root = await run.newProject('web-js', 'Visuale')
   const read = (name) => (existsSync(join(root, name)) ? readFileSync(join(root, name), 'utf8') : '')
+  // La chat laterale parte aperta al primo avvio: la si chiude per dare spazio a blocchi e nodi.
+  await page.getByTestId('side-panel').waitFor({ timeout: 5000 }).catch(() => undefined)
+  if ((await page.getByTestId('side-panel').count()) > 0) await page.keyboard.press('Control+Alt+B')
 
   // 1. Programma a blocchi d'esempio
   await run.palette('Nuovo programma a blocchi')
