@@ -16,8 +16,8 @@ import { htmlPages, linkToPage, loadSymbols } from './project-files'
 function openVisual(path: string): void {
   const kind = isVisualFile(path)
   if (!kind) return
-  const panel = showPanel({ id: `visual:${path}`, component: kind === 'blocchi' ? 'visual-blocks' : 'visual-nodes', title: basenameOf(path).replace(VISUAL_SUFFIX[kind], ''), area: 'center', params: { path }, renderer: 'always' })
-  if (panel && !panel.api.isMaximized()) panel.api.maximize()
+  // Anteprima e console si nascondono da sole (layout.ts); l'Esplora resta visibile.
+  showPanel({ id: `visual:${path}`, component: kind === 'blocchi' ? 'visual-blocks' : 'visual-nodes', title: basenameOf(path).replace(VISUAL_SUFFIX[kind], ''), area: 'center', params: { path }, renderer: 'always' })
 }
 
 /** Programma iniziale: se la pagina ha un pulsante e un titolo, un esempio già funzionante. */

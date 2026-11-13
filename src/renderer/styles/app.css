@@ -59,9 +59,12 @@ textarea:focus {
 }
 
 /* ---------------------------------------------------------------- guscio */
+/* minmax(0, 1fr): senza, la colonna implicita prende la larghezza minima del contenuto (quella in px
+   fissata da dockview) e restringendo la finestra barra e pannelli finiscono oltre il bordo. */
 .shell {
   display: grid;
-  grid-template-rows: var(--toolbar-h) 1fr var(--status-h);
+  grid-template-rows: var(--toolbar-h) minmax(0, 1fr) var(--status-h);
+  grid-template-columns: minmax(0, 1fr);
   height: 100%;
 }
 
@@ -70,8 +73,37 @@ textarea:focus {
   align-items: center;
   gap: 6px;
   padding: 0 10px;
+  min-width: 0;
+  overflow: hidden;
   background: var(--bg-panel);
   border-bottom: 1px solid var(--border);
+}
+
+.toolbar > * {
+  flex-shrink: 0;
+}
+
+.toolbar .spacer,
+.toolbar .project-name {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.statusbar {
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Finestra stretta: i pulsanti con testo diventano solo icone (il titolo resta nel suggerimento). */
+@media (max-width: 1200px) {
+  .toolbar .btn.ghost {
+    font-size: 0;
+    gap: 0;
+  }
+
+  .toolbar .project-name {
+    display: none;
+  }
 }
 
 .toolbar .brand {
@@ -154,6 +186,12 @@ textarea:focus {
   min-height: 0;
   overflow: hidden;
   position: relative;
+}
+
+/* Gruppi nascosti (Ctrl+B, Ctrl+J): dockview li riduce a 0 px; si nasconde anche il contenuto. */
+.dock-host .dv-view[style*='width: 0px'],
+.dock-host .dv-view[style*='height: 0px'] {
+  visibility: hidden;
 }
 
 .dock-host {

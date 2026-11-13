@@ -55,6 +55,8 @@ const SPEC: Spec[] = [
     items: [
       'workbench.commandPalette',
       'terminal.new',
+      'workbench.toggleSidebar',
+      'workbench.togglePanels',
       'explorer.show',
       'run.showConsole',
       'editor.showProblems',

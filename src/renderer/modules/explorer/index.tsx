@@ -7,7 +7,8 @@ import { notifyError } from '../../workbench/notifications'
 import { workbench } from '../../workbench/store'
 import { confirm, openDialog, prompt } from '../../ui/dialogs'
 import { notify } from '../../workbench/notifications'
-import { joinRelative } from '@shared/paths'
+import { basenameOf, dirnameOf, joinRelative } from '@shared/paths'
+import { folderPaths, moveDestination } from '@shared/file-tree'
 import { LEGACY_PROJECT_CONFIG_FILE, PROJECT_CONFIG_FILE } from '@shared/contracts/workspace'
 import { t } from '../../i18n'
 import { ExplorerPanel } from './ExplorerPanel'
@@ -90,6 +91,46 @@ export function activateExplorer(): void {
       if (!name) return
       await ide.invoke('workspace:createFolder', joinRelative(dir, name))
       await refreshTree()
+    }
+  })
+  // Sposta un file o una cartella in un'altra cartella (trascinamento nell'albero o «Sposta in…»).
+  registerCommand<{ path: string; dir?: string }>({
+    id: 'explorer.move',
+    title: t('explorer.move'),
+    palette: false,
+    run: async (args) => {
+      if (!args) return
+      let dir = args.dir
+      if (dir === undefined) {
+        const folders = folderPaths(workbench().tree)
+        const answer = await prompt({
+          title: t('explorer.moveTitle', { name: basenameOf(args.path) }),
+          label: t('explorer.moveLabel', { folders: folders.slice(0, 6).join(', ') || '—' }),
+          value: dirnameOf(args.path),
+          validate: (value) => (value.includes('..') ? t('explorer.moveInvalid') : null)
+        })
+        if (answer === null || answer === undefined) return
+        dir = answer.trim()
+      }
+      const target = moveDestination(args.path, dir)
+      if (!target) {
+        if (dir !== dirnameOf(args.path)) notify(t('explorer.moveInvalid'), 'error')
+        return
+      }
+      await executeCommand('editor.saveAll')
+      await ide.invoke('workspace:rename', args.path, target)
+      emit('file:renamed', { from: args.path, to: target })
+      await refreshTree()
+    }
+  })
+  registerCommand<{ path: string }>({
+    id: 'explorer.copyPath',
+    title: t('explorer.copyPath'),
+    palette: false,
+    run: async (args) => {
+      if (!args) return
+      await navigator.clipboard.writeText(args.path)
+      notify(t('explorer.pathCopied', { path: args.path }), 'success')
     }
   })
   registerCommand<{ path: string }>({

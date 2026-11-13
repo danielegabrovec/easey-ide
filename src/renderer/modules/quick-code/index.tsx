@@ -19,10 +19,12 @@ import { connectRunEvents, runQuick, stopQuick } from './run'
 
 export const QUICK_PANEL = 'quick'
 
-/** Apre la Scrittura rapida come modalità a sé: il pannello occupa tutta la finestra (si torna con ⤡ o Esc). */
+/**
+ * Apre la Scrittura rapida: anteprima e console si nascondono da sole (layout.ts), l'Esplora resta.
+ * Il pulsante ⤢ nella sua barra la porta a tutta finestra e la riporta indietro.
+ */
 function showQuick(): void {
-  const panel = showPanel({ id: QUICK_PANEL, component: 'quick', title: t('panel.quick'), area: 'center', renderer: 'always' })
-  if (panel && !panel.api.isMaximized()) panel.api.maximize()
+  showPanel({ id: QUICK_PANEL, component: 'quick', title: t('panel.quick'), area: 'center', renderer: 'always' })
 }
 
 const LEVEL_KEYS: Record<AssistLevel, 'quick.levelOff' | 'quick.levelLight' | 'quick.levelMedium' | 'quick.levelStrong'> = {

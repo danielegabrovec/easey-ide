@@ -7,7 +7,7 @@ import { Markdown } from '../ui/Markdown'
 import logo from '../assets/logo.svg'
 import { t } from '../i18n'
 import { listCommands, registerCommand } from './commands'
-import { buildDefaultLayout } from './layout'
+import { buildDefaultLayout, togglePanels, toggleSidebar } from './layout'
 import { settingsSections } from './settings-sections'
 import { notifyError } from './notifications'
 import { useWorkbench, workbench } from './store'
@@ -155,6 +155,9 @@ export function registerWorkbenchCommands(): void {
   registerCommand<Partial<Settings>>({ id: 'workbench.updateSettings', title: 'workbench.updateSettings', palette: false, run: (patch) => patch && updateSettings(patch) })
   registerCommand<{ url: string }>({ id: 'app.openUrl', title: 'app.openUrl', palette: false, run: (args) => args && ide.invoke('app:openExternal', args.url) })
   registerCommand({ id: 'workbench.resetLayout', title: t('cmd.resetLayout'), category, run: () => buildDefaultLayout() })
+  // Come in VS Code: Ctrl+B mostra/nasconde la barra laterale (Esplora), Ctrl+J i pannelli (anteprima e console).
+  registerCommand({ id: 'workbench.toggleSidebar', title: t('cmd.toggleSidebar'), category, keybinding: 'Ctrl+B', run: () => toggleSidebar() })
+  registerCommand({ id: 'workbench.togglePanels', title: t('cmd.togglePanels'), category, keybinding: 'Ctrl+J', run: () => togglePanels() })
   registerCommand({
     id: 'workbench.settings',
     title: t('cmd.settings'),

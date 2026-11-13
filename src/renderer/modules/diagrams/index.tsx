@@ -52,8 +52,8 @@ export function starterDiagram(type: DiagramType): Diagram {
 }
 
 function openDiagram(path: string): void {
-  const panel = showPanel({ id: `diagram:${path}`, component: 'diagram', title: basenameOf(path).replace(DIAGRAM_SUFFIX, ''), area: 'center', params: { path }, renderer: 'always' })
-  if (panel && !panel.api.isMaximized()) panel.api.maximize()
+  // Anteprima e console si nascondono da sole (layout.ts); l'Esplora resta visibile.
+  showPanel({ id: `diagram:${path}`, component: 'diagram', title: basenameOf(path).replace(DIAGRAM_SUFFIX, ''), area: 'center', params: { path }, renderer: 'always' })
 }
 
 function NewDiagramDialog({ close }: { close: () => void }) {

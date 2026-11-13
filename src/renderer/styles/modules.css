@@ -24,6 +24,19 @@
   background: var(--accent-soft);
 }
 
+.tree-row:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* Cartella che riceve un file trascinato (e la radice, quando lo si lascia nello spazio vuoto). */
+.tree-row.drop-into,
+.tree.drop-root {
+  background: var(--accent-soft);
+  outline: 1px dashed var(--accent);
+  outline-offset: -1px;
+}
+
 .tree-row svg {
   flex-shrink: 0;
   color: var(--text-faint);

@@ -19,9 +19,8 @@ const isHtml = (path: string | null | undefined): path is string => !!path && ['
 export function openDesigner(path: string): void {
   // Un solo designer alla volta: se si cambia pagina, il pannello si riapre sulla nuova.
   if (useDesigner.getState().path && useDesigner.getState().path !== path) closePanel('designer')
-  const panel = showPanel({ id: 'designer', component: 'designer', title: `${t('panel.designer')} · ${basenameOf(path)}`, area: 'center', params: { path }, renderer: 'always' })
-  // Il designer ha bisogno di spazio: il suo gruppo si ingrandisce (il pulsante di dockview lo ripristina).
-  if (panel && !panel.api.isMaximized()) panel.api.maximize()
+  // Il designer ha bisogno di spazio: anteprima e console si nascondono da sole (layout.ts), l'Esplora resta.
+  showPanel({ id: 'designer', component: 'designer', title: `${t('panel.designer')} · ${basenameOf(path)}`, area: 'center', params: { path }, renderer: 'always' })
 }
 
 export function activateDesigner(): void {

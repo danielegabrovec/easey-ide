@@ -3,9 +3,9 @@
 // Non contiene logica di dominio: tutte le azioni passano dai comandi registrati dai moduli.
 import { useCallback, useEffect } from 'react'
 import { DockviewReact, themeDark, themeLight, type DockviewReadyEvent } from 'dockview'
-import { AlertCircle, AlertTriangle, Command as CommandIcon, Moon, Play, Settings2, Sun, SquareTerminal, TerminalSquare, Globe, PenTool, Database, Zap } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Command as CommandIcon, Moon, Play, Settings2, Sun, SquareTerminal, TerminalSquare, Globe, PenTool, Database, Zap, PanelLeftClose, PanelLeftOpen, PanelBottomClose, PanelBottomOpen } from 'lucide-react'
 import { executeCommand } from './commands'
-import { buildDefaultLayout, panelComponents, setDockApi } from './layout'
+import { buildDefaultLayout, panelComponents, setDockApi, useLayout } from './layout'
 import { useWorkbench } from './store'
 import { CommandPalette } from './CommandPalette'
 import { SidePanelHost } from './SidePanel'
@@ -14,6 +14,34 @@ import { ContextMenuHost } from '../ui/ContextMenu'
 import { useToasts } from './notifications'
 import { t } from '../i18n'
 import logo from '../assets/logo.svg'
+
+/** Esplora (Ctrl+B) e anteprima + console (Ctrl+J): sempre un clic per riaverli. */
+function LayoutToggles() {
+  const sidebar = useLayout((s) => s.sidebar)
+  const panels = useLayout((s) => s.panels)
+  return (
+    <>
+      <button
+        className="icon-btn"
+        title={`${sidebar ? t('toolbar.sidebarHide') : t('toolbar.sidebarShow')} (Ctrl+B)`}
+        aria-pressed={sidebar}
+        onClick={() => executeCommand('workbench.toggleSidebar')}
+        data-testid="toggle-sidebar"
+      >
+        {sidebar ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
+      </button>
+      <button
+        className="icon-btn"
+        title={`${panels ? t('toolbar.panelsHide') : t('toolbar.panelsShow')} (Ctrl+J)`}
+        aria-pressed={panels}
+        onClick={() => executeCommand('workbench.togglePanels')}
+        data-testid="toggle-panels"
+      >
+        {panels ? <PanelBottomClose size={16} /> : <PanelBottomOpen size={16} />}
+      </button>
+    </>
+  )
+}
 
 function Toolbar() {
   const project = useWorkbench((s) => s.project)
@@ -24,6 +52,8 @@ function Toolbar() {
         <img className="logo" src={logo} alt="" />
         <span>Easey</span>
       </div>
+      <LayoutToggles />
+      <div className="divider" />
       <button className="btn run" title={`${t('toolbar.run')} (F5)`} disabled={!project} onClick={() => executeCommand('run.project')} data-testid="run-project">
         <Play size={14} fill="currentColor" />
         {t('toolbar.run')}

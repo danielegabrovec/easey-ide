@@ -63,11 +63,12 @@ try {
   // Spostamento libero con il mouse
   const leftBefore = Number(/#titolo-1 \{[^}]*left: (\d+)px/.exec(css())?.[1])
   const box = await clickIn('#titolo-1')
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  // Si afferra il titolo dal lato sinistro e si resta dentro la tavola (che qui è più stretta del titolo):
+  // tirando il puntatore ben fuori, l'elemento uscirebbe dalla tavola.
+  await page.mouse.move(box.x + 12, box.y + box.height / 2)
   await page.mouse.down()
-  await page.mouse.move(box.x + box.width / 2 + 40, box.y + box.height / 2 + 20, { steps: 6 })
-  // (resta vicino alla tavola: tirando il puntatore ben fuori l'elemento uscirebbe dalla tavola)
-  await page.mouse.move(box.x + box.width / 2 + 40, box.y + box.height / 2 + 40, { steps: 6 })
+  await page.mouse.move(box.x + 12 + 20, box.y + box.height / 2 + 20, { steps: 6 })
+  await page.mouse.move(box.x + 12 + 40, box.y + box.height / 2 + 40, { steps: 6 })
   await page.mouse.up()
   const moved = await until(() => Number(/#titolo-1 \{[^}]*left: (\d+)px/.exec(css())?.[1]) > leftBefore + 20, 8000)
   check('libero: trascinamento aggiorna left/top nel CSS', !!moved, `${leftBefore} → ${/#titolo-1 \{[^}]*left: (\d+)px/.exec(css())?.[1]}`)

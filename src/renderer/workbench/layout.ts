@@ -2,7 +2,28 @@
 // per "area" (sinistra, centro, destra, basso) senza conoscere la struttura della griglia.
 import type { FunctionComponent } from 'react'
 import type { DockviewApi, IDockviewPanel, IDockviewPanelProps } from 'dockview'
+import { create } from 'zustand'
 import { t } from '../i18n'
+
+/**
+ * Cosa si vede intorno all'area centrale: l'Esplora a sinistra (Ctrl+B) e i pannelli di servizio
+ * (anteprima a destra, console in basso: Ctrl+J). Gli editor grafici (designer, blocchi, nodi,
+ * diagrammi, Scrittura rapida) nascondono da soli i pannelli di servizio, MAI l'Esplora; tornando a
+ * un file riappaiono. Niente più gruppi ingranditi senza un pulsante per tornare indietro.
+ */
+export const useLayout = create<{ sidebar: boolean; panels: boolean }>(() => ({ sidebar: true, panels: true }))
+
+/** Pannelli che hanno bisogno di spazio: aperti, nascondono anteprima e console. */
+const WIDE_PANELS = ['designer', 'quick', 'visual:', 'diagram:']
+
+export function isWidePanel(id: string): boolean {
+  return WIDE_PANELS.some((prefix) => (prefix.endsWith(':') ? id.startsWith(prefix) : id === prefix))
+}
+
+/** I pannelli di servizio sono stati nascosti dall'apertura di un editor grafico (non dall'utente). */
+let autoHidden = false
+/** L'utente li ha rimostrati mentre era attivo un editor grafico: non li si nasconde di nuovo. */
+let keptByUser = false
 
 export type Area = 'left' | 'center' | 'right' | 'bottom'
 
@@ -23,6 +44,67 @@ export function panelComponents(): Record<string, PanelComponent> {
 
 export function setDockApi(next: DockviewApi | null): void {
   api = next
+  next?.onDidActivePanelChange((panel) => onActivePanel(panel ?? null))
+}
+
+function onActivePanel(panel: IDockviewPanel | null): void {
+  if (!panel || !api) return
+  // Le schede dei gruppi laterali (Esplora, anteprima, console) non cambiano la disposizione.
+  if ([areaGroups.left, areaGroups.right, areaGroups.bottom].includes(panel.group.id)) return
+  if (isWidePanel(panel.id)) {
+    if (useLayout.getState().panels && !keptByUser) setPanelsVisible(false, true)
+  } else {
+    keptByUser = false
+    if (autoHidden) setPanelsVisible(true)
+  }
+}
+
+function setGroupVisible(area: Area, visible: boolean): void {
+  const group = liveGroup(area)
+  if (group && group.api.isVisible !== visible) group.api.setVisible(visible)
+}
+
+/** Esplora (gruppo di sinistra) visibile o nascosto. */
+export function setSidebarVisible(visible: boolean): void {
+  if (!api) return
+  if (api.hasMaximizedGroup()) api.exitMaximizedGroup()
+  if (visible && !liveGroup('left')) showPanel({ id: 'explorer', component: 'explorer', title: t('panel.explorer'), area: 'left' })
+  setGroupVisible('left', visible)
+  useLayout.setState({ sidebar: visible })
+}
+
+export function toggleSidebar(): void {
+  setSidebarVisible(!useLayout.getState().sidebar)
+}
+
+/** Anteprima e console visibili o nascoste. `auto` = decisione dell'IDE, non dell'utente. */
+export function setPanelsVisible(visible: boolean, auto = false): void {
+  if (!api) return
+  if (api.hasMaximizedGroup()) api.exitMaximizedGroup()
+  setGroupVisible('right', visible)
+  setGroupVisible('bottom', visible)
+  autoHidden = !visible && auto
+  if (!auto) keptByUser = visible && isWidePanel(api.activePanel?.id ?? '')
+  useLayout.setState({ panels: visible })
+}
+
+export function togglePanels(): void {
+  setPanelsVisible(!useLayout.getState().panels)
+}
+
+/** Un pannello aperto in un gruppo nascosto lo rende di nuovo visibile (es. «Anteprima» con i pannelli nascosti). */
+function revealGroupOf(panel: IDockviewPanel): void {
+  if (panel.group.api.isVisible) return
+  panel.group.api.setVisible(true)
+  if (panel.group.id === areaGroups.left) useLayout.setState({ sidebar: true })
+  else if (panel.group.id === areaGroups.right || panel.group.id === areaGroups.bottom) {
+    // L'altro pannello di servizio torna insieme, come lo si era lasciato.
+    setGroupVisible('right', true)
+    setGroupVisible('bottom', true)
+    autoHidden = false
+    keptByUser = isWidePanel(api?.activePanel?.id ?? '')
+    useLayout.setState({ panels: true })
+  }
 }
 
 export function dockApi(): DockviewApi | null {
@@ -50,7 +132,10 @@ export function showPanel(options: ShowPanelOptions): IDockviewPanel | null {
   if (!api) return null
   const existing = api.getPanel(options.id)
   if (existing) {
-    if (!options.inactive) existing.api.setActive()
+    if (!options.inactive) {
+      revealGroupOf(existing)
+      existing.api.setActive()
+    }
     return existing
   }
   const base = {
@@ -73,6 +158,7 @@ export function showPanel(options: ShowPanelOptions): IDockviewPanel | null {
     panel = api.addPanel({ ...base, position: { direction } })
   }
   areaGroups[options.area] = panel.group.id
+  if (!options.inactive) revealGroupOf(panel)
   return panel
 }
 
@@ -93,6 +179,9 @@ export function buildDefaultLayout(): void {
   if (!api) return
   api.clear()
   for (const key of Object.keys(areaGroups) as Area[]) delete areaGroups[key]
+  autoHidden = false
+  keptByUser = false
+  useLayout.setState({ sidebar: true, panels: true })
   const welcome = api.addPanel({ id: 'welcome', component: 'welcome', title: t('panel.welcome') })
   areaGroups.center = welcome.group.id
   const preview = api.addPanel({
