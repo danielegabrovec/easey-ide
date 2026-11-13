@@ -115,6 +115,9 @@ export const it = {
   'welcome.kSave': 'Salva',
   'welcome.kPalette': 'Tutti i comandi',
   'welcome.kTerminal': 'Nuovo terminale',
+  'welcome.kSidebar': 'Mostra/nascondi l’albero dei file',
+  'welcome.kSplit': 'Grafica e codice affiancati',
+  'welcome.visual': 'Crea in modo visuale',
 
   'newProject.title': 'Nuovo progetto',
   'newProject.template': 'Modello',

@@ -116,6 +116,9 @@ export const en: Record<MessageKey, string> = {
   'welcome.kSave': 'Save',
   'welcome.kPalette': 'All commands',
   'welcome.kTerminal': 'New terminal',
+  'welcome.kSidebar': 'Show/hide the file tree',
+  'welcome.kSplit': 'Visual and code side by side',
+  'welcome.visual': 'Create visually',
 
   'newProject.title': 'New project',
   'newProject.template': 'Template',

@@ -60,7 +60,11 @@ try {
   check('Scrittura rapida: l’albero dei file resta visibile', await visible(page, '[data-path="index.html"]'))
   await page.locator('.dv-tab', { hasText: /Benvenuto/ }).click()
   check('Benvenuto: anteprima e console di nuovo al loro posto', !!(await until(() => visible(page, '[data-testid="console-list"]'), 3000)))
-  await page.locator('.dv-tab', { hasText: 'Designer' }).click()
+  // P2-4/P2-10: gli strumenti visuali si trovano anche nel Benvenuto.
+  const visualButtons = await Promise.all(['welcome-designer', 'welcome-blocks', 'welcome-nodes', 'welcome-database'].map((id) => page.getByTestId(id).isVisible()))
+  check('Benvenuto: pulsanti per Designer, Blocchi, Nodi e Database', visualButtons.every(Boolean), visualButtons.join(','))
+  await page.getByTestId('welcome-designer').click()
+  check('Benvenuto: «Designer» apre il designer', !!(await until(() => visible(page, '[data-testid="designer"]'), 5000)))
 
   // 4. Esplora: trascinamento su una cartella e tastiera.
   mkdirSync(join(root, 'pagine'))

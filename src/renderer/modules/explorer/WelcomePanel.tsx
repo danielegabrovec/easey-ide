@@ -1,5 +1,5 @@
 // Pagina di benvenuto: nuovo progetto, apri cartella, progetti recenti, scorciatoie principali.
-import { FolderOpen, Plus, Clock, GraduationCap, X, Zap } from 'lucide-react'
+import { FolderOpen, Plus, Clock, GraduationCap, X, Zap, PenTool, Puzzle, Workflow, Database } from 'lucide-react'
 import { executeCommand } from '../../workbench/commands'
 import { useWorkbench } from '../../workbench/store'
 import { t } from '../../i18n'
@@ -31,6 +31,26 @@ export function WelcomePanel() {
             <GraduationCap size={15} /> {t('welcome.courses')}
           </button>
         </div>
+        {project && (
+          // Gli strumenti visuali a portata di clic (prima solo nella palette comandi e nel menu dell'albero).
+          <section>
+            <h2>{t('welcome.visual')}</h2>
+            <div className="welcome-actions">
+              <button className="btn" onClick={() => executeCommand('designer.open')} data-testid="welcome-designer">
+                <PenTool size={15} /> {t('toolbar.designer')}
+              </button>
+              <button className="btn" onClick={() => executeCommand('visual.newBlocks')} data-testid="welcome-blocks">
+                <Puzzle size={15} /> {t('visual.newBlocks')}
+              </button>
+              <button className="btn" onClick={() => executeCommand('visual.newNodes')} data-testid="welcome-nodes">
+                <Workflow size={15} /> {t('visual.newNodes')}
+              </button>
+              <button className="btn" onClick={() => executeCommand('sql.show')} data-testid="welcome-database">
+                <Database size={15} /> {t('toolbar.database')}
+              </button>
+            </div>
+          </section>
+        )}
         {recent.length > 0 && (
           <section>
             <h2>
@@ -95,6 +115,18 @@ export function WelcomePanel() {
                 <td>{t('welcome.kTerminal')}</td>
                 <td>
                   <kbd>Ctrl+Shift+`</kbd>
+                </td>
+              </tr>
+              <tr>
+                <td>{t('welcome.kSidebar')}</td>
+                <td>
+                  <kbd>Ctrl+B</kbd>
+                </td>
+              </tr>
+              <tr>
+                <td>{t('welcome.kSplit')}</td>
+                <td>
+                  <kbd>Ctrl+Alt+K</kbd>
                 </td>
               </tr>
             </tbody>
