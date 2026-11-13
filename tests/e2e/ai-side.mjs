@@ -10,7 +10,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { join } from 'node:path'
-import { createRun, ensureBuilt, until } from './helpers.mjs'
+import { createRun, ensureBuilt, until, wait } from './helpers.mjs'
 
 ensureBuilt()
 const run = createRun('ai-laterale')
@@ -65,7 +65,11 @@ try {
   writeFileSync(join(root, 'doppio.js'), '// doppio(n) deve restituire il doppio di n\nfunction doppio(n) {\n  return n * 3\n}\n\nconsole.log(doppio(2))\n')
 
   // 1. Apertura e chiusura
-  check('chiuso all’avvio, con il pulsante «✦ AI» per aprirlo', (await aside(page).count()) === 0 && (await page.getByTestId('side-reopen').isVisible()))
+  // Al primo avvio la chat è aperta: l'utente deve vederla (poi conta lo stato salvato).
+  check('aperto al primo avvio', !!(await until(() => aside(page).isVisible(), 3000)))
+  await page.locator('[data-editor-path="main.js"] .view-lines').click()
+  await page.keyboard.press('Control+Alt+B')
+  check('chiuso, resta il pulsante «✦ AI» per riaprirlo', !!(await until(async () => (await aside(page).count()) === 0 && (await page.getByTestId('side-reopen').isVisible()), 3000)))
   await page.getByTestId('side-reopen').click()
   check('«✦ AI» apre il pannello laterale (aside complementary «Assistente AI»)', await aside(page).isVisible())
   check('il pannello è fuori dalla griglia dei pannelli', (await page.locator('.dock-host [data-testid="side-panel"]').count()) === 0)
@@ -206,6 +210,16 @@ try {
   check('dopo il riavvio la larghezza scelta è ricordata (530 px)', near(await asideWidth(page), 530), String(await asideWidth(page)))
   await run.shot('05-riavvio')
   check('nessun errore JavaScript dopo il riavvio', run.issues.length === 0, run.issues.join(' | '))
+
+  // Chiuso dall'utente, resta chiuso anche dopo il riavvio (l'apertura è solo per il primo avvio).
+  await page.keyboard.press('Control+Alt+B')
+  await until(async () => (await aside(page).count()) === 0, 3000)
+  await wait(300)
+  await run.app.close()
+  page = await run.launch()
+  await page.waitForSelector('.toolbar', { timeout: 20000 })
+  await wait(800)
+  check('chiuso dall’utente: dopo il riavvio resta chiuso', (await aside(page).count()) === 0 && (await page.getByTestId('side-reopen').isVisible()))
 } catch (error) {
   run.fail(error)
   await run.shot('zz-errore').catch(() => undefined)

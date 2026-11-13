@@ -65,8 +65,14 @@ describe('Pannello AI laterale: larghezza', () => {
     expect(parseSideState(null)).toEqual(DEFAULT_SIDE_STATE)
     expect(parseSideState('non json')).toEqual(DEFAULT_SIDE_STATE)
     expect(parseSideState(JSON.stringify({ open: true, width: 520, expanded: true }))).toEqual({ open: true, width: 520, expanded: true })
-    expect(parseSideState(JSON.stringify({ open: 'sì', width: -4 }))).toEqual({ open: false, width: SIDE_DEFAULT_WIDTH, expanded: false })
+    expect(parseSideState(JSON.stringify({ open: 'sì', width: -4 }))).toEqual({ open: true, width: SIDE_DEFAULT_WIDTH, expanded: false })
     expect(parseSideState(JSON.stringify({ open: true, width: 120 }))).toEqual({ open: true, width: SIDE_MIN_WIDTH, expanded: false })
+  })
+
+  it('al primo avvio la chat è aperta; chiusa dall’utente resta chiusa', () => {
+    expect(DEFAULT_SIDE_STATE.open).toBe(true)
+    expect(parseSideState(null).open).toBe(true)
+    expect(parseSideState(JSON.stringify({ open: false, width: 400 })).open).toBe(false)
   })
 })
 

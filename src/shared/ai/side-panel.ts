@@ -19,7 +19,8 @@ export interface SidePanelState {
   expanded: boolean
 }
 
-export const DEFAULT_SIDE_STATE: SidePanelState = { open: false, width: SIDE_DEFAULT_WIDTH, expanded: false }
+/** Al primo avvio la chat è aperta (l'utente deve sapere che c'è); poi vale lo stato salvato. */
+export const DEFAULT_SIDE_STATE: SidePanelState = { open: true, width: SIDE_DEFAULT_WIDTH, expanded: false }
 
 /** Larghezza massima per una finestra larga `windowWidth` (mai sotto il minimo). */
 export function maxSideWidth(windowWidth: number): number {
@@ -76,7 +77,8 @@ export function parseSideState(raw: string | null | undefined): SidePanelState {
     const data = JSON.parse(raw) as Partial<Record<keyof SidePanelState, unknown>>
     const width = typeof data.width === 'number' && Number.isFinite(data.width) && data.width > 0 ? Math.round(data.width) : SIDE_DEFAULT_WIDTH
     return {
-      open: data.open === true,
+      // Valore salvato valido (anche false: chiusa dall'utente) o, se manca/è sbagliato, il predefinito.
+      open: typeof data.open === 'boolean' ? data.open : DEFAULT_SIDE_STATE.open,
       width: Math.max(SIDE_MIN_WIDTH, width),
       expanded: data.expanded === true
     }
