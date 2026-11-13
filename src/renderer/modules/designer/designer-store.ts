@@ -1,6 +1,7 @@
 // Stato del designer: pagina aperta, modello analizzato, selezione, punto di interruzione, bersaglio degli stili.
 import { create } from 'zustand'
 import type { Breakpoint } from '@shared/designer/css-edit'
+import type { LintIssue } from '@shared/design-kit/lint'
 import { findByAttrId, findByPath, type ElementInfo, type HtmlModel } from '@shared/designer/html-model'
 
 /** Come ritrovare l'elemento selezionato dopo una modifica: per id, altrimenti per percorso. */
@@ -22,7 +23,10 @@ interface DesignerState {
   target: StyleTarget
   targetClass: string
   leftTab: 'palette' | 'layers'
-  rightTab: 'style' | 'element' | 'site'
+  rightTab: 'style' | 'element' | 'site' | 'quality'
+  /** «Ritocchi consigliati» della pagina (null = non ancora controllata). */
+  quality: LintIssue[] | null
+  setQuality: (issues: LintIssue[] | null) => void
   /** Ricerca nella palette (resta mentre si passa ai Livelli e si torna). */
   paletteQuery: string
   /** Quante proprietà ha lo stile copiato (0 = niente da incollare). */
@@ -82,6 +86,8 @@ export const useDesigner = create<DesignerState>((set) => ({
   viewScale: 1,
   viewFit: 1,
   canvasVersion: 0,
+  quality: null,
+  setQuality: (quality) => set({ quality }),
   canvasLoaded: () => set((state) => ({ canvasVersion: state.canvasVersion + 1 })),
   setZoom: (zoom) => set({ zoom }),
   setViewScale: (viewScale, viewFit) => set({ viewScale, viewFit }),

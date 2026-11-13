@@ -2122,6 +2122,84 @@ button.ai-chip:hover {
   height: 18px;
 }
 
+/* ---- ritocchi consigliati */
+.tab-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--warning);
+  color: #1f1500;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.quality-button .tab-badge.compact {
+  display: none;
+}
+
+@container (max-width: 900px) {
+  .designer-panel > .panel-toolbar .quality-button .tab-badge.compact {
+    display: inline-grid;
+  }
+}
+
+.quality-empty {
+  margin: 12px 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--text);
+  font-size: 12.5px;
+}
+
+.quality-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 10px 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--text-muted);
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 12px;
+}
+
+.quality-item.alta {
+  border-left-color: var(--danger);
+}
+
+.quality-item.media {
+  border-left-color: var(--warning);
+}
+
+.quality-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  line-height: 1.4;
+}
+
+.quality-target {
+  align-self: flex-start;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg-panel);
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.quality-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
 .insp-more summary {
   cursor: pointer;
   font-size: 12px;

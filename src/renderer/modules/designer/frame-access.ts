@@ -66,3 +66,8 @@ export function effectiveBackground(id: number | null | undefined): { color: str
   }
   return { color: 'rgb(255, 255, 255)', exact: true }
 }
+
+/** L'iframe del canvas (per i controlli di qualità, che misurano la pagina). */
+export function canvasFrame(): HTMLIFrameElement | null {
+  return frame
+}

@@ -13,11 +13,13 @@ import { activeTypeScale, lineHeightFor, TYPE_SCALES, TYPE_STEPS, typeVar, type 
 import { dirnameOf, relativeTo } from '@shared/paths'
 import { ide } from '../../ipc'
 import { t } from '../../i18n'
-import { applyFontPair, applyPreset, applyTheme, applyThemeFromColor, applyTypeScale, currentRule, duplicateSelected, pasteStyle, removeSelected, renameId, setElementAttribute, setElementText, setIcon, setSiteRule, setStyles } from './actions'
+import { applyFontPair, applyLintFix, applyPreset, applyTheme, applyThemeFromColor, applyTypeScale, currentRule, duplicateSelected, pasteStyle, removeSelected, renameId, setElementAttribute, setElementText, setIcon, setSiteRule, setStyles } from './actions'
 import { copyStyleWithNotice } from './Canvas'
 import { resolveSelection, useDesigner, type StyleTarget } from './designer-store'
 import { useKitFonts } from './font-preview'
-import { computedStyle, effectiveBackground, toHex } from './frame-access'
+import { computedStyle, effectiveBackground, revealElement, toHex } from './frame-access'
+import type { LintIssue } from '@shared/design-kit/lint'
+import { elementLabel } from '@shared/designer/drop'
 
 const FONTS = [
   ['system-ui, sans-serif', 'Sistema'],
@@ -702,21 +704,80 @@ function SiteTab() {
   )
 }
 
+/** Messaggio di un ritocco (i valori arrivano dalle regole del kit). */
+function lintMessage(issue: LintIssue): string {
+  const values = Object.fromEntries(Object.entries(issue.values).map(([k, v]) => [k, typeof v === 'number' ? String(v).replace('.', ',') : v]))
+  return t(`designer.lint.${issue.rule}`, values)
+}
+
+/** «Ritocchi consigliati»: elenco dei problemi con «Mostra» e, dove si può, «Correggi». */
+function QualityTab() {
+  const page = useDesigner((s) => s.html)
+  const issues = useDesigner((s) => s.quality)
+  const breakpoint = useDesigner((s) => s.breakpoint)
+  if (!issues) return <div className="hint" style={{ padding: 12 }}>{t('designer.qualityChecking')}</div>
+  const show = (id: number | null) => {
+    const element = id !== null ? page?.elements[id] : null
+    if (!element) return
+    useDesigner.getState().selectElement(element)
+    revealElement(element.id)
+  }
+  return (
+    <div className="insp-body" data-testid="quality-list">
+      <div className="hint" style={{ padding: '8px 10px' }}>
+        {t('designer.qualityHint')}
+      </div>
+      {issues.length === 0 && (
+        <div className="quality-empty" data-testid="quality-empty">
+          {t('designer.qualityAllGood')}
+        </div>
+      )}
+      {issues.map((issue, index) => {
+        const element = issue.id !== null ? page?.elements[issue.id] : null
+        return (
+          <div key={`${issue.rule}-${issue.id ?? index}-${index}`} className={`quality-item ${issue.severity}`} data-rule={issue.rule}>
+            <div className="quality-text">
+              {element && <code className="quality-target">{elementLabel(element)}</code>}
+              <span>{lintMessage(issue)}</span>
+              {issue.rule === 'contrasto' && issue.values['exact'] === 0 && <span className="hint">{t('designer.lint.contrastoStima')}</span>}
+              {issue.fix?.kind === 'styles' && issue.fix.here && breakpoint !== 'desktop' && <span className="hint">{t('designer.qualityHere', { bp: breakpoint === 'tablet' ? t('designer.bpTablet') : t('designer.bpPhone') })}</span>}
+            </div>
+            <div className="quality-actions">
+              {element && (
+                <button className="btn ghost" onClick={() => show(issue.id)}>
+                  {t('designer.qualityShow')}
+                </button>
+              )}
+              {issue.fix && (
+                <button className="btn" onClick={() => void applyLintFix(issue.fix!)} data-testid={`quality-fix-${issue.rule}`}>
+                  {t('designer.qualityFix')}
+                </button>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export function Inspector() {
   const page = useDesigner((s) => s.html)
   const selection = useDesigner((s) => s.selection)
   const tab = useDesigner((s) => s.rightTab)
+  const quality = useDesigner((s) => s.quality)
   const element = resolveSelection(page, selection)
   return (
     <div className="designer-inspector" data-testid="designer-inspector">
       <div className="insp-tabs">
-        {(['style', 'element', 'site'] as const).map((value) => (
+        {(['style', 'element', 'site', 'quality'] as const).map((value) => (
           <button key={value} className={tab === value ? 'active' : undefined} onClick={() => useDesigner.getState().setRightTab(value)} data-testid={`insp-tab-${value}`}>
-            {value === 'style' ? t('designer.tabStyle') : value === 'element' ? t('designer.tabElement') : t('designer.tabSite')}
+            {value === 'style' ? t('designer.tabStyle') : value === 'element' ? t('designer.tabElement') : value === 'site' ? t('designer.tabSite') : t('designer.tabQuality')}
+            {value === 'quality' && quality && quality.length > 0 && <span className="tab-badge">{quality.length}</span>}
           </button>
         ))}
       </div>
-      {tab === 'site' ? <SiteTab /> : !element ? <div className="hint" style={{ padding: 12 }}>{t('designer.selectSomething')}</div> : tab === 'style' ? <StyleTab element={element} /> : <ElementTab element={element} />}
+      {tab === 'site' ? <SiteTab /> : tab === 'quality' ? <QualityTab /> : !element ? <div className="hint" style={{ padding: 12 }}>{t('designer.selectSomething')}</div> : tab === 'style' ? <StyleTab element={element} /> : <ElementTab element={element} />}
     </div>
   )
 }

@@ -47,17 +47,17 @@ const BUTTON_CSS = `.lab-bottone {
 const GRID_CSS = `.lab-griglia {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+  gap: 24px;
 }
 
 .lab-scheda {
-  padding: 20px;
+  padding: 24px;
   border-radius: 14px;
   background: ${SURFACE};
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }`
 
-const FORM_CSS = `.lab-modulo {\n  display: grid;\n  gap: 8px;\n  max-width: 420px;\n}\n\n.lab-modulo input,\n.lab-modulo textarea {\n  padding: 10px 12px;\n  border: 1px solid #cfd5df;\n  border-radius: 8px;\n  font: inherit;\n}\n\n.lab-modulo button {\n  justify-self: start;\n  margin-top: 8px;\n  padding: 12px 24px;\n  border: 0;\n  border-radius: 10px;\n  background: ${PRIMARY};\n  color: #ffffff;\n  font: inherit;\n  font-weight: 600;\n  cursor: pointer;\n}`
+const FORM_CSS = `.lab-modulo {\n  display: grid;\n  gap: 8px;\n  max-width: 420px;\n}\n\n.lab-modulo input,\n.lab-modulo textarea {\n  padding: 12px 16px;\n  border: 1px solid #cfd5df;\n  border-radius: 8px;\n  font: inherit;\n}\n\n.lab-modulo button {\n  justify-self: start;\n  margin-top: 8px;\n  padding: 12px 24px;\n  border: 0;\n  border-radius: 10px;\n  background: ${PRIMARY};\n  color: #ffffff;\n  font: inherit;\n  font-weight: 600;\n  cursor: pointer;\n}`
 
 /** Icona SVG del kit (lucide), in linea e del colore del testo. */
 const icon = (name: string) => iconSvg(name)!
@@ -154,7 +154,7 @@ const BASE_BLOCKS: Block[] = [
     label: 'Intestazione con menu',
     category: 'sezioni',
     html: '<header class="lab-intestazione">\n  <strong class="lab-logo">Il mio sito</strong>\n  <nav>\n    <a href="#">Home</a>\n    <a href="#">Chi sono</a>\n    <a href="#">Contatti</a>\n  </nav>\n</header>',
-    css: '.lab-intestazione {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 16px 24px;\n  background: #ffffff;\n  border-bottom: 1px solid #e5e8ef;\n}\n\n.lab-intestazione nav {\n  display: flex;\n  gap: 20px;\n}\n\n.lab-intestazione a {\n  color: inherit;\n  text-decoration: none;\n}'
+    css: '.lab-intestazione {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 16px 24px;\n  background: #ffffff;\n  border-bottom: 1px solid #e5e8ef;\n}\n\n.lab-intestazione nav {\n  display: flex;\n  gap: 24px;\n}\n\n.lab-intestazione a {\n  color: inherit;\n  text-decoration: none;\n}'
   },
   {
     id: 'hero',
@@ -191,9 +191,9 @@ const BASE_BLOCKS: Block[] = [
   // Elementi in più
   { id: 'separatore', label: 'Linea di separazione', category: 'struttura', html: '<hr class="lab-separatore">', css: '.lab-separatore {\n  border: 0;\n  border-top: 1px solid #e5e8ef;\n  margin: 32px 0;\n}', keywords: 'hr divisore riga', freeSize: { width: 320, height: 2 } },
   { id: 'scheda', label: 'Scheda (card)', category: 'struttura', html: '<article class="lab-scheda">\n  <h3>Titolo della scheda</h3>\n  <p>Una descrizione breve.</p>\n</article>', css: GRID_CSS, keywords: 'card riquadro box', freeSize: { width: 260, height: 160 } },
-  { id: 'etichetta', label: 'Etichetta (badge)', category: 'testo', html: '<span class="lab-etichetta">Novità</span>', css: `.lab-etichetta {\n  display: inline-block;\n  padding: 4px 10px;\n  border-radius: 999px;\n  background: color-mix(in srgb, ${PRIMARY} 14%, transparent);\n  color: ${PRIMARY};\n  font-size: 12px;\n  font-weight: 700;\n  letter-spacing: 0.04em;\n  text-transform: uppercase;\n}`, keywords: 'badge tag pillola', freeSize: { width: 90, height: 26 } },
-  { id: 'pulsanti', label: 'Coppia di pulsanti', category: 'moduli', html: '<div class="lab-pulsanti">\n  <a class="lab-pulsante" href="#">Inizia ora</a>\n  <a class="lab-pulsante secondario" href="#">Scopri di più</a>\n</div>', css: `.lab-pulsanti {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 12px;\n}\n\n.lab-pulsante {\n  display: inline-block;\n  padding: 12px 22px;\n  border-radius: 10px;\n  border: 2px solid ${PRIMARY};\n  background: ${PRIMARY};\n  color: #ffffff;\n  font-weight: 600;\n  text-decoration: none;\n}\n\n.lab-pulsante.secondario {\n  background: transparent;\n  color: ${PRIMARY};\n}`, keywords: 'pulsante bottoni azioni cta', freeSize: { width: 320, height: 52 } },
-  { id: 'tabella', label: 'Tabella', category: 'testo', html: '<table class="lab-tabella">\n  <thead>\n    <tr><th>Nome</th><th>Ruolo</th><th>Città</th></tr>\n  </thead>\n  <tbody>\n    <tr><td>Anna</td><td>Grafica</td><td>Milano</td></tr>\n    <tr><td>Luca</td><td>Sviluppo</td><td>Roma</td></tr>\n  </tbody>\n</table>', css: '.lab-tabella {\n  width: 100%;\n  border-collapse: collapse;\n}\n\n.lab-tabella th,\n.lab-tabella td {\n  padding: 10px 12px;\n  border-bottom: 1px solid #e5e8ef;\n  text-align: left;\n}', keywords: 'table dati righe colonne', freeSize: { width: 420, height: 130 } },
+  { id: 'etichetta', label: 'Etichetta (badge)', category: 'testo', html: '<span class="lab-etichetta">Novità</span>', css: `.lab-etichetta {\n  display: inline-block;\n  padding: 4px 12px;\n  border-radius: 999px;\n  background: color-mix(in srgb, ${PRIMARY} 14%, transparent);\n  color: ${PRIMARY};\n  font-size: 12px;\n  font-weight: 700;\n  letter-spacing: 0.04em;\n  text-transform: uppercase;\n}`, keywords: 'badge tag pillola', freeSize: { width: 90, height: 26 } },
+  { id: 'pulsanti', label: 'Coppia di pulsanti', category: 'moduli', html: '<div class="lab-pulsanti">\n  <a class="lab-pulsante" href="#">Inizia ora</a>\n  <a class="lab-pulsante secondario" href="#">Scopri di più</a>\n</div>', css: `.lab-pulsanti {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 12px;\n}\n\n.lab-pulsante {\n  display: inline-block;\n  padding: 12px 24px;\n  border-radius: 10px;\n  border: 2px solid ${PRIMARY};\n  background: ${PRIMARY};\n  color: #ffffff;\n  font-weight: 600;\n  text-decoration: none;\n}\n\n.lab-pulsante.secondario {\n  background: transparent;\n  color: ${PRIMARY};\n}`, keywords: 'pulsante bottoni azioni cta', freeSize: { width: 320, height: 52 } },
+  { id: 'tabella', label: 'Tabella', category: 'testo', html: '<table class="lab-tabella">\n  <thead>\n    <tr><th>Nome</th><th>Ruolo</th><th>Città</th></tr>\n  </thead>\n  <tbody>\n    <tr><td>Anna</td><td>Grafica</td><td>Milano</td></tr>\n    <tr><td>Luca</td><td>Sviluppo</td><td>Roma</td></tr>\n  </tbody>\n</table>', css: '.lab-tabella {\n  width: 100%;\n  border-collapse: collapse;\n}\n\n.lab-tabella th,\n.lab-tabella td {\n  padding: 12px 16px;\n  border-bottom: 1px solid #e5e8ef;\n  text-align: left;\n}', keywords: 'table dati righe colonne', freeSize: { width: 420, height: 130 } },
   // Sezioni in più
   {
     id: 'caratteristiche',
@@ -217,7 +217,7 @@ const BASE_BLOCKS: Block[] = [
     category: 'sezioni',
     html: '<section class="lab-sezione lab-faq">\n  <h2>Domande frequenti</h2>\n  <details>\n    <summary>Quanto costa?</summary>\n    <p>Scrivi qui la risposta.</p>\n  </details>\n  <details>\n    <summary>Come si inizia?</summary>\n    <p>Scrivi qui la risposta.</p>\n  </details>\n</section>',
     keywords: 'faq domande risposte fisarmonica accordion',
-    css: `${SECTION_CSS}\n\n.lab-faq details {\n  padding: 14px 0;\n  border-bottom: 1px solid #e5e8ef;\n}\n\n.lab-faq summary {\n  cursor: pointer;\n  font-weight: 600;\n}`
+    css: `${SECTION_CSS}\n\n.lab-faq details {\n  padding: 16px 0;\n  border-bottom: 1px solid #e5e8ef;\n}\n\n.lab-faq summary {\n  cursor: pointer;\n  font-weight: 600;\n}`
   },
   {
     id: 'cta',
@@ -225,7 +225,7 @@ const BASE_BLOCKS: Block[] = [
     category: 'sezioni',
     html: '<section class="lab-cta">\n  <h2>Pronto a iniziare?</h2>\n  <p>Bastano due minuti.</p>\n  <a class="lab-bottone" href="#">Contattaci</a>\n</section>',
     keywords: 'cta call to action contatto banner finale',
-    css: `.lab-cta {\n  margin: 32px auto;\n  max-width: 1080px;\n  padding: 56px 24px;\n  border-radius: 24px;\n  text-align: center;\n  color: #ffffff;\n  background: linear-gradient(135deg, ${PRIMARY}, ${SECONDARY});\n}\n\n${BUTTON_CSS}`
+    css: `.lab-cta {\n  margin: 32px auto;\n  max-width: 1080px;\n  padding: 64px 24px;\n  border-radius: 24px;\n  text-align: center;\n  color: #ffffff;\n  background: linear-gradient(135deg, ${PRIMARY}, ${SECONDARY});\n}\n\n${BUTTON_CSS}`
   },
   {
     id: 'numeri',

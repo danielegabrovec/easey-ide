@@ -5,6 +5,7 @@ import { copyableStyles, themeRules, type SiteTheme, type StylePatch } from '@sh
 import { DEFAULT_PLACEHOLDER_COLORS, placeholderNames, placeholderPath, placeholderSvg } from '@shared/design-kit/placeholder'
 import { fontFaceCss, fontPair, fontStack, kitFont, pairFonts } from '@shared/design-kit/fonts'
 import { ICON_CSS, iconSvg } from '@shared/design-kit/icons'
+import type { LintFix } from '@shared/design-kit/lint'
 import { themeFromColor } from '@shared/design-kit/themes'
 import { typeVariables, type TypeScaleId } from '@shared/design-kit/type'
 import { dirnameOf, filePaths } from '@shared/paths'
@@ -451,6 +452,24 @@ export function setIcon(element: ElementInfo, name: string): Promise<void> {
     await editCss((css) => appendRulesOnce(css, ICON_CSS))
     const replaced = after.elements.find((e) => e.start === target.start)
     if (replaced) useDesigner.getState().select(keyOf(replaced.tag === 'svg' && element.tag !== 'svg' ? element : replaced))
+  })
+}
+
+/** «Correggi» di un ritocco consigliato: stili sull'elemento, una dichiarazione del CSS o un attributo. */
+export function applyLintFix(fix: LintFix): Promise<void> {
+  return withPage(async ({ html, editHtml, editCss }) => {
+    if (fix.kind === 'css') {
+      await editCss((css) => setDeclarations(css, fix.selector, { [fix.prop]: fix.value }, fix.media))
+      return
+    }
+    if (!html.elements[fix.id]) return
+    if (fix.kind === 'attr') {
+      editHtml((h) => setAttribute(h, fix.id, fix.name, fix.value))
+      return
+    }
+    const { id, edits } = ensureId(html, fix.id)
+    if (edits.length) editHtml(() => edits)
+    await editCss((css) => setDeclarations(css, `#${id}`, fix.styles, fix.here ? media() : null))
   })
 }
 

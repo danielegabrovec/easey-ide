@@ -34,15 +34,15 @@ export const TEXT_PRESETS: StylePreset[] = [
 export const BUTTON_PRESETS: StylePreset[] = [
   { id: 'pieno', label: 'Pieno', styles: { display: 'inline-block', padding: '12px 24px', border: `2px solid ${PRIMARY}`, 'border-radius': '10px', background: PRIMARY, color: '#ffffff', 'font-weight': '600', 'text-decoration': 'none', cursor: 'pointer' } },
   { id: 'contorno', label: 'Contorno', styles: { display: 'inline-block', padding: '12px 24px', border: `2px solid ${PRIMARY}`, 'border-radius': '10px', background: 'transparent', color: PRIMARY, 'font-weight': '600', 'text-decoration': 'none', cursor: 'pointer' } },
-  { id: 'pillola', label: 'Pillola', styles: { display: 'inline-block', padding: '12px 28px', border: '0', 'border-radius': '999px', background: PRIMARY, color: '#ffffff', 'font-weight': '700', 'text-decoration': 'none', cursor: 'pointer' } },
-  { id: 'morbido', label: 'Morbido', styles: { display: 'inline-block', padding: '10px 20px', border: '0', 'border-radius': '10px', background: `color-mix(in srgb, ${PRIMARY} 14%, transparent)`, color: PRIMARY, 'font-weight': '600', 'text-decoration': 'none', cursor: 'pointer' } },
+  { id: 'pillola', label: 'Pillola', styles: { display: 'inline-block', padding: '12px 32px', border: '0', 'border-radius': '999px', background: PRIMARY, color: '#ffffff', 'font-weight': '700', 'text-decoration': 'none', cursor: 'pointer' } },
+  { id: 'morbido', label: 'Morbido', styles: { display: 'inline-block', padding: '12px 24px', border: '0', 'border-radius': '10px', background: `color-mix(in srgb, ${PRIMARY} 14%, transparent)`, color: PRIMARY, 'font-weight': '600', 'text-decoration': 'none', cursor: 'pointer' } },
   { id: 'collegamento', label: 'Solo testo', styles: { display: null, padding: '0', border: '0', background: 'none', color: PRIMARY, 'font-weight': '600', 'text-decoration': 'underline', cursor: 'pointer' } }
 ]
 
 export const BOX_PRESETS: StylePreset[] = [
   { id: 'scheda', label: 'Scheda', styles: { padding: '24px', 'border-radius': 'var(--raggio-l, 16px)', background: 'var(--colore-superficie, #ffffff)', border: null, 'box-shadow': 'var(--ombra-2, 0 8px 24px rgba(0, 0, 0, 0.12))' } },
-  { id: 'bordo', label: 'Bordo sottile', styles: { padding: '20px', 'border-radius': '12px', border: '1px solid #e5e8ef', 'box-shadow': null } },
-  { id: 'evidenza', label: 'In evidenza', styles: { padding: '20px 24px', 'border-left': `4px solid ${PRIMARY}`, 'border-radius': '8px', background: `color-mix(in srgb, ${PRIMARY} 8%, transparent)` } },
+  { id: 'bordo', label: 'Bordo sottile', styles: { padding: '24px', 'border-radius': '12px', border: '1px solid #e5e8ef', 'box-shadow': null } },
+  { id: 'evidenza', label: 'In evidenza', styles: { padding: '24px', 'border-left': `4px solid ${PRIMARY}`, 'border-radius': '8px', background: `color-mix(in srgb, ${PRIMARY} 8%, transparent)` } },
   { id: 'vetro', label: 'Vetro', styles: { padding: '24px', 'border-radius': '16px', border: '1px solid rgba(255, 255, 255, 0.45)', background: 'rgba(255, 255, 255, 0.6)', 'backdrop-filter': 'blur(12px)' } },
   { id: 'scuro', label: 'Scuro', styles: { padding: '32px', 'border-radius': '16px', background: '#111827', color: '#f9fafb' } }
 ]
@@ -57,7 +57,7 @@ export const LAYOUT_PRESETS: StylePreset[] = [
   { id: 'spazio', label: 'Ai due lati', styles: { ...FLEX_RESET, display: 'flex', 'flex-direction': 'row', 'flex-wrap': 'wrap', 'align-items': 'center', 'justify-content': 'space-between', gap: '16px' } },
   { id: 'griglia-2', label: 'Griglia da 2', styles: { ...GRID_RESET, display: 'grid', 'grid-template-columns': 'repeat(2, minmax(0, 1fr))', 'align-items': null, gap: '24px' } },
   { id: 'griglia-3', label: 'Griglia da 3', styles: { ...GRID_RESET, display: 'grid', 'grid-template-columns': 'repeat(3, minmax(0, 1fr))', 'align-items': null, gap: '24px' } },
-  { id: 'griglia-auto', label: 'Griglia adattiva', styles: { ...GRID_RESET, display: 'grid', 'grid-template-columns': 'repeat(auto-fit, minmax(220px, 1fr))', 'align-items': null, gap: '20px' } }
+  { id: 'griglia-auto', label: 'Griglia adattiva', styles: { ...GRID_RESET, display: 'grid', 'grid-template-columns': 'repeat(auto-fit, minmax(220px, 1fr))', 'align-items': null, gap: '24px' } }
 ]
 
 const TEXT_TAGS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'li', 'blockquote', 'label', 'strong', 'em', 'small', 'cite', 'summary', 'figcaption', 'td', 'th', 'button'])

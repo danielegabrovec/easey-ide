@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type * as Monaco from 'monaco-editor'
 import type { IDockviewPanelProps } from 'dockview'
-import { Columns2, FilePlus2, Globe, Laptop, Monitor, Redo2, Smartphone, Tablet, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Columns2, FilePlus2, Globe, Laptop, ListChecks, Monitor, Redo2, Smartphone, Tablet, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import { buildCanvasDocument, resolveRelative } from '@shared/designer/canvas-document'
 import type { Breakpoint } from '@shared/designer/css-edit'
 import { linkedStylesheets } from '@shared/designer/html-edit'
@@ -23,10 +23,44 @@ import { Canvas } from './Canvas'
 import { Inspector } from './Inspector'
 import { Layers } from './Layers'
 import { Palette } from './Palette'
+import { checkPage } from './quality'
 import { modelFor, redo, undo } from './document'
 import { resolveSelection, useDesigner } from './designer-store'
 
 const WIDTHS: Record<Breakpoint, number> = { desktop: 1200, tablet: 820, phone: 390 }
+
+/** Ricontrolla i «ritocchi consigliati» poco dopo ogni ridisegno del canvas (e cambiando dispositivo). */
+function useQualityCheck(): void {
+  const version = useDesigner((s) => s.canvasVersion)
+  const breakpoint = useDesigner((s) => s.breakpoint)
+  useEffect(() => {
+    let alive = true
+    const timer = setTimeout(() => {
+      const { html, css, stylesheet } = useDesigner.getState()
+      if (!html) return
+      void checkPage(html, stylesheet ? (css[stylesheet] ?? '') : '')
+        .then((issues) => alive && useDesigner.getState().setQuality(issues))
+        .catch(() => undefined)
+    }, 450)
+    return () => {
+      alive = false
+      clearTimeout(timer)
+    }
+  }, [version, breakpoint])
+}
+
+/** Pulsante della barra: quanti ritocchi ci sono; apre la scheda «Ritocchi» dell'ispettore. */
+function QualityButton() {
+  const issues = useDesigner((s) => s.quality)
+  const count = issues?.length ?? 0
+  const label = count === 0 ? t('designer.qualityNone') : count === 1 ? t('designer.qualityOne') : t('designer.qualityButton', { count })
+  return (
+    <button className={`btn ghost quality-button${count ? ' has-issues' : ''}`} onClick={() => useDesigner.getState().setRightTab('quality')} title={t('designer.quality')} aria-label={`${t('designer.quality')}: ${label}`} data-testid="designer-quality">
+      <ListChecks size={14} /> <span className="btn-label">{label}</span>
+      {count > 0 && <span className="tab-badge compact">{count}</span>}
+    </button>
+  )
+}
 
 let selectionFromEditor = false
 
@@ -145,9 +179,11 @@ export function DesignerPanel({ params }: IDockviewPanelProps<{ path: string }>)
   const breakpoint = useDesigner((s) => s.breakpoint)
   const leftTab = useDesigner((s) => s.leftTab)
   const canvasHtml = useCanvasDocument(path)
+  useQualityCheck()
 
   useEffect(() => {
     useDesigner.getState().setPage(path)
+    useDesigner.getState().setQuality(null)
   }, [path])
 
   // Grafica → codice: l'elemento selezionato si seleziona e si illumina nel codice (se il file è aperto),
@@ -199,6 +235,7 @@ export function DesignerPanel({ params }: IDockviewPanelProps<{ path: string }>)
         </div>
         <ZoomControl />
         <span style={{ flex: 1 }} />
+        <QualityButton />
         <button className="icon-btn" title={`${t('designer.undo')} (Ctrl+Z)`} onClick={() => undo()}>
           <Undo2 size={14} />
         </button>

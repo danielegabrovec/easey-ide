@@ -110,6 +110,21 @@ export function getVariables(css: string): Declarations {
   return out
 }
 
+/** Tutte le dichiarazioni delle regole (di base e dentro @media), per i controlli di qualità. */
+export function allDeclarations(css: string): { selector: string; media: string | null; prop: string; value: string }[] {
+  const root = safeParse(css)
+  const out: { selector: string; media: string | null; prop: string; value: string }[] = []
+  root?.walkDecls((decl) => {
+    const rule = decl.parent
+    if (!rule || rule.type !== 'rule') return
+    const parent = rule.parent
+    const media = parent && parent.type === 'atrule' && (parent as AtRule).name === 'media' ? (parent as AtRule).params.replace(/\s+/g, ' ').trim() : null
+    if (parent && parent.type === 'atrule' && !media) return
+    out.push({ selector: (rule as Rule).selector.trim(), media, prop: decl.prop, value: decl.value })
+  })
+  return out
+}
+
 export function setVariable(css: string, name: string, value: string | null): string {
   const prop = name.startsWith('--') ? name : `--${name}`
   return setDeclarations(css, ':root', { [prop]: value })
