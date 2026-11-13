@@ -111,7 +111,8 @@ try {
   await page.locator('.terminal-host:visible').click()
   await page.keyboard.type('echo ciao-dalla-shell')
   await page.keyboard.press('Enter')
-  check('terminale: shell reale', !!(await until(async () => (await terminalText(page)).split('ciao-dalla-shell').length > 2, 15000)))
+  // (le righe si uniscono: con la chat laterale aperta il terminale è stretto e il comando va a capo)
+  check('terminale: shell reale', !!(await until(async () => (await terminalText(page)).replace(/\n/g, '').split('ciao-dalla-shell').length > 2, 15000)))
   await run.shot('07-shell')
   await run.app.close()
 
