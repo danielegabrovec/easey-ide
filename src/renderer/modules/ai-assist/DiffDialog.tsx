@@ -16,12 +16,15 @@ export function DiffDialog({
   target,
   proposed,
   close,
-  onApply
+  onApply,
+  warning
 }: {
   target: ApplyTarget
   proposed: string
   close: () => void
   onApply?: (text: string) => void | Promise<void>
+  /** Avviso sopra il confronto (es. il file è cambiato dopo l'invio alla chat). */
+  warning?: string
 }) {
   const host = useRef<HTMLDivElement>(null)
   const theme = useWorkbench((s) => s.settings.theme)
@@ -68,6 +71,11 @@ export function DiffDialog({
         </>
       }
     >
+      {warning && (
+        <div className="ai-diff-warning" role="alert" data-testid="ai-diff-warning">
+          {warning}
+        </div>
+      )}
       <div className="hint">{t('ai.diffHint')}</div>
       <div ref={host} style={{ height: 420, border: '1px solid var(--border)', borderRadius: 6 }} />
     </Modal>

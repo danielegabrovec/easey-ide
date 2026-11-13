@@ -192,7 +192,8 @@ una lezione e ogni esercizio 🧪 un compito. Come scrivere un corso: [docs/CORS
 | Esegui passo passo | Ctrl+F10 |
 | Palette dei comandi / Vai al file | Ctrl+Shift+P / Ctrl+P |
 | Database / Designer | Ctrl+Shift+D / Ctrl+Shift+G |
-| Lezioni / Git / Assistente AI | Ctrl+Alt+L / Ctrl+Alt+G / Ctrl+Shift+A |
+| Lezioni / Git | Ctrl+Alt+L / Ctrl+Alt+G |
+| Assistente AI: mostra/nascondi · scrivi nella chat | Ctrl+Alt+B · Ctrl+Shift+A (Esc torna all'editor) |
 | Verifica l'esercizio | F9 |
 | Scrittura rapida · esegui · salva · genera con AI | Ctrl+Shift+Q · Ctrl+Invio · Ctrl+S · Ctrl+I |
 
@@ -206,7 +207,8 @@ una lezione e ogni esercizio 🧪 un compito. Come scrivere un corso: [docs/CORS
 | Funzione | Come si usa |
 |---|---|
 | Autocompletamento in linea | scrivi: il suggerimento grigio si accetta con **Tab** |
-| Chat che conosce il tuo codice | Ctrl+Shift+A: file aperto, selezione ed errori vengono inviati come contesto |
+| Chat laterale che conosce il tuo codice | pannello a destra, come in VS Code (Ctrl+Alt+B mostra/nasconde, Ctrl+Shift+A scrive, «✦ AI» lo riapre): si allarga trascinando il bordo o con ⤢ (fino al 70 % della finestra) e ricorda com'era. Il chip sopra la casella mostra il file aperto o «selezione righe 3-10» (e i problemi): si stacca con ×. Ogni blocco di codice della risposta si copia, si inserisce al cursore o si **applica al documento** dopo il confronto prima/dopo, anche se nel frattempo hai cambiato scheda; se il file è cambiato dopo l'invio, il confronto te lo dice |
+| Comandi rapidi nella chat | scrivi `/` per la tendina: `/spiega`, `/correggi`, `/commenta`, `/test`, `/errore` (con istruzioni in più dopo il comando) |
 | Chiedi suggerimento (novità 1.3) | tasto destro → *Chiedi suggerimento…* o Ctrl+Alt+I: scrivi cosa ti serve, scegli dove va il codice (al cursore, righe selezionate, tutto il file) e confronti prima/dopo prima di applicarlo; anche nella Scrittura rapida |
 | Azioni rapide | tasto destro: *Spiega*, *Perché questo errore?*, *Proponi una correzione* (con confronto prima/dopo), *Aggiungi commenti*, *Scrivi test* |
 | SQL da descrizione | nel SQL Lab: «i clienti con più di 3 ordini» → query sulle tue tabelle reali, mostrata prima di eseguirla |

@@ -219,6 +219,17 @@ export function activateEditor(): void {
       return true
     }
   })
+  // Riporta il fuoco all'editor attivo (es. Esc nella casella della chat AI). true se c'era un editor.
+  registerCommand({
+    id: 'editor.focus',
+    title: 'editor.focus',
+    palette: false,
+    run: () => {
+      const editor = activeEditor()
+      editor?.focus()
+      return !!editor
+    }
+  })
   registerCommand({
     id: 'editor.showProblems',
     title: t('cmd.showProblems'),

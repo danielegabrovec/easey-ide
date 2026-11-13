@@ -146,9 +146,92 @@ textarea:focus {
   margin-left: auto;
 }
 
-.dock-host {
+/* min-width: 0 e overflow: altrimenti la griglia del guscio si allarga alla larghezza in pixel che
+   dockview ha fissato a pannello chiuso, e riaprendolo l'<aside> finirebbe fuori dalla finestra. */
+.workbench-main {
+  display: flex;
+  min-width: 0;
   min-height: 0;
+  overflow: hidden;
   position: relative;
+}
+
+.dock-host {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ---------------------------------------------------------------- pannello laterale destro (chat AI) */
+.side-panel {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  min-height: 0;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border);
+}
+
+.side-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.side-resize {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 5;
+  outline: none;
+}
+
+.side-resize:hover,
+.side-resize:focus-visible,
+body.side-resizing .side-resize {
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+body.side-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* Le anteprime (iframe/webview) non devono rubare il trascinamento. */
+body.side-resizing iframe,
+body.side-resizing webview {
+  pointer-events: none;
+}
+
+.side-reopen {
+  position: absolute;
+  right: 0;
+  top: 46%;
+  z-index: 20;
+  writing-mode: vertical-rl;
+  padding: 10px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--accent-text);
+  background: var(--accent);
+  border: 0;
+  border-radius: var(--radius) 0 0 var(--radius);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.side-reopen:hover,
+.side-reopen:focus-visible {
+  opacity: 1;
+  background: var(--accent-strong);
 }
 
 /* ---------------------------------------------------------------- pulsanti */

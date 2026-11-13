@@ -1,12 +1,13 @@
-// Conversazione con l'assistente: messaggi, risposta in corso, destinazione "Applica".
+// Conversazione con l'assistente: messaggi, risposta in corso, documento fotografato all'invio (per «Applica»).
 import { create } from 'zustand'
 import type { AiChatMessage } from '@shared/contracts/ai'
 import type { EditorRange } from '@shared/contracts/editor'
+import type { ChatContextSnapshot } from '@shared/ai/chat-context'
 import { streamChat, type ChatStream } from '../../services/ai-client'
 import { workbench } from '../../workbench/store'
 import { t } from '../../i18n'
 
-/** Dove applicare il codice proposto (selezione o file intero da cui è partita la richiesta). */
+/** Dove applicare un codice proposto (DiffDialog, «Chiedi suggerimento»). */
 export interface ApplyTarget {
   path: string
   range: EditorRange
@@ -24,13 +25,14 @@ export interface ChatMessage {
   thinking?: string
   error?: string
   pending?: boolean
-  apply?: ApplyTarget
+  /** Documento (testo o selezione + intervallo) catturato all'invio: ogni blocco di codice si può applicare lì. */
+  context?: ChatContextSnapshot
 }
 
 interface ChatState {
   messages: ChatMessage[]
   stream: ChatStream | null
-  send: (content: string, options?: { display?: string; apply?: ApplyTarget }) => Promise<void>
+  send: (content: string, options?: { display?: string; context?: ChatContextSnapshot }) => Promise<void>
   stop: () => void
   reset: () => void
 }
@@ -48,7 +50,7 @@ export const useChat = create<ChatState>((set, get) => ({
   send: async (content, options) => {
     if (get().stream) get().stop()
     const user: ChatMessage = { id: nextId++, role: 'user', display: options?.display ?? content, content }
-    const assistant: ChatMessage = { id: nextId++, role: 'assistant', display: '', content: '', pending: true, apply: options?.apply }
+    const assistant: ChatMessage = { id: nextId++, role: 'assistant', display: '', content: '', pending: true, context: options?.context }
     const history: AiChatMessage[] = [
       { role: 'system', content: systemPrompt() },
       ...get()

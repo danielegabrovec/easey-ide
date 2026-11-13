@@ -1,8 +1,10 @@
-// Modulo Assistente AI (Ollama locale): chat, azioni rapide sul codice, autocompletamento inline.
+// Modulo Assistente AI (Ollama locale): chat nel pannello laterale destro, azioni rapide sul codice,
+// autocompletamento inline.
 import * as monaco from 'monaco-editor'
 import type { EditorContext } from '@shared/contracts/editor'
 import { executeCommand, registerCommand } from '../../workbench/commands'
-import { registerPanel, showPanel } from '../../workbench/layout'
+import { registerPanel } from '../../workbench/layout'
+import { registerSidePanel, sidePanel } from '../../workbench/side-panel'
 import { notify } from '../../workbench/notifications'
 import { registerSettingsSection } from '../../workbench/settings-sections'
 import { useWorkbench, workbench } from '../../workbench/store'
@@ -10,62 +12,12 @@ import { activeModels, useAi } from '../../services/ai-client'
 import { t } from '../../i18n'
 import { AiChatPanel } from './AiChatPanel'
 import { AiSettingsSection } from './AiSettingsSection'
-import { useChat, type ApplyTarget } from './chat-store'
+import { useChat } from './chat-store'
+import { LegacyChatPanel } from './LegacyChatPanel'
+import { quickAction, showChat } from './quick-actions'
 import { registerInlineCompletion } from './inline-completion'
 import { openDialog } from '../../ui/dialogs'
 import { SuggestDialog, type SuggestRequest } from './SuggestDialog'
-
-type QuickAction = 'explain' | 'error' | 'fix' | 'comment' | 'tests'
-
-function showChat(): void {
-  showPanel({ id: 'ai-chat', component: 'ai-chat', title: t('panel.ai'), area: 'right' })
-}
-
-function wholeFileRange(text: string) {
-  const lines = text.split('\n')
-  return { startLine: 1, startColumn: 1, endLine: lines.length, endColumn: lines[lines.length - 1]!.length + 1 }
-}
-
-async function quickAction(kind: QuickAction): Promise<void> {
-  const context = (await executeCommand('editor.getContext')) as EditorContext | null
-  if (!context) {
-    notify(t('ai.noEditor'), 'error')
-    return
-  }
-  if (!activeModels().chat) {
-    showChat()
-    notify(t('ai.unavailable'), 'error')
-    return
-  }
-  showChat()
-  const code = context.selection?.text ?? context.text
-  const where = context.selection ? t('ai.ctxSelection', { path: context.path }) : t('ai.ctxFile', { path: context.path })
-  const block = `${where}\n\`\`\`${context.language}\n${code.slice(0, 12000)}\n\`\`\``
-  const apply: ApplyTarget = { path: context.path, range: context.selection?.range ?? wholeFileRange(context.text), original: code, language: context.language }
-  const send = useChat.getState().send
-
-  if (kind === 'error') {
-    const problems = context.problems.filter((p) => p.severity === 'error')
-    const problem = problems.sort((a, b) => Math.abs(a.line - context.cursor.line) - Math.abs(b.line - context.cursor.line))[0] ?? context.problems[0]
-    if (!problem) {
-      notify(t('ai.noProblem'), 'info')
-      return
-    }
-    const fileBlock = `${t('ai.ctxFile', { path: context.path })}\n\`\`\`${context.language}\n${context.text.slice(0, 12000)}\n\`\`\``
-    await send(t('ai.promptError', { line: problem.line, message: problem.message }) + `\n\n${fileBlock}`, {
-      display: t('ai.displayError', { line: problem.line, message: problem.message })
-    })
-    return
-  }
-  const prompts: Record<Exclude<QuickAction, 'error'>, { prompt: string; display: string; apply?: boolean }> = {
-    explain: { prompt: t('ai.promptExplain'), display: t('ai.actExplain') },
-    fix: { prompt: t('ai.promptFix'), display: t('ai.actFix'), apply: true },
-    comment: { prompt: t('ai.promptComment'), display: t('ai.actComment'), apply: true },
-    tests: { prompt: t('ai.promptTests'), display: t('ai.actTests') }
-  }
-  const chosen = prompts[kind]
-  await send(`${chosen.prompt}\n\n${block}`, { display: `${chosen.display} · ${context.selection ? t('ai.selectionShort') : context.path}`, apply: chosen.apply ? apply : undefined })
-}
 
 function updateStatusItem(): void {
   const { status } = useAi.getState()
@@ -85,13 +37,26 @@ function updateStatusItem(): void {
 }
 
 export function activateAiAssist(): void {
-  registerPanel('ai-chat', AiChatPanel)
+  // La chat vive nel pannello laterale del guscio. Il vecchio pannello dockview «ai-chat» resta registrato
+  // solo per i layout che lo contengono ancora: si chiude da solo e apre il pannello laterale.
+  registerSidePanel({ component: AiChatPanel, title: t('ai.panelTitle'), reopenLabel: '✦ AI', reopenTitle: `${t('ai.reopen')} (Ctrl+Alt+B)` })
+  registerPanel('ai-chat', LegacyChatPanel)
   registerSettingsSection({ id: 'ai', title: t('ai.settingsTitle'), render: AiSettingsSection })
   registerInlineCompletion()
 
   const category = t('category.ai')
   const hasEditor = () => workbench().activeFile !== null
-  registerCommand({ id: 'ai.chat', title: t('cmd.aiChat'), category, keybinding: 'Ctrl+Shift+A', run: () => showChat() })
+  registerCommand({ id: 'ai.chat', title: t('cmd.aiChat'), category, keybinding: 'Ctrl+Shift+A', run: () => showChat(true) })
+  registerCommand({ id: 'ai.toggleChat', title: t('cmd.aiToggleChat'), category, keybinding: 'Ctrl+Alt+B', run: () => sidePanel().toggle() })
+  registerCommand({
+    id: 'ai.newChat',
+    title: t('ai.newChat'),
+    category,
+    run: () => {
+      useChat.getState().reset()
+      showChat(true)
+    }
+  })
   registerCommand({
     id: 'ai.suggest',
     title: t('suggest.command'),

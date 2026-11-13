@@ -2,6 +2,7 @@
 // (commento accanto a ogni campo). Selettori sempre primitivi o con useShallow.
 import { create } from 'zustand'
 import { DEFAULT_SETTINGS, type Settings } from '@shared/contracts/settings'
+import type { EditorRange } from '@shared/contracts/editor'
 import type { FileEntry, ProjectInfo } from '@shared/contracts/workspace'
 
 export interface CursorInfo {
@@ -29,6 +30,8 @@ interface WorkbenchState {
   /** editor */
   activeFile: string | null
   cursor: CursorInfo | null
+  /** Selezione non vuota nel file attivo (null se non c'è). */
+  selection: EditorRange | null
   dirty: string[]
   problems: { errors: number; warnings: number }
   /** moduli */
@@ -40,6 +43,7 @@ interface WorkbenchState {
   setPaletteOpen: (open: boolean, mode?: 'commands' | 'files') => void
   setActiveFile: (path: string | null) => void
   setCursor: (cursor: CursorInfo | null) => void
+  setSelection: (selection: EditorRange | null) => void
   setDirty: (path: string, dirty: boolean) => void
   clearDirty: () => void
   setProblems: (problems: { errors: number; warnings: number }) => void
@@ -55,6 +59,7 @@ export const useWorkbench = create<WorkbenchState>((set) => ({
   paletteMode: 'commands',
   activeFile: null,
   cursor: null,
+  selection: null,
   dirty: [],
   problems: { errors: 0, warnings: 0 },
   statusItems: [],
@@ -65,6 +70,12 @@ export const useWorkbench = create<WorkbenchState>((set) => ({
   setPaletteOpen: (paletteOpen, mode) => set((state) => ({ paletteOpen, paletteMode: mode ?? (paletteOpen ? state.paletteMode : 'commands') })),
   setActiveFile: (activeFile) => set({ activeFile }),
   setCursor: (cursor) => set({ cursor }),
+  setSelection: (selection) =>
+    set((state) => {
+      const prev = state.selection
+      const same = prev === selection || (!!prev && !!selection && prev.startLine === selection.startLine && prev.startColumn === selection.startColumn && prev.endLine === selection.endLine && prev.endColumn === selection.endColumn)
+      return same ? state : { selection }
+    }),
   setDirty: (path, dirty) =>
     set((state) => {
       const has = state.dirty.includes(path)

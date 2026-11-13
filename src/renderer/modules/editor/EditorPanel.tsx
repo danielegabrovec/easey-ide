@@ -71,30 +71,45 @@ export function EditorPanel({ params, api }: IDockviewPanelProps<{ path: string 
         editors.set(path, editor)
         for (const resolve of waiters.get(path) ?? []) resolve(editor)
         waiters.delete(path)
-        const reportCursor = () => {
-          const position = editor?.getPosition()
-          if (position && workbench().activeFile === path) workbench().setCursor({ line: position.lineNumber, column: position.column })
-          const current = editor?.getModel()
-          if (position && current && editor?.hasTextFocus()) emit('editor:cursor', { path, offset: current.getOffsetAt(position) })
-        }
         disposables.push(
           editor.onDidFocusEditorText(() => {
             workbench().setActiveFile(path)
             reportCursor()
           }),
-          editor.onDidChangeCursorPosition(reportCursor)
+          editor.onDidChangeCursorPosition(reportCursor),
+          editor.onDidChangeCursorSelection(reportSelection)
         )
         if (api.isActive) {
           workbench().setActiveFile(path)
+          reportSelection()
           editor.focus()
         }
       })
       .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : String(reason)))
 
+    const reportCursor = () => {
+      const position = editor?.getPosition()
+      if (position && workbench().activeFile === path) workbench().setCursor({ line: position.lineNumber, column: position.column })
+      const current = editor?.getModel()
+      if (position && current && editor?.hasTextFocus()) emit('editor:cursor', { path, offset: current.getOffsetAt(position) })
+      reportSelection()
+    }
+    // Selezione del file attivo nello stato condiviso (la chat AI la mostra dal vivo: «selezione righe 3-10»).
+    const reportSelection = () => {
+      if (!editor || workbench().activeFile !== path) return
+      const selection = editor.getSelection()
+      workbench().setSelection(
+        selection && !selection.isEmpty()
+          ? { startLine: selection.startLineNumber, startColumn: selection.startColumn, endLine: selection.endLineNumber, endColumn: selection.endColumn }
+          : null
+      )
+    }
+
     const activeSub = api.onDidActiveChange((event) => {
       if (event.isActive) {
         workbench().setActiveFile(path)
         rememberArea('center', api.group.id)
+        reportSelection()
         editor?.focus()
       }
     })
@@ -109,6 +124,7 @@ export function EditorPanel({ params, api }: IDockviewPanelProps<{ path: string 
       if (workbench().activeFile === path) {
         workbench().setActiveFile(null)
         workbench().setCursor(null)
+        workbench().setSelection(null)
       }
     }
   }, [path, api])

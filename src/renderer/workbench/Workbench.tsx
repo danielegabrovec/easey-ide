@@ -1,4 +1,5 @@
-// Il guscio dell'IDE: barra superiore, area a pannelli, barra di stato e host di dialoghi/menu/avvisi.
+// Il guscio dell'IDE: barra superiore, area a pannelli con il pannello laterale destro (chat AI),
+// barra di stato e host di dialoghi/menu/avvisi.
 // Non contiene logica di dominio: tutte le azioni passano dai comandi registrati dai moduli.
 import { useCallback, useEffect } from 'react'
 import { DockviewReact, themeDark, themeLight, type DockviewReadyEvent } from 'dockview'
@@ -7,6 +8,7 @@ import { executeCommand } from './commands'
 import { buildDefaultLayout, panelComponents, setDockApi } from './layout'
 import { useWorkbench } from './store'
 import { CommandPalette } from './CommandPalette'
+import { SidePanelHost } from './SidePanel'
 import { DialogHost } from '../ui/dialogs'
 import { ContextMenuHost } from '../ui/ContextMenu'
 import { useToasts } from './notifications'
@@ -139,8 +141,11 @@ export function Workbench() {
   return (
     <div className="shell">
       <Toolbar />
-      <div className="dock-host">
-        <DockviewReact components={panelComponents()} onReady={onReady} theme={theme === 'dark' ? themeDark : themeLight} />
+      <div className="workbench-main">
+        <div className="dock-host">
+          <DockviewReact components={panelComponents()} onReady={onReady} theme={theme === 'dark' ? themeDark : themeLight} />
+        </div>
+        <SidePanelHost />
       </div>
       <StatusBar />
       <CommandPalette />

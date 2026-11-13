@@ -60,6 +60,7 @@ const SPEC: Spec[] = [
       'editor.showProblems',
       'git.show',
       'learn.show',
+      'ai.toggleChat',
       'workbench.resetLayout',
       '-',
       'workbench.toggleTheme',
