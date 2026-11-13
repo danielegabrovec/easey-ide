@@ -60,7 +60,7 @@ diagramma ad albero per i file». P0 = rotto, P1 = fa male all'uso, P2 = rifinit
 | P1-7 | Nodi: niente ricentramento a ogni nodo, nodi nuovi al centro della vista, Ctrl+Z/Ctrl+Y, fili ricollegabili (capo nel vuoto = filo staccato), filo nel vuoto → menu dei nodi compatibili | ✅ fatto (manca: inserire un nodo su un filo esistente) | `graph-edit.test.ts`, `visual.mjs` |
 | P1-8 | Trascinamento con fantasma dell'elemento, contenitore evidenziato, etichetta «dentro main.scheda › dopo button#pulsante», scorrimento automatico ai bordi e ricalcolo con la rotellina | ✅ fatto | `designer-drag.mjs` |
 | P2-1 | Livelli sempre visibili sotto la palette | da fare (M) | |
-| P2-2 | Zoom del canvas del designer (con Esplora e chat aperte la pagina scende a scala ~0,3) | da fare (M) — ora più urgente | |
+| P2-2 | Zoom del canvas del designer (con Esplora e chat aperte la pagina scendeva a scala ~0,3): Ctrl+rotellina attorno al puntatore, Ctrl+0 adatta, Ctrl+1 100 %, Ctrl+= / Ctrl+- a gradini (solo col designer attivo), percentuale con menu nella barra, spazio + trascina (o tasto centrale) per spostare la vista; maniglie, etichette e guide della stessa misura sullo schermo a ogni zoom; un clic su una maniglia senza trascinare non scrive niente | ✅ fatto | `designer-zoom.test.ts`, `designer-zoom.mjs` |
 | P2-3 | Codice generato di blocchi e nodi mostrato pulito, senza `__labStep` | ✅ fatto | `code-map.test.ts`, `split-code.mjs` |
 | P2-4 | «Nuovo programma a blocchi/nodi» nel Benvenuto | ✅ fatto | `layout.mjs` |
 | P2-5 | Barra delle attività fissa (Esplora / Database / Git in schede separate) | da fare (M) | |
@@ -71,3 +71,25 @@ diagramma ad albero per i file». P0 = rotto, P1 = fa male all'uso, P2 = rifinit
 | P2-10 | Benvenuto con Designer, Blocchi, Nodi, Database e le scorciatoie nuove | ✅ fatto | `layout.mjs` |
 | — | La chat laterale parte **aperta** al primo avvio (poi vale lo stato salvato) | ✅ fatto | `side-chat.test.ts`, `ai-side.mjs` |
 | — | **Vista affiancata grafica ↔ codice** (standard del vault): «Affianca codice» e `view.splitCode` (Ctrl+Alt+K); designer → file `.html` in un gruppo a destra; clic su un elemento = codice selezionato e illuminato senza rubare il fuoco; cursore nel codice = elemento selezionato; blocchi e nodi = codice generato in sola lettura accanto, collegato nei due sensi; scelta ricordata per tipo | ✅ fatto (il CSS della regola selezionata non è ancora affiancato) | `code-map.test.ts`, `split-code.mjs` |
+
+## Design migliore (13/11/2026, piano «designer che producono design belli»)
+
+Obiettivo dell'utente: «migliorare la grafica di design… per riuscire a creare design migliori». Piano fatto
+sull'app vera (landing costruita con il designer e screenshot); qui la parte Easey delle prime tre fette.
+Il design kit (`src/shared/design-kit/`) è codice puro, protetto da `src/shared/design-kit.lock`: IDE Next lo
+copierà identico (`node scripts/design-kit-lock.mjs` dopo ogni modifica).
+
+| # | Cosa | Stato | Test |
+|---|---|---|---|
+| D1 | **Pagina intera a tutta larghezza**: clic su una «Pagina intera» con la pagina già piena → «Sostituisci la pagina» (consigliato; gli script restano) o «Aggiungi in fondo»; il body perde la griglia centrata; `img { max-width: 100% }` | ✅ fatto | `designer-page.test.ts`, `designer-page.mjs` (larghezza a 1200/820/390) |
+| D2 | Il `body` (e `html`) si stilano sul loro tag: niente più `#body-1` | ✅ fatto | `designer-page.mjs` |
+| D3 | Modelli di progetto sui token `--colore-*` (`--accento`, `--sfondo`, `--testo` diventano alias); il tema li collega anche nei progetti vecchi: pulsanti e moduli seguono il tema | ✅ fatto | `designer-page.test.ts`, `designer-page.mjs` (Oceano, Tramonto) |
+| D4 | Segnaposto SVG locali (`img/segnaposto-*.svg`, nei colori del tema) al posto di picsum; ispettore immagine: Riempi / Adatta / Allunga, proporzione 16:9…3:4, punto a fuoco | ✅ fatto | `designer-page.test.ts`, `designer-page.mjs` |
+| D5 | Canvas: una ricostruzione lenta non sovrascrive più quella nuova (pagina «senza stile» dopo un inserimento) | ✅ fatto | `designer-page.mjs` |
+| D6 | **Design kit**: colori OKLCH (scale 50–900, armonie), contrasto WCAG con correzione, scala tipografica fluida (`clamp`), spazi 4/8, raggi, elevazioni, temi (anche «dal mio colore», con contrasti verificati) | ✅ fatto | `design-kit.test.ts`, `design-kit-lock.test.ts` |
+| D7 | Scheda Sito: tema dal mio colore, scala del testo (Compatta/Equilibrata/Editoriale), **coppie di caratteri inclusi** (8 woff2 OFL in `resources/fonts`, copiati in `fonts/` del progetto, offline), colori con nomi umani | ✅ fatto | `designer-kit.mjs` |
+| D8 | Ispettore: gradino della scala del testo, peso 300–900 (con 800) secondo il carattere, campioni solo del tema con il nome, contrasto con «Correggi» | ✅ fatto | `designer-kit.mjs` |
+| D9 | Icone lucide (56, ricerca in italiano) come SVG in linea con `currentColor`: blocco «Icona», caratteristiche con icone vere, scelta icona nella scheda Elemento | ✅ fatto | `design-kit.test.ts`, `designer-kit.mjs` |
+| D10 | **Ritocchi consigliati** (scheda dell'ispettore + pulsante nella barra): contrasto, griglia con una scheda orfana, spazi fuori scala, titoli e righe troppo lunghi, overflow sul telefono (misurato in una copia a 390 px), immagini senza alt o da Internet, pulsanti sotto 44 px; «Correggi» a un clic, annullabile | ✅ fatto | `design-kit-lint.test.ts`, `designer-quality.mjs` |
+| D11 | Blocchi e stili pronti sulla scala degli spazi; sezioni pronte inserite dopo la sezione selezionata (non dentro una scheda); galleria con titolo; ritmo fra sezioni; invito all'azione con margini sul telefono | ✅ fatto | `design-kit-lint.test.ts`, `designer-drop.test.ts` |
+| — | Da fare (fette successive del piano): stati hover/focus (EA6), allinea a 9 punti e griglie senza orfani di serie (EA7), anteprima affiancata di 3 larghezze e menu a panino (EA8), proposte AI a token (EA10), varianti dei blocchi (EA11); un foglio di stile in una sottocartella non mostra i caratteri nel canvas (gli `url()` si risolvono dalla pagina) | da fare | |
