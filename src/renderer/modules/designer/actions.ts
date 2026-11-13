@@ -7,7 +7,7 @@ import {
   ensureId,
   insertHtml,
   isInside,
-  moveElement,
+  moveElementAt,
   removeElement,
   setAttribute,
   setText,
@@ -15,7 +15,8 @@ import {
   type InsertPosition,
   type TextEdit
 } from '@shared/designer/html-edit'
-import { findByAttrId, type ElementInfo, type HtmlModel } from '@shared/designer/html-model'
+import { findByAttrId, isFreeElement, type ElementInfo, type HtmlModel } from '@shared/designer/html-model'
+import { appendTarget, freeStyleChange, landsInFreeCanvas } from '@shared/designer/drop'
 import { notifyError } from '../../workbench/notifications'
 import { modelFor, parse, stylesheetFor, Transaction } from './document'
 import { keyOf, selectedElement, useDesigner } from './designer-store'
@@ -160,27 +161,56 @@ export function duplicateSelected(): Promise<void> {
 export function moveSelectedTo(targetId: number, where: InsertPosition): Promise<void> {
   const element = selectedElement()
   if (!element) return Promise.resolve()
-  const key = element.attrs['id']
-  return withPage(({ editHtml }) => {
-    const html = editHtml((h) => moveElement(h, element.id, targetId, where))
-    const moved = key ? findByAttrId(html, key) : null
-    if (moved) useDesigner.getState().selectElement(moved)
-  })
+  return moveNode(element.id, targetId, where)
 }
 
-/** Sposta un elemento qualunque (es. trascinato nei Livelli) e, se ha un id, lo seleziona. */
-export function moveNode(id: number, targetId: number, where: InsertPosition): Promise<void> {
+/**
+ * Sposta un elemento qualunque (trascinato nel canvas o nei Livelli) e lo riseleziona dove è finito.
+ * Se entra in una tavola libera diventa libero (posizione assoluta); se ne esce torna nel flusso.
+ */
+export function moveNode(id: number, targetId: number, where: InsertPosition, free?: { left: number; top: number; width?: number }): Promise<void> {
   const page = useDesigner.getState().html
   const element = page?.elements[id]
   if (!page || !element || id === targetId || ['html', 'head', 'body'].includes(element.tag)) return Promise.resolve()
   // Non si può mettere un elemento dentro sé stesso o un suo discendente.
   if (isInside(page, id, targetId)) return Promise.resolve()
-  const key = element.attrs['id']
-  return withPage(({ editHtml }) => {
-    const html = editHtml((h) => moveElement(h, id, targetId, where))
-    const moved = key ? findByAttrId(html, key) : null
-    useDesigner.getState().selectElement(moved)
+  // Nessun movimento reale (prima del fratello successivo, dopo quello precedente, su sé stesso).
+  const siblings = element.parent !== null ? page.elements[element.parent]!.children : []
+  const index = siblings.indexOf(id)
+  if ((where === 'before' && siblings[index + 1] === targetId) || (where === 'after' && siblings[index - 1] === targetId)) return Promise.resolve()
+  return withPage(async ({ html, editHtml, editCss }) => {
+    const wasFree = isFreeElement(html, id)
+    const nowFree = landsInFreeCanvas(html, { id: targetId, where })
+    // Da una tavola a un'altra (o con una posizione nuova) si riscrive comunque la posizione.
+    const change = free && nowFree ? freeStyleChange(false, true, free) : freeStyleChange(wasFree, nowFree, free)
+    let key = html.elements[id]!.attrs['id'] ?? null
+    // Lo stato libero vive nella regola #id: se serve, l'id si aggiunge prima dello spostamento.
+    if (change && nowFree && !key) {
+      const ensured = ensureId(html, id)
+      key = ensured.id
+      editHtml(() => ensured.edits)
+    }
+    let start = -1
+    const after = editHtml((h) => {
+      const result = moveElementAt(h, id, targetId, where)
+      start = result.start
+      return result.edits
+    })
+    if (change && key) {
+      const selector = `#${key}`
+      await editCss((css) => setDeclarations(css, selector, change))
+    }
+    const moved = after.elements.find((e) => e.start === start) ?? (key ? findByAttrId(after, key) : null)
+    useDesigner.getState().select(moved ? keyOf(moved) : null)
   })
+}
+
+/** «Porta fuori dalla tavola»: l'elemento libero va subito dopo la sua tavola e torna nel flusso. */
+export function moveOutOfFreeCanvas(id: number): Promise<void> {
+  const page = useDesigner.getState().html
+  const parent = page?.elements[id]?.parent
+  if (!page || parent === null || parent === undefined || !isFreeElement(page, id)) return Promise.resolve()
+  return moveNode(id, parent, 'after')
 }
 
 // ---------------------------------------------------------------- stili pronti, temi, copia stile
@@ -228,10 +258,8 @@ export type Placement = { targetId: number | null; where: InsertPosition } | { f
 /** In fondo alla pagina ma prima degli <script> finali: il contenuto nuovo resta sopra il codice. */
 export function endOfBody(html: HtmlModel): Placement {
   if (html.body === null) return { targetId: null, where: 'inside-end' }
-  const children = html.elements[html.body]!.children
-  let first = children.length
-  while (first > 0 && html.elements[children[first - 1]!]!.tag === 'script') first--
-  return first < children.length ? { targetId: children[first]!, where: 'before' } : { targetId: html.body, where: 'inside-end' }
+  const target = appendTarget(html, html.body)
+  return { targetId: target.id, where: target.where }
 }
 
 export function insertBlock(blockId: string, placement: Placement, overrides?: { html?: string }): Promise<void> {

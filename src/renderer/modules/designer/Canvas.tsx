@@ -1,13 +1,14 @@
 // Canvas del designer: la pagina in un iframe senza script (stessa origine, quindi leggibile) e, sopra,
 // un livello che gestisce tutte le interazioni. Nelle "tavole libere" gli elementi si spostano e si
 // ridimensionano a mano libera con guide magnetiche (stile Canva); altrove si riordinano a flusso (stile Wix).
+// Le regole su dove finisce un elemento rilasciato stanno in @shared/designer/drop (pure e testate).
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FREE_CANVAS_CLASS, hasClass, isFreeElement, type ElementInfo } from '@shared/designer/html-model'
-import type { InsertPosition } from '@shared/designer/html-edit'
+import { clampBox, decideDrop, elementLabel, flowAxis, targetParent, type Axis, type DropTarget } from '@shared/designer/drop'
 import { showContextMenu } from '../../ui/ContextMenu'
 import { t } from '../../i18n'
 import { notify } from '../../workbench/notifications'
-import { copyStyle, duplicateSelected, endOfBody, insertBlock, moveSelectedTo, pasteStyle, removeSelected, setElementText, setFreeBox, setStyles } from './actions'
+import { copyStyle, duplicateSelected, endOfBody, insertBlock, moveNode, moveOutOfFreeCanvas, pasteStyle, removeSelected, setElementText, setFreeBox, setStyles } from './actions'
 import { redo, undo } from './document'
 import { keyOf, resolveSelection, useDesigner } from './designer-store'
 import { registerFrame } from './frame-access'
@@ -19,26 +20,52 @@ interface Rect {
   height: number
 }
 
-type Drag =
-  | { kind: 'pending'; startX: number; startY: number; id: number }
-  | { kind: 'free-move'; startX: number; startY: number; id: number; origin: Rect; current: Rect }
-  | { kind: 'free-resize'; startX: number; startY: number; id: number; handle: string; origin: Rect; current: Rect; free: boolean }
-  | { kind: 'flow'; id: number; target: { id: number; where: InsertPosition } | null }
+type FreeTarget = { freeIn: number; x: number; y: number }
+type FlowTarget = DropTarget | FreeTarget
 
-interface Indicator {
-  rect: Rect
-  where: InsertPosition | 'free'
+interface FlowDrag {
+  kind: 'flow'
+  id: number
+  startX: number
+  startY: number
+  /** Punto in cui si è afferrato l'elemento, rispetto al suo angolo (px del documento). */
+  grab: { x: number; y: number }
+  size: { width: number; height: number }
+  /** Tavola da cui parte un elemento libero (rientrandovi torna lo spostamento libero). */
+  home: number | null
+  origin: Rect | null
+  target: FlowTarget | null
 }
 
-const CONTAINERS = new Set(['body', 'main', 'section', 'div', 'article', 'header', 'footer', 'nav', 'form', 'ul', 'ol', 'aside', 'figure', 'blockquote'])
+type Drag =
+  | { kind: 'pending'; startX: number; startY: number; id: number; grab: { x: number; y: number } }
+  | { kind: 'free-move'; startX: number; startY: number; id: number; origin: Rect; current: Rect; home: number; grab: { x: number; y: number } }
+  | { kind: 'free-resize'; startX: number; startY: number; id: number; handle: string; origin: Rect; current: Rect; free: boolean }
+  | FlowDrag
+
+interface Indicator {
+  /** Contenitore che riceverà l'elemento. */
+  parent: Rect | null
+  /** Linea d'inserimento (verticale nelle righe flex e nelle griglie). */
+  line: { left: number; top: number; length: number; vertical: boolean } | null
+  free: boolean
+  label: string
+}
+
 const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
 const SNAP = 6
+/** Fascia (px dello schermo) vicino al bordo di un contenitore che vale «prima/dopo» invece di «dentro». */
+const EDGE = 7
+/** Fascia (px dello schermo) vicino al bordo del canvas che fa scorrere la pagina durante il trascinamento. */
+const SCROLL_ZONE = 48
+/** Di quanto (px dello schermo) il puntatore deve uscire da una tavola perché l'elemento libero ne esca. */
+const LEAVE_MARGIN = 24
 
 /**
  * Carica la pagina nel canvas con `srcdoc` (niente document.write né metodi della finestra: in un frame
  * senza script Chrome li segnala come "script bloccati"). Lo scorrimento si conserva via proprietà DOM.
  */
-export function writeCanvas(iframe: HTMLIFrameElement | null, html: string): void {
+export function writeCanvas(iframe: HTMLIFrameElement | null, html: string, afterLoad?: () => void): void {
   if (!iframe) return
   const scroller = iframe.contentDocument?.scrollingElement
   const top = scroller?.scrollTop ?? 0
@@ -49,6 +76,7 @@ export function writeCanvas(iframe: HTMLIFrameElement | null, html: string): voi
       next.scrollTop = top
       next.scrollLeft = left
     }
+    afterLoad?.()
   }
   iframe.srcdoc = html
 }
@@ -64,6 +92,8 @@ function rectOf(element: Element | null): Rect | null {
   return { left: r.left, top: r.top, width: r.width, height: r.height }
 }
 
+const inside = (rect: Rect, x: number, y: number) => x >= rect.left && x <= rect.left + rect.width && y >= rect.top && y <= rect.top + rect.height
+
 export function Canvas({ html: canvasHtml, width, onReady }: { html: string; width: number; onReady?: () => void }) {
   const page = useDesigner((s) => s.html)
   const selection = useDesigner((s) => s.selection)
@@ -72,6 +102,9 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   const overlay = useRef<HTMLDivElement>(null)
   const host = useRef<HTMLDivElement>(null)
   const drag = useRef<Drag | null>(null)
+  const ghost = useRef<{ clone: HTMLElement; node: HTMLElement } | null>(null)
+  const pointer = useRef<{ clientX: number; clientY: number; alt: boolean } | null>(null)
+  const scrollLoop = useRef(0)
   const [scale, setScale] = useState(1)
   const [height, setHeight] = useState(600)
   const [, setTick] = useState(0)
@@ -88,9 +121,18 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     return () => registerFrame(null)
   }, [])
 
-  // Scrive la pagina nell'iframe a ogni cambiamento del sorgente.
+  // Scrive la pagina nell'iframe a ogni cambiamento del sorgente; poi, se richiesto, porta in vista la selezione.
   useEffect(() => {
-    writeCanvas(iframe.current, canvasHtml)
+    writeCanvas(iframe.current, canvasHtml, () => {
+      const state = useDesigner.getState()
+      if (!state.revealSelection) return
+      const target = resolveSelection(state.html, state.selection)
+      const node = target ? (iframe.current?.contentDocument?.querySelector(`[data-lab-id="${target.id}"]`) as HTMLElement | null) : null
+      if (node) {
+        node.scrollIntoView({ block: 'nearest' })
+        state.setRevealSelection(false)
+      }
+    })
     setTick((n) => n + 1)
     onReady?.()
   }, [canvasHtml, onReady])
@@ -126,6 +168,8 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     frame = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(frame)
   }, [elementNode])
+
+  useEffect(() => () => cancelAnimationFrame(scrollLoop.current), [])
 
   const toDoc = (event: { clientX: number; clientY: number }) => {
     const box = overlay.current!.getBoundingClientRect()
@@ -165,23 +209,55 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     return null
   }
 
-  const dropPlacement = (x: number, y: number, exclude?: number): { indicator: Indicator; target: { id: number; where: InsertPosition } | { freeIn: number; x: number; y: number } } | null => {
+  const axisOf = (id: number): Axis => {
+    const node = elementNode(id)
+    const view = iframe.current?.contentWindow
+    if (!node || !view) return 'vertical'
+    const style = view.getComputedStyle(node)
+    return flowAxis({ display: style.display, flexDirection: style.flexDirection, gridTemplateColumns: style.gridTemplateColumns, gridAutoFlow: style.gridAutoFlow })
+  }
+
+  const indicatorFor = (target: DropTarget): Indicator | null => {
+    if (!page) return null
+    const parentId = targetParent(page, target)
+    const parent = parentId !== null ? page.elements[parentId]! : null
+    let line: Indicator['line'] = null
+    let where = t('designer.dropEnd')
+    if (target.where === 'before' || target.where === 'after') {
+      const r = rectOf(elementNode(target.id))
+      const axis = parentId !== null ? axisOf(parentId) : 'vertical'
+      const before = target.where === 'before'
+      if (r) line = axis === 'horizontal' ? { left: before ? r.left - 2 : r.left + r.width - 1, top: r.top, length: r.height, vertical: true } : { left: r.left, top: before ? r.top - 2 : r.top + r.height - 1, length: r.width, vertical: false }
+      const label = elementLabel(page.elements[target.id]!)
+      where = before ? t('designer.dropBefore', { el: label }) : t('designer.dropAfter', { el: label })
+    }
+    return {
+      parent: parentId !== null ? rectOf(elementNode(parentId)) : null,
+      line,
+      free: false,
+      label: `${t('designer.dropInto', { parent: parent ? elementLabel(parent) : 'body' })} › ${where}`
+    }
+  }
+
+  /** Dove andrebbe un elemento lasciato qui: tavola libera (posizione) o flusso (prima/dopo/dentro). */
+  const dropPlacement = (x: number, y: number, options: { exclude?: number; alt?: boolean; grab?: { x: number; y: number }; size?: { width: number; height: number } } = {}): { indicator: Indicator; target: FlowTarget } | null => {
+    const { exclude } = options
     const id = idAt(x, y, exclude)
     if (id === null || !page) return null
     const tavola = tavolaFor(id)
-    if (tavola !== null && exclude === undefined) {
-      const rect = rectOf(elementNode(tavola))!
-      return { indicator: { rect, where: 'free' }, target: { freeIn: tavola, x: x - rect.left, y: y - rect.top } }
+    if (tavola !== null && (exclude === undefined || !isWithin(tavola, exclude))) {
+      const node = elementNode(tavola)
+      const rect = rectOf(node)!
+      const grab = options.grab ?? { x: 0, y: 0 }
+      const width = options.size ? Math.min(options.size.width, node?.clientWidth ?? rect.width) : 0
+      const height = options.size?.height ?? 0
+      const box = clampBox(x - rect.left - grab.x, y - rect.top - grab.y, width, height, node?.clientWidth ?? rect.width, node?.clientHeight ?? rect.height)
+      return { indicator: { parent: rect, line: null, free: true, label: `${t('designer.dropInto', { parent: elementLabel(page.elements[tavola]!) })} › ${t('designer.dropFree')}` }, target: { freeIn: tavola, x: box.left, y: box.top } }
     }
-    const info = page.elements[id]!
-    const rect = rectOf(elementNode(id))
-    if (!rect) return null
-    const relative = rect.height ? (y - rect.top) / rect.height : 0.5
-    let where: InsertPosition
-    if (info.tag === 'body') where = 'inside-end'
-    else if (CONTAINERS.has(info.tag) && relative > 0.25 && relative < 0.75 && info.endTagStart !== null) where = 'inside-end'
-    else where = relative < 0.5 ? 'before' : 'after'
-    return { indicator: { rect, where }, target: { id, where } }
+    const target = decideDrop({ model: page, hit: id, x, y, rectOf: (n) => rectOf(elementNode(n)), axisOf, edge: EDGE / scale, outside: options.alt, exclude })
+    if (!target) return null
+    const indicator = indicatorFor(target)
+    return indicator ? { indicator, target } : null
   }
 
   const select = (element: ElementInfo | null) => useDesigner.getState().selectElement(element)
@@ -210,6 +286,115 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     })
   }
 
+  // ------------------------------------------------------------ fantasma e scorrimento automatico
+
+  const showGhost = (id: number) => {
+    const d = doc()
+    const node = elementNode(id)
+    if (!d || !node || ghost.current) return
+    const clone = node.cloneNode(true) as HTMLElement
+    clone.removeAttribute('data-lab-id')
+    clone.querySelectorAll('[data-lab-id]').forEach((n) => n.removeAttribute('data-lab-id'))
+    const r = node.getBoundingClientRect()
+    Object.assign(clone.style, {
+      position: 'fixed',
+      margin: '0',
+      width: `${r.width}px`,
+      height: `${r.height}px`,
+      left: `${r.left}px`,
+      top: `${r.top}px`,
+      opacity: '0.6',
+      pointerEvents: 'none',
+      zIndex: '2147483647',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+      transition: 'none'
+    })
+    clone.setAttribute('data-lab-ghost', '')
+    d.body.appendChild(clone)
+    node.style.opacity = '0.3'
+    ghost.current = { clone, node }
+  }
+
+  const moveGhost = (x: number, y: number, grab: { x: number; y: number }) => {
+    if (!ghost.current) return
+    ghost.current.clone.style.left = `${x - grab.x}px`
+    ghost.current.clone.style.top = `${y - grab.y}px`
+  }
+
+  const hideGhost = () => {
+    if (!ghost.current) return
+    ghost.current.clone.remove()
+    ghost.current.node.style.opacity = ''
+    ghost.current = null
+  }
+
+  /** Ricalcola il bersaglio con l'ultima posizione del puntatore (dopo uno scorrimento la pagina è cambiata sotto). */
+  const refreshFlow = () => {
+    const current = drag.current
+    const last = pointer.current
+    if (!current || current.kind !== 'flow' || !last) return
+    const { x, y } = toDoc(last)
+    moveGhost(x, y, current.grab)
+    const placement = dropPlacement(x, y, { exclude: current.id, alt: last.alt, grab: current.grab, size: current.size })
+    current.target = placement?.target ?? null
+    setIndicator(placement?.indicator ?? null)
+  }
+
+  /** Vicino al bordo alto o basso del canvas la pagina scorre da sola. Restituisce di quanto ha scorso. */
+  const edgeScroll = (clientY: number, step: number): number => {
+    const scroller = doc()?.scrollingElement
+    const box = host.current?.getBoundingClientRect()
+    if (!scroller || !box) return 0
+    let delta = 0
+    if (clientY < box.top + SCROLL_ZONE) delta = -step * Math.min(1, (box.top + SCROLL_ZONE - clientY) / SCROLL_ZONE)
+    else if (clientY > box.bottom - SCROLL_ZONE) delta = step * Math.min(1, (clientY - (box.bottom - SCROLL_ZONE)) / SCROLL_ZONE)
+    if (!delta) return 0
+    const before = scroller.scrollTop
+    scroller.scrollTop += delta / scale
+    return scroller.scrollTop - before
+  }
+
+  const startScrollLoop = () => {
+    cancelAnimationFrame(scrollLoop.current)
+    const loop = () => {
+      const current = drag.current
+      if (!current || current.kind !== 'flow') return
+      if (pointer.current && edgeScroll(pointer.current.clientY, 18)) refreshFlow()
+      scrollLoop.current = requestAnimationFrame(loop)
+    }
+    scrollLoop.current = requestAnimationFrame(loop)
+  }
+
+  const enterFlow = (from: { id: number; startX: number; startY: number; grab: { x: number; y: number } }, home: number | null, origin: Rect | null) => {
+    const node = elementNode(from.id)
+    if (!node) return
+    if (home !== null) {
+      // Esce dalla tavola: l'elemento torna dov'era finché non lo si lascia.
+      node.style.left = ''
+      node.style.top = ''
+      setGuides({ x: [], y: [] })
+    }
+    const r = node.getBoundingClientRect()
+    drag.current = { kind: 'flow', id: from.id, startX: from.startX, startY: from.startY, grab: from.grab, size: { width: r.width, height: r.height }, home, origin, target: null }
+    showGhost(from.id)
+    startScrollLoop()
+  }
+
+  const cancelDrag = () => {
+    const current = drag.current
+    drag.current = null
+    cancelAnimationFrame(scrollLoop.current)
+    hideGhost()
+    setIndicator(null)
+    setGuides({ x: [], y: [] })
+    if (current && (current.kind === 'free-move' || current.kind === 'free-resize')) {
+      const node = elementNode(current.id)
+      if (node) for (const prop of ['left', 'top', 'width', 'height'] as const) node.style[prop] = ''
+    }
+  }
+
+  // ------------------------------------------------------------ puntatore
+
   const onPointerDown = (event: React.PointerEvent) => {
     if (event.button !== 0 || editing) return
     overlay.current?.focus()
@@ -228,13 +413,15 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     if (!element) return
     select(element)
     if (element.tag !== 'body') {
-      drag.current = { kind: 'pending', startX: x, startY: y, id: element.id }
+      const r = rectOf(elementNode(element.id))
+      drag.current = { kind: 'pending', startX: x, startY: y, id: element.id, grab: r ? { x: x - r.left, y: y - r.top } : { x: 0, y: 0 } }
       overlay.current?.setPointerCapture(event.pointerId)
     }
   }
 
   const onPointerMove = (event: React.PointerEvent) => {
     const { x, y } = toDoc(event)
+    pointer.current = { clientX: event.clientX, clientY: event.clientY, alt: event.altKey }
     const current = drag.current
     if (!current) {
       const id = idAt(x, y)
@@ -247,18 +434,24 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       if (!node) return
       if (isFreeElement(page!, current.id)) {
         const origin = { left: node.offsetLeft, top: node.offsetTop, width: node.offsetWidth, height: node.offsetHeight }
-        drag.current = { kind: 'free-move', startX: current.startX, startY: current.startY, id: current.id, origin, current: origin }
+        drag.current = { kind: 'free-move', startX: current.startX, startY: current.startY, id: current.id, origin, current: origin, home: page!.elements[current.id]!.parent!, grab: current.grab }
       } else {
-        drag.current = { kind: 'flow', id: current.id, target: null }
+        enterFlow(current, null, null)
+        refreshFlow()
       }
       return
     }
     if (current.kind === 'flow') {
-      const placement = dropPlacement(x, y, current.id)
-      if (placement && 'id' in placement.target) {
-        current.target = placement.target
-        setIndicator(placement.indicator)
+      // Un elemento libero che rientra nella sua tavola torna a spostarsi a mano libera.
+      const homeRect = current.home !== null ? rectOf(elementNode(current.home)) : null
+      if (homeRect && current.origin && inside(homeRect, x, y)) {
+        hideGhost()
+        cancelAnimationFrame(scrollLoop.current)
+        setIndicator(null)
+        drag.current = { kind: 'free-move', startX: current.startX, startY: current.startY, id: current.id, origin: current.origin, current: current.origin, home: current.home!, grab: current.grab }
+        return
       }
+      refreshFlow()
       return
     }
     const node = elementNode(current.id)
@@ -266,10 +459,18 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     const dx = x - current.startX
     const dy = y - current.startY
     if (current.kind === 'free-move') {
+      const parent = node.parentElement!
+      const parentRect = rectOf(parent)!
+      // Ben fuori dalla tavola: diventa un trascinamento a flusso (al rilascio l'elemento esce dalla tavola).
+      const margin = LEAVE_MARGIN / scale
+      if (!inside({ left: parentRect.left - margin, top: parentRect.top - margin, width: parentRect.width + 2 * margin, height: parentRect.height + 2 * margin }, x, y)) {
+        enterFlow(current, current.home, current.origin)
+        refreshFlow()
+        return
+      }
       let left = current.origin.left + dx
       let top = current.origin.top + dy
       // Guide magnetiche: bordi e centri della tavola e degli altri elementi.
-      const parent = node.parentElement!
       const xs = [0, parent.clientWidth / 2, parent.clientWidth]
       const ys = [0, parent.clientHeight / 2, parent.clientHeight]
       for (const sibling of Array.from(parent.children) as HTMLElement[]) {
@@ -283,7 +484,10 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       const snapY = event.altKey ? null : ys.flatMap((gy) => [gy - top, gy - (top + h / 2), gy - (top + h)].map((delta) => ({ gy, delta }))).filter((c) => Math.abs(c.delta) <= SNAP).sort((a, b) => Math.abs(a.delta) - Math.abs(b.delta))[0]
       if (snapX) left += snapX.delta
       if (snapY) top += snapY.delta
-      const parentRect = rectOf(parent)!
+      // Mai oltre i bordi della tavola (che taglia ciò che sborda): l'elemento resta sempre visibile.
+      const clamped = clampBox(left, top, w, h, parent.clientWidth, parent.clientHeight)
+      left = clamped.left
+      top = clamped.top
       setGuides({ x: snapX ? [parentRect.left + snapX.gx] : [], y: snapY ? [parentRect.top + snapY.gy] : [] })
       current.current = { ...current.origin, left, top }
       node.style.left = `${left}px`
@@ -316,7 +520,9 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   const onPointerUp = (event: React.PointerEvent) => {
     const current = drag.current
     drag.current = null
+    cancelAnimationFrame(scrollLoop.current)
     overlay.current?.releasePointerCapture?.(event.pointerId)
+    hideGhost()
     setGuides({ x: [], y: [] })
     setIndicator(null)
     if (!current) return
@@ -325,14 +531,22 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       const { left, top, width, height } = current.current
       if (current.free) void setFreeBox({ left, top, width, height })
       else void setStyles({ width: `${Math.round(width)}px`, height: handleChangesHeight(current.handle) ? `${Math.round(height)}px` : null })
-    } else if (current.kind === 'flow' && current.target) void moveSelectedTo(current.target.id, current.target.where)
+    } else if (current.kind === 'flow' && current.target) {
+      // Si sposta l'elemento trascinato (non la selezione, che nel frattempo può essere cambiata).
+      const target = current.target
+      if ('freeIn' in target) void moveNode(current.id, target.freeIn, 'inside-end', { left: target.x, top: target.y, width: current.size.width })
+      else void moveNode(current.id, target.id, target.where)
+    }
   }
+
+  // ------------------------------------------------------------ trascinamento dalla palette
 
   const onDragOver = (event: React.DragEvent) => {
     if (!event.dataTransfer.types.includes('text/x-lab-block')) return
     event.preventDefault()
+    edgeScroll(event.clientY, 24)
     const { x, y } = toDoc(event)
-    const placement = dropPlacement(x, y)
+    const placement = dropPlacement(x, y, { alt: event.altKey })
     setIndicator(placement?.indicator ?? null)
   }
 
@@ -342,7 +556,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     if (!blockId) return
     event.preventDefault()
     const { x, y } = toDoc(event)
-    const placement = dropPlacement(x, y)
+    const placement = dropPlacement(x, y, { alt: event.altKey })
     if (!placement) return
     const target = placement.target
     // Una pagina intera va sempre in fondo alla pagina, anche se la si lascia sopra una tavola libera.
@@ -352,6 +566,12 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
 
   const onKeyDown = (event: React.KeyboardEvent) => {
     if (editing) return
+    // Esc durante un trascinamento lo annulla (e non cambia la selezione).
+    if (event.key === 'Escape' && drag.current) {
+      event.preventDefault()
+      cancelDrag()
+      return
+    }
     const ctrl = event.ctrlKey || event.metaKey
     if (ctrl && event.key.toLowerCase() === 'z') {
       event.preventDefault()
@@ -385,7 +605,9 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       const step = event.shiftKey ? 10 : 1
       const dx = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0
       const dy = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0
-      void setFreeBox({ left: node.offsetLeft + dx, top: node.offsetTop + dy })
+      const parent = node.parentElement!
+      const box = clampBox(node.offsetLeft + dx, node.offsetTop + dy, node.offsetWidth, node.offsetHeight, parent.clientWidth, parent.clientHeight)
+      void setFreeBox(box)
     }
   }
 
@@ -396,6 +618,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     if (!element) return
     select(element)
     const parent = element.parent !== null ? page!.elements[element.parent] : null
+    const free = isFreeElement(page!, element.id)
     showContextMenu(event, [
       ...(element.leafText ? [{ label: t('designer.editText'), run: () => startEditing(element) }] : []),
       { label: t('designer.duplicate'), run: () => void duplicateSelected() },
@@ -403,10 +626,11 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       'separator' as const,
       { label: t('designer.copyStyle'), run: () => copyStyleWithNotice(element) },
       ...(useDesigner.getState().styleClipboard > 0 ? [{ label: t('designer.pasteStyle'), run: () => void pasteStyle() }] : []),
-      ...(isFreeElement(page!, element.id)
+      ...(free
         ? [
             { label: t('designer.bringFront'), run: () => void setStyles({ 'z-index': '10' }) },
-            { label: t('designer.sendBack'), run: () => void setStyles({ 'z-index': '0' }) }
+            { label: t('designer.sendBack'), run: () => void setStyles({ 'z-index': '0' }) },
+            { label: t('designer.moveOutOfCanvas'), run: () => void moveOutOfFreeCanvas(element.id) }
           ]
         : []),
       'separator' as const,
@@ -422,7 +646,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   }
 
   const selectedRect = rectOf(elementNode(selected?.id))
-  const hoverRect = hoverId !== null && hoverId !== selected?.id ? rectOf(elementNode(hoverId)) : null
+  const hoverRect = hoverId !== null && hoverId !== selected?.id && !indicator ? rectOf(elementNode(hoverId)) : null
   const selectedFree = selected ? isFreeElement(page!, selected.id) : false
   const resizable = selected && !['body', 'html'].includes(selected.tag)
 
@@ -437,6 +661,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
+          onPointerCancel={cancelDrag}
           onPointerLeave={() => !drag.current && useDesigner.getState().setHover(null)}
           onDoubleClick={() => selected?.leafText && startEditing(selected)}
           onDragOver={onDragOver}
@@ -450,6 +675,8 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
               scroller.scrollTop += event.deltaY
               scroller.scrollLeft += event.deltaX
             }
+            // La pagina è scorsa sotto il puntatore: il bersaglio va ricalcolato subito.
+            refreshFlow()
           }}
           data-testid="designer-overlay"
         >
@@ -464,12 +691,24 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
               {resizable && (selectedFree ? HANDLES : ['e', 's', 'se']).map((h) => <span key={h} className={`dz-handle h-${h}`} data-handle={h} />)}
             </div>
           )}
-          {indicator &&
-            (indicator.where === 'before' || indicator.where === 'after' ? (
-              <div className="dz-line" style={{ left: indicator.rect.left, width: indicator.rect.width, top: indicator.where === 'before' ? indicator.rect.top - 2 : indicator.rect.top + indicator.rect.height - 1 }} />
-            ) : (
-              <div className={`dz-inside${indicator.where === 'free' ? ' free' : ''}`} style={boxStyle(indicator.rect)} />
-            ))}
+          {indicator?.parent && <div className={`dz-inside${indicator.free ? ' free' : ''}`} style={boxStyle(indicator.parent)} data-testid="designer-drop-parent" />}
+          {indicator?.line && (
+            <div
+              className={`dz-line${indicator.line.vertical ? ' vertical' : ''}`}
+              style={indicator.line.vertical ? { left: indicator.line.left, top: indicator.line.top, height: indicator.line.length } : { left: indicator.line.left, top: indicator.line.top, width: indicator.line.length }}
+              data-testid="designer-drop-line"
+            />
+          )}
+          {indicator && (
+            <div
+              className="dz-drop-label"
+              // Il canvas è scalato: l'etichetta compensa per restare leggibile.
+              style={{ left: Math.max(0, indicator.parent?.left ?? 0), top: Math.max(0, (indicator.parent?.top ?? 0) - 22 / scale), fontSize: 12 / scale, lineHeight: `${16 / scale}px`, padding: `${2 / scale}px ${8 / scale}px` }}
+              data-testid="designer-drop-label"
+            >
+              {indicator.label}
+            </div>
+          )}
           {guides.x.map((gx) => (
             <div key={`x${gx}`} className="dz-guide v" style={{ left: gx }} />
           ))}

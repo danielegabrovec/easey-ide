@@ -1758,9 +1758,27 @@ button.ai-chip:hover {
   box-shadow: 0 0 0 1px white;
 }
 
+/* Nelle righe flex e nelle griglie la linea d'inserimento è verticale. */
+.dz-line.vertical {
+  width: 3px;
+}
+
 .dz-inside {
   outline: 2px dashed #6d7cff;
   background: rgb(109 124 255 / 0.08);
+}
+
+/* Etichetta del bersaglio durante il trascinamento: «dentro main.scheda › dopo button#pulsante». */
+.dz-drop-label {
+  position: absolute;
+  pointer-events: none;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #6d7cff;
+  color: white;
+  font: 600 12px/16px system-ui, sans-serif;
+  white-space: nowrap;
+  z-index: 3;
 }
 
 .dz-inside.free {

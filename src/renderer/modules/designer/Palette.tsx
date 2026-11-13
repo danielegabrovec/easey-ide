@@ -48,8 +48,10 @@ import {
 import { CATEGORY_LABELS, searchBlocks, type Block, type BlockCategory } from '@shared/designer/blocks'
 import { FREE_CANVAS_CLASS, hasClass, isFreeElement } from '@shared/designer/html-model'
 import { t } from '../../i18n'
+import { canContain, defaultInsertTarget } from '@shared/designer/drop'
 import { endOfBody, insertBlock } from './actions'
 import { selectedElement, useDesigner } from './designer-store'
+import { visibleContainer } from './frame-access'
 
 type Icon = ComponentType<{ size?: number }>
 
@@ -115,9 +117,17 @@ function insertWithClick(blockId: string): void {
     return
   }
   if (!selected || selected.tag === 'body') {
-    void insertBlock(blockId, endOfBody(page))
+    // Senza selezione: nel contenitore che si vede al centro del canvas, o nel principale (<main>),
+    // mai in fondo al body fuori da tutto (e magari fuori vista).
+    const visible = visibleContainer((id) => canContain(page.elements[id]) || hasClass(page.elements[id]!, FREE_CANVAS_CLASS))
+    const target = defaultInsertTarget(page, visible)
+    useDesigner.getState().setRevealSelection(true)
+    if (!target) void insertBlock(blockId, endOfBody(page))
+    else if ('freeIn' in target) void insertBlock(blockId, { freeIn: target.freeIn, x: 40, y: 40 })
+    else void insertBlock(blockId, { targetId: target.id, where: target.where })
     return
   }
+  useDesigner.getState().setRevealSelection(true)
   void insertBlock(blockId, { targetId: selected.id, where: 'after' })
 }
 

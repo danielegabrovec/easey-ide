@@ -130,13 +130,24 @@ export function isInside(model: HtmlModel, id: number, container: number): boole
 }
 
 export function moveElement(model: HtmlModel, id: number, targetId: number, where: InsertPosition): TextEdit[] {
+  return moveElementAt(model, id, targetId, where).edits
+}
+
+/**
+ * Come moveElement, ma dice anche dove inizia l'elemento nel sorgente dopo lo spostamento: serve a
+ * riselezionarlo anche quando non ha un id (il suo vecchio percorso ora indica un altro elemento).
+ */
+export function moveElementAt(model: HtmlModel, id: number, targetId: number, where: InsertPosition): { edits: TextEdit[]; start: number } {
   if (isInside(model, id, targetId)) throw new Error('Non si può spostare un elemento dentro sé stesso')
   const moved = elementSource(model, id)
   const removal = removeElement(model, id)[0]!
   const insertion = insertHtml(model, targetId, where, moved)[0]!
   // Inserimento che cade dentro l'intervallo tolto (es. "dopo" il fratello precedente): si sposta al bordo.
   if (insertion.start > removal.start && insertion.start < removal.end) insertion.start = insertion.end = removal.start
-  return [removal, insertion]
+  const removed = removal.end - removal.start
+  const lead = insertion.text.length - insertion.text.trimStart().length
+  const start = (insertion.start >= removal.end ? insertion.start - removed : insertion.start) + lead
+  return { edits: [removal, insertion], start }
 }
 
 export function duplicateElement(model: HtmlModel, id: number, newId?: string): TextEdit[] {

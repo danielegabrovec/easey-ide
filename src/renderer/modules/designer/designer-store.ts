@@ -27,6 +27,9 @@ interface DesignerState {
   paletteQuery: string
   /** Quante proprietà ha lo stile copiato (0 = niente da incollare). */
   styleClipboard: number
+  /** Dopo il prossimo ridisegno del canvas, porta in vista l'elemento selezionato (es. appena inserito). */
+  revealSelection: boolean
+  setRevealSelection: (reveal: boolean) => void
   setPaletteQuery: (query: string) => void
   setStyleClipboard: (count: number) => void
   setPage: (path: string | null) => void
@@ -63,6 +66,8 @@ export const useDesigner = create<DesignerState>((set) => ({
   rightTab: 'style',
   paletteQuery: '',
   styleClipboard: 0,
+  revealSelection: false,
+  setRevealSelection: (revealSelection) => set({ revealSelection }),
   setPaletteQuery: (paletteQuery) => set({ paletteQuery }),
   setStyleClipboard: (styleClipboard) => set({ styleClipboard }),
   setPage: (path) => set({ path, html: null, selection: null, hoverId: null }),
