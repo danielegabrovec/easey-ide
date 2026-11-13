@@ -38,3 +38,36 @@ Priorità: **A** = buco in un flusso principale o rischio di perdere lavoro; **B
   italiano), 14, 15. Sono rifiniture o lavori lunghi (code splitting del renderer) da pianificare a parte.
 - Il canale IPC nuovo segue la regola della whitelist: `app:closeReply` (invoke) e `app:closeRequested` (evento)
   in `src/shared/contracts/ipc.ts`; la logica di attesa è pura in `src/main/close-guard.ts`.
+
+## Revisione sull'app vera (13/11/2026, dopo la chat laterale)
+
+Revisione severa con l'app costruita e avviata (playwright), più due richieste dell'utente: «la programmazione
+grafica non permette di trascinare quell'elemento nel posto giusto una volta che finisce sotto» e «non c'è il
+diagramma ad albero per i file». P0 = rotto, P1 = fa male all'uso, P2 = rifinitura.
+
+| # | Cosa | Stato | Test |
+|---|---|---|---|
+| P0-1 | Designer: rilascio nel padding o nello spazio vuoto di un contenitore = **dentro** (accanto al figlio più vicino); prima/dopo il contenitore solo in una fascia sottile sul bordo (≤ 10 px della pagina) o con Alt; lo sfondo non va mai dopo `<script>`; clic nella palette senza selezione = nel contenitore in vista o in `<main>`, poi portato in vista | ✅ fatto | `designer-drop.test.ts`, `designer-drag.mjs` (scenario dell'utente) |
+| P0-2 | Designer, blocchi, nodi, diagrammi e Scrittura rapida non ingrandiscono più il gruppo: l'Esplora resta; anteprima e console si fanno da parte da sole e tornano aprendo un file; Ctrl+B / Ctrl+J e due pulsanti nella barra | ✅ fatto | `layout.mjs` |
+| P0-3 | Tavola libera: posizione limitata ai bordi (un elemento più grande della tavola resta visibile almeno 40 px); tirato ben fuori esce dalla tavola e torna nel flusso; «Porta fuori dalla tavola» nel menu | ✅ fatto | `designer-drop.test.ts`, `designer-drag.mjs` |
+| P0-4 | Al rilascio si sposta l'elemento trascinato (non la selezione); Esc annulla il trascinamento | ✅ fatto | `designer-drag.mjs` |
+| P1-1 | Dopo uno spostamento la selezione resta sull'elemento spostato anche senza id (`moveElementAt`) | ✅ fatto | `designer-drop.test.ts`, `designer-drag.mjs` |
+| P1-2 | Righe flex e griglie: prima/dopo con la X e linea verticale; scheda su scheda sorella dello stesso tipo = riordino | ✅ fatto | `designer-drop.test.ts`, `designer-drag.mjs` |
+| P1-3 | Entrando in una tavola un elemento diventa libero, uscendo perde `position/left/top/width/height` (anche dai Livelli) | ✅ fatto | `designer-drop.test.ts`, `designer-drag.mjs` |
+| P1-4 | Esplora: trascinamento di file e cartelle (`workspace:rename`), tastiera (frecce, Home/Fine, Invio, F2, Canc con conferma, tabindex a rotazione), «Sposta in…», «Copia percorso» | ✅ fatto (manca «Duplica», filtro nell'albero, guide di rientro) | `file-tree.test.ts`, `layout.mjs` |
+| P1-5 | Finestra stretta: `minmax(0, 1fr)` nel guscio, barra che non sborda, solo icone sotto i 1200 px | ✅ fatto | `layout.mjs` (1100 e 1024 px) |
+| P1-6 | Nodi: un'uscita di flusso ha un solo filo (il nuovo sostituisce il vecchio) | ✅ fatto | `graph-edit.test.ts`, `visual.mjs` |
+| P1-7 | Nodi: niente ricentramento a ogni nodo, nodi nuovi al centro della vista, Ctrl+Z/Ctrl+Y, fili ricollegabili (capo nel vuoto = filo staccato), filo nel vuoto → menu dei nodi compatibili | ✅ fatto (manca: inserire un nodo su un filo esistente) | `graph-edit.test.ts`, `visual.mjs` |
+| P1-8 | Trascinamento con fantasma dell'elemento, contenitore evidenziato, etichetta «dentro main.scheda › dopo button#pulsante», scorrimento automatico ai bordi e ricalcolo con la rotellina | ✅ fatto | `designer-drag.mjs` |
+| P2-1 | Livelli sempre visibili sotto la palette | da fare (M) | |
+| P2-2 | Zoom del canvas del designer (con Esplora e chat aperte la pagina scende a scala ~0,3) | da fare (M) — ora più urgente | |
+| P2-3 | Codice generato di blocchi e nodi mostrato pulito, senza `__labStep` | ✅ fatto | `code-map.test.ts`, `split-code.mjs` |
+| P2-4 | «Nuovo programma a blocchi/nodi» nel Benvenuto | ✅ fatto | `layout.mjs` |
+| P2-5 | Barra delle attività fissa (Esplora / Database / Git in schede separate) | da fare (M) | |
+| P2-6 | Scrittura rapida: colonna dell'editor stretta | da fare (S) | |
+| P2-7 | Ctrl+Shift+G apre il Designer (in VS Code è Git) | da decidere | |
+| P2-8 | Ctrl+B fatto; ricerca nei file (Ctrl+Shift+F) da fare | in parte | |
+| P2-9 | «Questo elemento» aggiunge `id="titolo-1"` senza dirlo | da fare (S) | |
+| P2-10 | Benvenuto con Designer, Blocchi, Nodi, Database e le scorciatoie nuove | ✅ fatto | `layout.mjs` |
+| — | La chat laterale parte **aperta** al primo avvio (poi vale lo stato salvato) | ✅ fatto | `side-chat.test.ts`, `ai-side.mjs` |
+| — | **Vista affiancata grafica ↔ codice** (standard del vault): «Affianca codice» e `view.splitCode` (Ctrl+Alt+K); designer → file `.html` in un gruppo a destra; clic su un elemento = codice selezionato e illuminato senza rubare il fuoco; cursore nel codice = elemento selezionato; blocchi e nodi = codice generato in sola lettura accanto, collegato nei due sensi; scelta ricordata per tipo | ✅ fatto (il CSS della regola selezionata non è ancora affiancato) | `code-map.test.ts`, `split-code.mjs` |
