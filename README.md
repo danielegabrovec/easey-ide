@@ -12,7 +12,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="Licenza MIT" src="https://img.shields.io/badge/licenza-MIT-6366f1"></a>
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4">
-  <img alt="Versione 1.3.0" src="https://img.shields.io/badge/versione-1.3.0-a855f7">
+  <img alt="Versione 1.4.0" src="https://img.shields.io/badge/versione-1.4.0-a855f7">
   <img alt="AI locale" src="https://img.shields.io/badge/AI-locale%20(Ollama%20%2F%20LM%20Studio)-f59e0b">
 </p>
 
@@ -97,6 +97,20 @@ Costruisci la pagina **trascinando** titoli, pulsanti, immagini, moduli e sezion
 colori e caratteri da un pannello. Il codice HTML/CSS si aggiorna **solo dove serve** (il tuo codice
 non viene riformattato) e, se modifichi il codice, il disegno si aggiorna.
 
+Novità 1.4, per pagine più belle e un designer che non ti fa perdere niente:
+- **trascini dove vuoi**: lasciato nello spazio vuoto di una scheda o di una sezione, l'elemento entra dentro;
+  durante il trascinamento vedi l'anteprima, il contenitore di arrivo evidenziato e «dentro scheda › dopo il
+  pulsante»; Esc annulla; nella tavola libera gli elementi non escono più dai bordi;
+- **zoom del canvas** (Ctrl+rotellina, Ctrl+0 adatta, Ctrl+1 al 100 %, spazio + trascina);
+- **pagine intere a tutta larghezza** con «Sostituisci la pagina», colori che seguono davvero il tema,
+  segnaposto delle immagini che funzionano senza Internet, Riempi/Adatta e proporzione delle immagini;
+- **design kit**: tema dal tuo colore, scala del testo, 6 coppie di caratteri **incluse** nell'app (funzionano
+  senza Internet), colori del tema con il loro nome, contrasto con «Correggi», 56 icone;
+- **Ritocchi consigliati**: contrasto, griglie con una scheda orfana, spazi fuori scala, testi lunghi, pagina che
+  esce dal telefono, immagini senza descrizione, pulsanti piccoli — ognuno con «Correggi» (Ctrl+Z annulla);
+- **Affianca codice** (Ctrl+Alt+K): il designer a sinistra, l'HTML a destra; clic sull'elemento → codice
+  evidenziato, clic nel codice → elemento selezionato. Anche per blocchi e nodi.
+
 Novità 1.3, per fare di più con meno clic:
 - **palette con ricerca** (scrivi «prezzi», «contatti», «domande»… e Invio inserisce) e riquadri con icona;
 - **sezioni pronte** nuove (caratteristiche, testimonianze, domande frequenti, invito all'azione, numeri,
@@ -162,7 +176,7 @@ una lezione e ogni esercizio 🧪 un compito. Come scrivere un corso: [docs/CORS
 
 ## Installazione
 
-1. Scarica `Easey-IDE-Setup-1.0.0.exe` dalla pagina
+1. Scarica `Easey-IDE-Setup-1.4.0.exe` dalla pagina
    [Releases](https://github.com/danielegabrovec/easey-ide/releases).
 2. Avvialo e scegli la cartella di installazione.
    L'installer non è firmato digitalmente: se Windows SmartScreen lo segnala, scegli
@@ -194,6 +208,8 @@ una lezione e ogni esercizio 🧪 un compito. Come scrivere un corso: [docs/CORS
 | Database / Designer | Ctrl+Shift+D / Ctrl+Shift+G |
 | Lezioni / Git | Ctrl+Alt+L / Ctrl+Alt+G |
 | Assistente AI: mostra/nascondi · scrivi nella chat | Ctrl+Alt+B · Ctrl+Shift+A (Esc torna all'editor) |
+| Esplora · anteprima e console · affianca codice | Ctrl+B · Ctrl+J · Ctrl+Alt+K |
+| Zoom del designer: adatta · 100 % · sposta la vista | Ctrl+0 · Ctrl+1 · spazio + trascina |
 | Verifica l'esercizio | F9 |
 | Scrittura rapida · esegui · salva · genera con AI | Ctrl+Shift+Q · Ctrl+Invio · Ctrl+S · Ctrl+I |
 
