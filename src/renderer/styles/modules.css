@@ -3068,3 +3068,58 @@ button.quick-line:hover {
   font-family: var(--font-code);
   font-size: 12.5px;
 }
+/* ---------------------------------------------------------------- chiedi suggerimento */
+.suggest-request {
+  width: 100%;
+  resize: vertical;
+  min-height: 64px;
+  font: inherit;
+}
+
+.suggest-scopes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.suggest-scope {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.suggest-scope:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.suggest-scope.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.suggest-scope:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.suggest-answer pre {
+  max-height: 280px;
+  overflow: auto;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  font-family: var(--font-code);
+  font-size: 12.5px;
+  white-space: pre-wrap;
+}

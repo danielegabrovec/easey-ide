@@ -1,7 +1,9 @@
 // Modulo Scrittura rapida: codice JavaScript, TypeScript, Python, SQL, HTML, C, C++, C#, Java o Rust scritto al volo,
 // eseguito subito, con aiuto AI a livelli e raccolta di salvataggi. Non crea né richiede un progetto.
-import { ASSIST_LEVEL_ORDER, QUICK_LANGUAGE_INFO, QUICK_LANGUAGES, type AssistLevel } from '@shared/contracts/quick'
-import { registerCommand } from '../../workbench/commands'
+import type { EditorContext } from '@shared/contracts/editor'
+import { ASSIST_LEVEL_ORDER, QUICK_EXTENSIONS, QUICK_LANGUAGE_INFO, QUICK_LANGUAGES, type AssistLevel } from '@shared/contracts/quick'
+import { schemaComment } from '@shared/sql/completion'
+import { executeCommand, registerCommand } from '../../workbench/commands'
 import { dockApi, registerPanel, showPanel } from '../../workbench/layout'
 import { registerSettingsSection } from '../../workbench/settings-sections'
 import { useWorkbench, workbench } from '../../workbench/store'
@@ -9,6 +11,7 @@ import { updateSettings } from '../../workbench/workbench-commands'
 import { t } from '../../i18n'
 import { newQuick, saveQuick, selectLanguage } from './actions'
 import { registerQuickAssist } from './assist'
+import { quickEditor } from './quick-editor'
 import { quick } from './quick-store'
 import { QuickPanel } from './QuickPanel'
 import { connectRunEvents, runQuick, stopQuick } from './run'
@@ -26,6 +29,49 @@ const LEVEL_KEYS: Record<AssistLevel, 'quick.levelOff' | 'quick.levelLight' | 'q
   light: 'quick.levelLight',
   medium: 'quick.levelMedium',
   strong: 'quick.levelStrong'
+}
+
+/**
+ * «Chiedi suggerimento» sul codice della Scrittura rapida: lo stesso dialogo dei file (ambiti e confronto
+ * prima/dopo), ma il risultato va nell'editor della Scrittura rapida, annullabile con Ctrl+Z, e si esegue.
+ * Ctrl+I «Genera» resta la barra veloce che scrive e inserisce subito.
+ */
+function suggestOnQuick(): void {
+  const editor = quickEditor()
+  const model = editor?.getModel()
+  if (!editor || !model) return
+  const language = quick().language
+  const selection = editor.getSelection()
+  const position = editor.getPosition()
+  const hasSelection = !!selection && !selection.isEmpty()
+  const context: EditorContext = {
+    path: `scrittura-rapida.${QUICK_EXTENSIONS[language]}`,
+    language: model.getLanguageId(),
+    text: model.getValue(),
+    selection: hasSelection
+      ? {
+          text: model.getValueInRange(selection),
+          range: { startLine: selection.startLineNumber, startColumn: selection.startColumn, endLine: selection.endLineNumber, endColumn: selection.endColumn }
+        }
+      : null,
+    cursor: { line: position?.lineNumber ?? 1, column: position?.column ?? 1 },
+    problems: []
+  }
+  void executeCommand('ai.suggestFor', {
+    context,
+    // Per l'SQL lo schema del database in memoria della Scrittura rapida (come «Genera»).
+    loadContext: async () => (language === 'sql' ? schemaComment(quick().schemas[workbench().settings.quick.sqlEngine], 3000) : ''),
+    apply: (text: string) => {
+      const current = quickEditor()
+      const target = current?.getModel()
+      if (!current || !target) return
+      current.pushUndoStop()
+      current.executeEdits('quick-ai', [{ range: target.getFullModelRange(), text }])
+      current.pushUndoStop()
+      current.focus()
+      void runQuick(false)
+    }
+  })
 }
 
 function QuickSettingsSection() {
@@ -73,6 +119,7 @@ export function activateQuickCode(): void {
   registerCommand({ id: 'quick.saveCopy', title: t('quick.saveCopy'), category, when: isOpen, run: () => saveQuick(true) })
   registerCommand({ id: 'quick.new', title: t('quick.new'), category, when: isOpen, run: () => newQuick() })
   registerCommand({ id: 'quick.generate', title: t('quick.generate'), category, keybinding: 'Ctrl+I', panel: QUICK_PANEL, when: isOpen, run: () => quick().setPromptOpen(true) })
+  registerCommand({ id: 'quick.suggest', title: t('suggest.commandQuick'), category, keybinding: 'Ctrl+Alt+I', panel: QUICK_PANEL, when: isOpen, run: () => suggestOnQuick() })
   for (const language of QUICK_LANGUAGES) {
     registerCommand({
       id: `quick.language.${language}`,

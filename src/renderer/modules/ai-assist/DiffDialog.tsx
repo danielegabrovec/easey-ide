@@ -8,7 +8,21 @@ import { useWorkbench } from '../../workbench/store'
 import { t } from '../../i18n'
 import type { ApplyTarget } from './chat-store'
 
-export function DiffDialog({ target, proposed, close }: { target: ApplyTarget; proposed: string; close: () => void }) {
+/**
+ * `onApply` sostituisce l'applicazione predefinita (`editor.replaceRange` sul file del progetto):
+ * serve agli editor che non sono file, come la Scrittura rapida.
+ */
+export function DiffDialog({
+  target,
+  proposed,
+  close,
+  onApply
+}: {
+  target: ApplyTarget
+  proposed: string
+  close: () => void
+  onApply?: (text: string) => void | Promise<void>
+}) {
   const host = useRef<HTMLDivElement>(null)
   const theme = useWorkbench((s) => s.settings.theme)
   useEffect(() => {
@@ -32,7 +46,8 @@ export function DiffDialog({ target, proposed, close }: { target: ApplyTarget; p
   }, [target, proposed, theme])
 
   const apply = async () => {
-    await executeCommand('editor.replaceRange', { path: target.path, range: target.range, text: proposed })
+    if (onApply) await onApply(proposed)
+    else await executeCommand('editor.replaceRange', { path: target.path, range: target.range, text: proposed })
     notify(t('ai.applied'), 'success')
     close()
   }

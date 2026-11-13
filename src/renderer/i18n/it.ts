@@ -732,7 +732,25 @@ export const it = {
   'quick.genNew': 'Scrivi il codice da zero.',
   'quick.genAppend': 'Scrivi SOLO il codice da aggiungere in fondo a quello attuale (non ripeterlo).',
   'quick.genRequest': 'Richiesta',
-  'quick.genEmpty': 'L’AI non ha restituito codice: prova a descrivere meglio la richiesta.'
+  'quick.genEmpty': 'L’AI non ha restituito codice: prova a descrivere meglio la richiesta.',
+  'suggest.command': 'Chiedi suggerimento…',
+  'suggest.commandQuick': 'Chiedi suggerimento sul codice della Scrittura rapida…',
+  'suggest.title': 'Chiedi un suggerimento · {path}',
+  'suggest.request': 'Cosa ti serve?',
+  'suggest.placeholder': 'Es. «completa la funzione», «aggiungi la validazione del form», «riscrivi con async/await», «rendi responsivo il menu»… (Invio per chiedere, Maiusc+Invio per andare a capo)',
+  'suggest.where': 'Dove va il suggerimento',
+  'suggest.scopeCursor': 'Al cursore',
+  'suggest.scopeCursorHint': 'Completa o aggiunge righe alla riga {line}, colonna {column}',
+  'suggest.scopeSelection': 'Righe selezionate',
+  'suggest.scopeSelectionHint': 'Riscrive solo la selezione (seleziona prima del codice)',
+  'suggest.scopeFile': 'Tutto il file',
+  'suggest.scopeFileHint': 'Riscrive il file intero',
+  'suggest.ask': 'Chiedi',
+  'suggest.thinking': 'L’AI sta scrivendo…',
+  'suggest.review': 'Confronta e applica',
+  'suggest.empty': 'L’AI non ha restituito codice: prova a descrivere meglio la richiesta.',
+  'suggest.model': 'Modello: {model} · sul tuo PC',
+  'suggest.system': 'Sei l’assistente di codice di Easey IDE (HTML, CSS, JavaScript, TypeScript, SQL e gli altri linguaggi della Scrittura rapida). Ricevi un file, una richiesta e il punto preciso in cui va il codice. Rispondi con un solo blocco di codice nel linguaggio del file, senza ripetere il codice che non cambia, poi al massimo due righe di spiegazione in italiano. Scrivi codice moderno e leggibile, senza librerie esterne se non sono già usate nel file. Per l’SQL, se il contesto elenca tabelle e colonne, usa solo quelle.'
 }
 
 export type MessageKey = keyof typeof it

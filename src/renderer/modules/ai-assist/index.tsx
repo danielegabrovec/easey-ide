@@ -12,6 +12,8 @@ import { AiChatPanel } from './AiChatPanel'
 import { AiSettingsSection } from './AiSettingsSection'
 import { useChat, type ApplyTarget } from './chat-store'
 import { registerInlineCompletion } from './inline-completion'
+import { openDialog } from '../../ui/dialogs'
+import { SuggestDialog, type SuggestRequest } from './SuggestDialog'
 
 type QuickAction = 'explain' | 'error' | 'fix' | 'comment' | 'tests'
 
@@ -90,6 +92,30 @@ export function activateAiAssist(): void {
   const category = t('category.ai')
   const hasEditor = () => workbench().activeFile !== null
   registerCommand({ id: 'ai.chat', title: t('cmd.aiChat'), category, keybinding: 'Ctrl+Shift+A', run: () => showChat() })
+  registerCommand({
+    id: 'ai.suggest',
+    title: t('suggest.command'),
+    category,
+    keybinding: 'Ctrl+Alt+I',
+    when: hasEditor,
+    run: async () => {
+      const context = (await executeCommand('editor.getContext')) as EditorContext | null
+      if (!context) {
+        notify(t('ai.noEditor'), 'error')
+        return
+      }
+      openDialog((close) => <SuggestDialog context={context} close={close} />)
+    }
+  })
+  // Lo stesso dialogo per editor che non sono file del progetto (Scrittura rapida): contesto e applicazione dal chiamante.
+  registerCommand<SuggestRequest>({
+    id: 'ai.suggestFor',
+    title: 'ai.suggestFor',
+    palette: false,
+    run: (args) => {
+      if (args) openDialog((close) => <SuggestDialog {...args} close={close} />)
+    }
+  })
   registerCommand({ id: 'ai.explain', title: t('ai.actExplain'), category, when: hasEditor, run: () => quickAction('explain') })
   registerCommand({ id: 'ai.explainError', title: t('ai.actError'), category, when: hasEditor, run: () => quickAction('error') })
   registerCommand({ id: 'ai.fix', title: t('ai.actFix'), category, when: hasEditor, run: () => quickAction('fix') })
@@ -124,14 +150,24 @@ export function activateAiAssist(): void {
 
   // Voci nel menu del tasto destro dell'editor.
   const actions: [string, string, string][] = [
+    ['lab.ai.suggest', t('suggest.command'), 'ai.suggest'],
     ['lab.ai.explain', t('ai.actExplain'), 'ai.explain'],
     ['lab.ai.error', t('ai.actError'), 'ai.explainError'],
     ['lab.ai.fix', t('ai.actFix'), 'ai.fix'],
     ['lab.ai.comment', t('ai.actComment'), 'ai.comment'],
     ['lab.ai.tests', t('ai.actTests'), 'ai.tests']
   ]
+  // Nell'editor della Scrittura rapida (modelli "quick:") il suggerimento lavora su quel codice, non sul file attivo.
+  const commandFor = (command: string, editor: monaco.editor.ICodeEditor) =>
+    command === 'ai.suggest' && editor.getModel()?.uri.scheme === 'quick' ? 'quick.suggest' : command
   actions.forEach(([id, label, command], index) =>
-    monaco.editor.addEditorAction({ id, label: `✦ ${label}`, contextMenuGroupId: '0_ai', contextMenuOrder: index, run: () => void executeCommand(command) })
+    monaco.editor.addEditorAction({
+      id,
+      label: `✦ ${label}`,
+      contextMenuGroupId: '0_ai',
+      contextMenuOrder: index,
+      run: (editor) => void executeCommand(commandFor(command, editor))
+    })
   )
 
   useAi.subscribe(updateStatusItem)
