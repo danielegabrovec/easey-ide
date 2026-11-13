@@ -14,6 +14,7 @@ import { traceFile } from './services/trace/tracer'
 import { GitService } from './services/git/git-service'
 import { exportSingleHtml, exportSite, exportZip } from './services/export/export-service'
 import { SAMPLE_DATABASES } from '@shared/sql/samples'
+import { kitFont } from '@shared/design-kit/fonts'
 import { DEFAULT_SETTINGS } from '@shared/contracts/settings'
 import { cpSync, existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
@@ -233,6 +234,17 @@ registerHandlers(
       const result = mainWindow ? await dialog.showOpenDialog(mainWindow, options) : await dialog.showOpenDialog(options)
       const source = result.canceled ? null : result.filePaths[0]
       return source ? workspace.importFile(source, folder) : null
+    },
+    // Solo i caratteri del design kit (elenco fisso): nessun percorso arbitrario arriva dal renderer.
+    'workspace:installFont': (fontId, folder) => {
+      const font = kitFont(fontId)
+      if (!font) throw new Error(`Carattere sconosciuto: ${fontId}`)
+      return workspace.copyInto(join(app.getAppPath(), 'resources', 'fonts', `${font.id}.woff2`), `${folder ? `${folder}/` : ''}${font.id}.woff2`)
+    },
+    'app:fontData': async (fontId) => {
+      const font = kitFont(fontId)
+      if (!font) throw new Error(`Carattere sconosciuto: ${fontId}`)
+      return (await readFile(join(app.getAppPath(), 'resources', 'fonts', `${font.id}.woff2`))).toString('base64')
     },
     'workspace:historyList': (path) => {
       const root = workspace.root()

@@ -194,6 +194,17 @@ export class WorkspaceService {
     return candidate
   }
 
+  /** Copia un file (es. un carattere incluso nell'app) in `target` del progetto, se non c'è già. */
+  async copyInto(source: string, target: string): Promise<string> {
+    const path = normalizeRelative(target)
+    const absolute = this.absolute(path)
+    if (!existsSync(absolute)) {
+      await mkdir(resolve(absolute, '..'), { recursive: true })
+      await copyFile(source, absolute)
+    }
+    return path
+  }
+
   private requireRoot(): string {
     if (!this.current) throw new Error('Nessun progetto aperto')
     return this.current.root

@@ -119,6 +119,12 @@ export function setVariable(css: string, name: string, value: string | null): st
 function topLevelKey(node: postcss.ChildNode): string | null {
   if (node.type === 'rule') return `rule:${node.selectors.map((s) => s.trim()).join(',')}`
   if (node.type === 'atrule') {
+    // Le @font-face si distinguono per famiglia (e stile): ogni carattere ha la sua.
+    if (node.name === 'font-face') {
+      const decls = (node.nodes ?? []).filter((n): n is postcss.Declaration => n.type === 'decl')
+      const value = (prop: string) => decls.find((d) => d.prop === prop)?.value.replace(/["']/g, '').trim() ?? ''
+      return `@font-face:${value('font-family')}:${value('font-style') || 'normal'}`
+    }
     // Una @media si confronta anche con i selettori che contiene: blocchi diversi possono avere la stessa @media.
     const inner = (node.nodes ?? []).filter((n) => n.type === 'rule').map((n) => (n as Rule).selector.trim())
     return `@${node.name}:${node.params.replace(/\s+/g, ' ').trim()}:${inner.join('|')}`

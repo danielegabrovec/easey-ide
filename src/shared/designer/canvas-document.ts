@@ -21,6 +21,8 @@ html { scroll-behavior: auto !important; }
 [contenteditable="true"] { outline: 2px solid #6d7cff !important; outline-offset: 2px; cursor: text !important; }
 .tavola { outline: 1px dashed rgba(109, 124, 255, 0.55); outline-offset: -1px; }
 .tavola:empty::after { content: 'Tavola libera: trascina qui elementi e spostali dove vuoi'; display: grid; place-items: center; height: 100%; color: #8a93a6; font: 14px system-ui; }
+/* Le icone SVG si selezionano intere: i loro tracciati non intercettano il puntatore. */
+svg * { pointer-events: none !important; }
 `
 
 function isElement(node: Node): node is Element {

@@ -2001,6 +2001,141 @@ button.ai-chip:hover {
   cursor: pointer;
 }
 
+.swatches button.active {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ---- design kit nell'ispettore: coppie di caratteri, contrasto, icone */
+.pair-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.pair-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+}
+
+.pair-card:hover,
+.pair-card.active {
+  border-color: var(--accent);
+}
+
+.pair-card.active {
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.pair-heading {
+  font-size: 17px;
+  line-height: 1.15;
+}
+
+.pair-body {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.pair-names {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contrast-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  border: 1px solid var(--border);
+}
+
+.contrast-note.ok {
+  color: var(--text-muted);
+}
+
+.contrast-note.low {
+  border-color: color-mix(in srgb, var(--warning, #d97706) 60%, transparent);
+  background: color-mix(in srgb, var(--warning, #d97706) 12%, transparent);
+  color: var(--text);
+}
+
+.swatch-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  vertical-align: -1px;
+}
+
+.icon-search {
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
+  gap: 4px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.icon-grid button {
+  display: grid;
+  place-items: center;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.icon-grid button:hover,
+.icon-grid button.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.icon-grid svg {
+  width: 18px;
+  height: 18px;
+}
+
+.insp-more summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 4px 0;
+}
+
+.designer-inspector label.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
 .box-model {
   border: 1px dashed var(--border-strong);
   border-radius: 6px;

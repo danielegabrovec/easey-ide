@@ -3,6 +3,10 @@ import { blockById, PAGE_BODY_RESET } from '@shared/designer/blocks'
 import { appendRulesOnce, BREAKPOINTS, getDeclarations, getVariables, setDeclarations } from '@shared/designer/css-edit'
 import { copyableStyles, themeRules, type SiteTheme, type StylePatch } from '@shared/designer/presets'
 import { DEFAULT_PLACEHOLDER_COLORS, placeholderNames, placeholderPath, placeholderSvg } from '@shared/design-kit/placeholder'
+import { fontFaceCss, fontPair, fontStack, kitFont, pairFonts } from '@shared/design-kit/fonts'
+import { ICON_CSS, iconSvg } from '@shared/design-kit/icons'
+import { themeFromColor } from '@shared/design-kit/themes'
+import { typeVariables, type TypeScaleId } from '@shared/design-kit/type'
 import { dirnameOf, filePaths } from '@shared/paths'
 import { ide } from '../../ipc'
 import { t } from '../../i18n'
@@ -383,6 +387,70 @@ export async function placePage(blockId: string): Promise<void> {
 export function setSiteRule(selector: string, declarations: Record<string, string | null>): Promise<void> {
   return withPage(async ({ editCss }) => {
     await editCss((css) => setDeclarations(css, selector, declarations))
+  })
+}
+
+// ---------------------------------------------------------------- design kit: testo, caratteri, icone
+
+/** «Scala del testo» della scheda Sito: variabili --testo-xs … --testo-5xl in :root. */
+export function applyTypeScale(id: TypeScaleId): Promise<void> {
+  return setSiteRule(':root', typeVariables(id))
+}
+
+/**
+ * Coppia di caratteri: i file woff2 inclusi nell'app si copiano in fonts/ accanto al foglio di stile,
+ * il foglio riceve le @font-face e le variabili --font-titoli / --font-testo; i titoli prendono il peso
+ * consigliato. Tutto in un passo annullabile (i file copiati restano: non danno fastidio).
+ */
+export function applyFontPair(pairId: string): Promise<void> {
+  const pair = fontPair(pairId)
+  if (!pair) return Promise.resolve()
+  return withPage(async ({ editCss }) => {
+    const sheet = useDesigner.getState().stylesheet ?? (useDesigner.getState().path ? `${dirnameOf(useDesigner.getState().path!)}/style.css`.replace(/^\//, '') : 'style.css')
+    const folder = `${dirnameOf(sheet) ? `${dirnameOf(sheet)}/` : ''}fonts`
+    const fonts = pairFonts(pair)
+    for (const font of fonts) await ide.invoke('workspace:installFont', font.id, folder)
+    const heading = kitFont(pair.heading)!
+    const body = kitFont(pair.body)!
+    await editCss((css) => {
+      let next = appendRulesOnce(css, fonts.map((font) => fontFaceCss(font, `fonts/${font.id}.woff2`)).join('\n\n'))
+      next = setDeclarations(next, ':root', { '--font-titoli': fontStack(heading), '--font-testo': fontStack(body) })
+      next = setDeclarations(next, 'body', { 'font-family': 'var(--font-testo)' })
+      return setDeclarations(next, ':is(h1, h2, h3, h4)', { 'font-family': 'var(--font-titoli)', 'font-weight': String(pair.headingWeight) })
+    })
+  })
+}
+
+/** Tema generato da un colore (es. quello del logo): armonie e contrasti calcolati dal kit. */
+export function applyThemeFromColor(color: string, dark: boolean): Promise<void> {
+  return applyTheme(themeFromColor(color, { dark }))
+}
+
+/** Sostituisce un elemento con altro HTML (es. un'icona con un'altra) e lo riseleziona. */
+export function replaceElement(id: number, html: string): Promise<void> {
+  return withPage(({ editHtml }) => {
+    const before = useDesigner.getState().html?.elements[id]
+    if (!before) return
+    const after = editHtml((h) => {
+      const el = h.elements[id]!
+      return [{ start: el.start, end: el.end, text: html }]
+    })
+    const replaced = after.elements.find((e) => e.start === before.start)
+    if (replaced) useDesigner.getState().select(keyOf(replaced))
+  })
+}
+
+/** Cambia l'icona SVG selezionata (o quella dentro l'elemento selezionato) con un'altra del kit. */
+export function setIcon(element: ElementInfo, name: string): Promise<void> {
+  const page = useDesigner.getState().html
+  const svg = iconSvg(name)
+  const target = !page || !svg ? undefined : element.tag === 'svg' ? element : element.children.map((c) => page.elements[c]!).find((c) => c.tag === 'svg')
+  if (!target || !svg) return Promise.resolve()
+  return withPage(async ({ editHtml, editCss }) => {
+    const after = editHtml((h) => [{ start: h.elements[target.id]!.start, end: h.elements[target.id]!.end, text: svg }])
+    await editCss((css) => appendRulesOnce(css, ICON_CSS))
+    const replaced = after.elements.find((e) => e.start === target.start)
+    if (replaced) useDesigner.getState().select(keyOf(replaced.tag === 'svg' && element.tag !== 'svg' ? element : replaced))
   })
 }
 

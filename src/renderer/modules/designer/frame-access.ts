@@ -45,3 +45,24 @@ export function toHex(color: string): string {
   if (!match) return /^#[0-9a-f]{6}$/i.test(color) ? color : '#000000'
   return `#${[match[1], match[2], match[3]].map((v) => Number(v).toString(16).padStart(2, '0')).join('')}`
 }
+
+/**
+ * Sfondo che sta davvero dietro a un elemento: il primo antenato (o sé stesso) con un colore di sfondo
+ * non trasparente. Con un gradiente o un'immagine si prende il primo colore del gradiente e `exact` è false.
+ */
+export function effectiveBackground(id: number | null | undefined): { color: string; exact: boolean } | null {
+  if (id === null || id === undefined || !frame?.contentDocument || !frame.contentWindow) return null
+  let node = frame.contentDocument.querySelector(`[data-lab-id="${id}"]`) as Element | null
+  const view = frame.contentWindow
+  while (node) {
+    const style = view.getComputedStyle(node)
+    if (style.backgroundImage && style.backgroundImage !== 'none') {
+      const first = /rgba?\([^)]+\)/.exec(style.backgroundImage)?.[0]
+      if (first) return { color: first, exact: false }
+    }
+    const color = style.backgroundColor
+    if (color && !/rgba\(\d+,\s*\d+,\s*\d+,\s*0\)|transparent/.test(color)) return { color, exact: true }
+    node = node.parentElement
+  }
+  return { color: 'rgb(255, 255, 255)', exact: true }
+}

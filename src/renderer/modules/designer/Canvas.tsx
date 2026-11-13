@@ -150,6 +150,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   useEffect(() => {
     writeCanvas(iframe.current, canvasHtml, () => {
       const state = useDesigner.getState()
+      state.canvasLoaded()
       if (!state.revealSelection) return
       const target = resolveSelection(state.html, state.selection)
       const node = target ? (iframe.current?.contentDocument?.querySelector(`[data-lab-id="${target.id}"]`) as HTMLElement | null) : null

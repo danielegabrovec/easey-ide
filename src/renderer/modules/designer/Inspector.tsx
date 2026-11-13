@@ -5,13 +5,19 @@ import { AlignCenter, AlignJustify, AlignLeft, AlignRight, ArrowUpToLine, ArrowD
 import { boxSides, getDeclarations, getVariables, isColorValue, joinBoxSides } from '@shared/designer/css-edit'
 import { isFreeElement, type ElementInfo } from '@shared/designer/html-model'
 import { activeTheme, presetGroupsFor, PRESETS, THEMES, type PresetGroup } from '@shared/designer/presets'
+import { contrastLevel, contrastRatio, contrastTarget, fixContrast, isLargeText } from '@shared/design-kit/contrast'
+import { activeFontPair, FONT_PAIRS, fontStack, KIT_FONTS, kitFont, weightsFor } from '@shared/design-kit/fonts'
+import { iconSvg, searchIcons } from '@shared/design-kit/icons'
+import { COLOR_ROLES } from '@shared/design-kit/themes'
+import { activeTypeScale, lineHeightFor, TYPE_SCALES, TYPE_STEPS, typeVar, type TypeStep } from '@shared/design-kit/type'
 import { dirnameOf, relativeTo } from '@shared/paths'
 import { ide } from '../../ipc'
 import { t } from '../../i18n'
-import { applyPreset, applyTheme, currentRule, duplicateSelected, pasteStyle, removeSelected, renameId, setElementAttribute, setElementText, setSiteRule, setStyles } from './actions'
+import { applyFontPair, applyPreset, applyTheme, applyThemeFromColor, applyTypeScale, currentRule, duplicateSelected, pasteStyle, removeSelected, renameId, setElementAttribute, setElementText, setIcon, setSiteRule, setStyles } from './actions'
 import { copyStyleWithNotice } from './Canvas'
 import { resolveSelection, useDesigner, type StyleTarget } from './designer-store'
-import { computedStyle, toHex } from './frame-access'
+import { useKitFonts } from './font-preview'
+import { computedStyle, effectiveBackground, toHex } from './frame-access'
 
 const FONTS = [
   ['system-ui, sans-serif', 'Sistema'],
@@ -63,7 +69,36 @@ function TextField({ label, value, placeholder, onCommit, testId, wide }: { labe
   )
 }
 
-function ColorField({ label, value, computed, onCommit, swatches, testId }: { label: string; value: string; computed: string; onCommit: (value: string) => void; swatches: [string, string][]; testId?: string }) {
+interface Swatch {
+  variable: string
+  color: string
+  label: string
+}
+
+const SCALE_SWATCHES = [100, 300, 500, 700, 900]
+
+/**
+ * Campioni del tema per i selettori di colore: solo i colori del tema con il loro nome (Principale,
+ * Sfondo…), poi alcune tinte della scala del principale e le variabili-colore aggiunte a mano, senza doppioni.
+ */
+function themeSwatches(variables: Record<string, string>): Swatch[] {
+  const out: Swatch[] = []
+  const seen = new Set<string>()
+  const add = (variable: string, label: string) => {
+    const color = variables[variable]
+    if (!color || !isColorValue(color) || color.startsWith('var(')) return
+    const key = color.toLowerCase()
+    if (seen.has(key)) return
+    seen.add(key)
+    out.push({ variable, color, label })
+  }
+  for (const [role, variable] of COLOR_ROLES) add(variable, t(`designer.role.${role}`))
+  for (const step of SCALE_SWATCHES) add(`--colore-primario-${step}`, `${t('designer.role.primary')} ${step}`)
+  for (const variable of Object.keys(variables)) if (!variable.startsWith('--colore-primario-') && !COLOR_ROLES.some(([, v]) => v === variable)) add(variable, variable)
+  return out
+}
+
+function ColorField({ label, value, computed, onCommit, swatches, testId }: { label: string; value: string; computed: string; onCommit: (value: string) => void; swatches: Swatch[]; testId?: string }) {
   return (
     <div className="insp-field wide">
       <span>{label}</span>
@@ -73,10 +108,49 @@ function ColorField({ label, value, computed, onCommit, swatches, testId }: { la
       </div>
       {swatches.length > 0 && (
         <div className="swatches">
-          {swatches.map(([name, color]) => (
-            <button key={name} title={name} style={{ background: color }} onClick={() => onCommit(`var(${name})`)} />
+          {swatches.map((swatch) => (
+            <button
+              key={swatch.variable}
+              className={value === `var(${swatch.variable})` ? 'active' : undefined}
+              title={`${swatch.label} · ${swatch.color} (${swatch.variable})`}
+              aria-label={swatch.label}
+              style={{ background: swatch.color }}
+              onClick={() => onCommit(`var(${swatch.variable})`)}
+              data-swatch={swatch.variable}
+            />
           ))}
         </div>
+      )}
+    </div>
+  )
+}
+
+/** `var(--testo-xl, …)` → `var(--testo-xl)` (il gradino della scala in uso), altrimenti ''. */
+function scaleStepOf(value: string): string {
+  const step = /^var\((--testo-[a-z0-9]+)/.exec(value)?.[1]
+  return step ? `var(${step})` : ''
+}
+
+/** Contrasto del testo con lo sfondo che ha dietro (WCAG), con correzione a un clic. */
+function ContrastNote({ element, computed }: { element: ElementInfo; computed: CSSStyleDeclaration | null }) {
+  const background = effectiveBackground(element.id)
+  if (!computed || !background || !element.leafText || !element.text.trim()) return null
+  const color = computed.color
+  const ratio = contrastRatio(color, background.color)
+  if (ratio === null) return null
+  const large = isLargeText(parseFloat(computed.fontSize), Number(computed.fontWeight) || 400)
+  const target = contrastTarget(large)
+  const ok = ratio >= target
+  const fixed = ok ? null : fixContrast(color, background.color, target)
+  return (
+    <div className={`contrast-note${ok ? ' ok' : ' low'}`} data-testid="contrast-note">
+      <span>
+        {t('designer.contrast', { ratio: ratio.toFixed(1).replace('.', ',') })} · {ok ? t('designer.contrastOk', { level: contrastLevel(ratio, large) }) : t('designer.contrastLow', { target: String(target).replace('.', ',') })}
+      </span>
+      {fixed && (
+        <button className="btn ghost" title={t('designer.contrastFixHint', { color: fixed })} onClick={() => void setStyles({ color: fixed })} data-testid="contrast-fix">
+          <span className="swatch-dot" style={{ background: fixed }} /> {t('designer.contrastFix')}
+        </button>
       )}
     </div>
   )
@@ -247,6 +321,8 @@ function StyleTab({ element }: { element: ElementInfo }) {
   const css = useDesigner((s) => s.css)
   const stylesheet = useDesigner((s) => s.stylesheet)
   const styleClipboard = useDesigner((s) => s.styleClipboard)
+  // Gli stili calcolati (suggerimenti, contrasto) si rileggono quando il canvas ha ridisegnato la pagina.
+  useDesigner((s) => s.canvasVersion)
   void css
   const { selector, declarations } = currentRule(element)
   const computed = computedStyle(element.id)
@@ -255,7 +331,7 @@ function StyleTab({ element }: { element: ElementInfo }) {
   const set = (prop: string) => (value: string) => void setStyles({ [prop]: value || null })
   const classes = (element.attrs['class'] ?? '').split(/\s+/).filter(Boolean)
   const variables = stylesheet ? getVariables(css[stylesheet] ?? '') : {}
-  const swatches = Object.entries(variables).filter(([, v]) => isColorValue(v)) as [string, string][]
+  const swatches = themeSwatches(variables)
   const free = isFreeElement(page, element.id)
   const display = get('display') || hint('display')
 
@@ -328,7 +404,8 @@ function StyleTab({ element }: { element: ElementInfo }) {
         <div className="insp-grid">
           <SelectField label={t('designer.font')} value={get('font-family')} options={[...FONTS.map(([v, l]) => [v, l] as [string, string]), ...Object.keys(variables).filter((v) => /font/.test(v)).map((v) => [`var(${v})`, fontVariableLabel(v)] as [string, string])]} onCommit={set('font-family')} />
           <TextField label={t('designer.size')} value={get('font-size')} placeholder={hint('font-size')} onCommit={set('font-size')} testId="style-font-size" />
-          <SelectField label={t('designer.weight')} value={get('font-weight')} options={[['300', 'Leggero'], ['400', 'Normale'], ['600', 'Seminegretto'], ['700', 'Grassetto'], ['900', 'Nero']]} onCommit={set('font-weight')} />
+          <SelectField label={t('designer.sizeStep')} value={scaleStepOf(get('font-size'))} options={[...TYPE_STEPS].reverse().map((s) => [typeVar(s), s.toUpperCase()] as [string, string])} onCommit={(v) => setStyles({ 'font-size': v || null, 'line-height': v ? lineHeightFor(v.slice('var(--testo-'.length, -1) as TypeStep) : null })} testId="style-font-step" />
+          <SelectField label={t('designer.weight')} value={get('font-weight')} options={weightsFor(get('font-family') || hint('font-family')).map((w) => [String(w), `${w} · ${t(`designer.weight.${w}` as 'designer.weight.400')}`] as [string, string])} onCommit={set('font-weight')} testId="style-weight" />
           <TextField label={t('designer.lineHeight')} value={get('line-height')} placeholder={hint('line-height')} onCommit={set('line-height')} />
           <TextField label={t('designer.letterSpacing')} value={get('letter-spacing')} placeholder={hint('letter-spacing')} onCommit={set('letter-spacing')} />
         </div>
@@ -349,6 +426,7 @@ function StyleTab({ element }: { element: ElementInfo }) {
           })}
         </div>
         <ColorField label={t('designer.color')} value={get('color')} computed={hint('color')} onCommit={set('color')} swatches={swatches} testId="style-color" />
+        <ContrastNote element={element} computed={computed} />
         <div className="insp-buttons">
           {[
             ['left', <AlignLeft key="l" size={14} />],
@@ -427,9 +505,35 @@ function StyleTab({ element }: { element: ElementInfo }) {
   )
 }
 
+/** Scelta dell'icona (raccolta lucide del kit, ricerca in italiano) per un'icona SVG o il suo riquadro. */
+function IconPicker({ element, current }: { element: ElementInfo; current: string | null }) {
+  const [query, setQuery] = useState('')
+  const found = searchIcons(query)
+  return (
+    <Section title={t('designer.icon')}>
+      <input className="icon-search" value={query} placeholder={t('designer.iconSearch')} onChange={(e) => setQuery(e.target.value)} spellCheck={false} data-testid="icon-search" />
+      {found.length === 0 && <span className="hint">{t('designer.iconNone')}</span>}
+      <div className="icon-grid">
+        {found.map((icon) => (
+          <button
+            key={icon.name}
+            className={current === icon.name ? 'active' : undefined}
+            title={`${icon.name} · ${icon.keywords}`}
+            onClick={() => void setIcon(element, icon.name)}
+            data-icon={icon.name}
+            // SVG generato dal kit (dati fissi di lucide, nessun testo dell'utente).
+            dangerouslySetInnerHTML={{ __html: iconSvg(icon.name) ?? '' }}
+          />
+        ))}
+      </div>
+    </Section>
+  )
+}
+
 function ElementTab({ element }: { element: ElementInfo }) {
   const path = useDesigner((s) => s.path)!
   const page = useDesigner((s) => s.html)!
+  const iconElement = element.tag === 'svg' ? element : element.children.map((c) => page.elements[c]!).find((c) => c.tag === 'svg' && c.attrs['data-icona'])
   const attr = (name: string) => element.attrs[name] ?? ''
   const setAttr = (name: string) => (value: string) => void setElementAttribute(element.id, name, value || null)
   const parent = element.parent !== null ? page.elements[element.parent] : null
@@ -467,6 +571,7 @@ function ElementTab({ element }: { element: ElementInfo }) {
         {element.tag === 'label' && <TextField label="for" value={attr('for')} onCommit={setAttr('for')} wide />}
         {element.tag === 'video' && <TextField label="src" value={attr('src')} onCommit={setAttr('src')} wide />}
       </Section>
+      {iconElement && <IconPicker element={element} current={iconElement.attrs['data-icona'] ?? null} />}
       <div className="insp-buttons">
         {parent && parent.tag !== 'html' && (
           <button className="btn ghost" onClick={() => useDesigner.getState().selectElement(parent)}>
@@ -491,7 +596,14 @@ function SiteTab() {
   const variables = getVariables(source)
   const body = getDeclarations(source, 'body')
   const [name, setName] = useState('')
+  const [baseColor, setBaseColor] = useState('#4f46e5')
+  const [dark, setDark] = useState(false)
   const current = activeTheme(variables)
+  const scale = activeTypeScale(variables)
+  const pair = activeFontPair(variables)
+  const fontsReady = useKitFonts(KIT_FONTS.map((f) => f.id))
+  const roleVariables = new Set<string>(COLOR_ROLES.map(([, v]) => v))
+  const others = Object.entries(variables).filter(([v]) => !roleVariables.has(v))
   return (
     <div className="insp-body">
       <Section title={t('designer.themes')}>
@@ -511,13 +623,68 @@ function SiteTab() {
         </div>
         <span className="hint">{t('designer.themesHint')}</span>
       </Section>
+      <Section title={t('designer.fromColor')}>
+        <span className="hint">{t('designer.fromColorHint')}</span>
+        <div className="insp-buttons">
+          <input type="color" value={baseColor} onChange={(e) => setBaseColor(e.target.value)} aria-label={t('designer.fromColor')} data-testid="theme-base-color" />
+          <label className="check">
+            <input type="checkbox" checked={dark} onChange={(e) => setDark(e.target.checked)} /> {t('designer.fromColorDark')}
+          </label>
+          <button className="btn" onClick={() => void applyThemeFromColor(baseColor, dark)} data-testid="theme-from-color">
+            {t('designer.fromColorApply')}
+          </button>
+        </div>
+      </Section>
+      <Section title={t('designer.typeScale')}>
+        <span className="hint">{t('designer.typeScaleHint')}</span>
+        <div className="preset-chips">
+          {TYPE_SCALES.map((s) => (
+            <button key={s.id} className={`chip${scale === s.id ? ' active' : ''}`} onClick={() => void applyTypeScale(s.id)} data-type-scale={s.id}>
+              {t(`designer.typeScale.${s.id}`)}
+            </button>
+          ))}
+        </div>
+      </Section>
+      <Section title={t('designer.fontPairs')}>
+        <div className="pair-grid">
+          {FONT_PAIRS.map((p) => {
+            const heading = kitFont(p.heading)!
+            const bodyFont = kitFont(p.body)!
+            return (
+              <button key={p.id} className={`pair-card${pair?.id === p.id ? ' active' : ''}`} onClick={() => void applyFontPair(p.id)} data-pair={p.id} title={`${heading.family} + ${bodyFont.family}`}>
+                <span className="pair-heading" style={fontsReady ? { fontFamily: fontStack(heading), fontWeight: p.headingWeight } : undefined}>
+                  {t(`designer.pair.${p.id}` as 'designer.pair.moderna')}
+                </span>
+                <span className="pair-body" style={fontsReady ? { fontFamily: fontStack(bodyFont) } : undefined}>
+                  {t('designer.pairSample')}
+                </span>
+                <span className="pair-names">
+                  {heading.family}
+                  {heading.id !== bodyFont.id ? ` + ${bodyFont.family}` : ''}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+        <span className="hint">{t('designer.fontPairsHint')}</span>
+      </Section>
       <Section title={t('designer.siteColors')}>
-        {Object.entries(variables).map(([variable, value]) =>
-          isColorValue(value) && !value.startsWith('var(') ? (
-            <ColorField key={variable} label={variable} value={value} computed={value} onCommit={(v) => setSiteRule(':root', { [variable]: v })} swatches={[]} />
-          ) : (
-            <TextField key={variable} label={variable} value={value} onCommit={(v) => setSiteRule(':root', { [variable]: v || null })} wide />
-          )
+        {COLOR_ROLES.filter(([, variable]) => variables[variable]).map(([role, variable]) => (
+          <ColorField key={variable} label={`${t(`designer.role.${role}`)} · ${variable}`} value={variables[variable]!} computed={variables[variable]!} onCommit={(v) => setSiteRule(':root', { [variable]: v })} swatches={[]} testId={`site-color-${role}`} />
+        ))}
+        {others.length > 0 && (
+          <details className="insp-more">
+            <summary>
+              {t('designer.otherVariables')} ({others.length})
+            </summary>
+            {others.map(([variable, value]) =>
+              isColorValue(value) && !value.startsWith('var(') ? (
+                <ColorField key={variable} label={variable} value={value} computed={value} onCommit={(v) => setSiteRule(':root', { [variable]: v })} swatches={[]} />
+              ) : (
+                <TextField key={variable} label={variable} value={value} onCommit={(v) => setSiteRule(':root', { [variable]: v || null })} wide />
+              )
+            )}
+          </details>
         )}
         <div className="insp-buttons">
           <input value={name} placeholder="--nome-colore" onChange={(e) => setName(e.target.value)} spellCheck={false} />
@@ -528,8 +695,8 @@ function SiteTab() {
       </Section>
       <Section title={t('designer.sitePage')}>
         <SelectField label={t('designer.font')} value={body['font-family'] ?? ''} options={FONTS.map(([v, l]) => [v, l] as [string, string])} onCommit={(v) => setSiteRule('body', { 'font-family': v || null })} />
-        <ColorField label={t('designer.backgroundColor')} value={body['background'] ?? body['background-color'] ?? ''} computed="#ffffff" onCommit={(v) => setSiteRule('body', { background: v || null })} swatches={Object.entries(variables).filter(([, v]) => isColorValue(v)) as [string, string][]} />
-        <ColorField label={t('designer.textColor')} value={body['color'] ?? ''} computed="#000000" onCommit={(v) => setSiteRule('body', { color: v || null })} swatches={Object.entries(variables).filter(([, v]) => isColorValue(v)) as [string, string][]} />
+        <ColorField label={t('designer.backgroundColor')} value={body['background'] ?? body['background-color'] ?? ''} computed="#ffffff" onCommit={(v) => setSiteRule('body', { background: v || null })} swatches={themeSwatches(variables)} />
+        <ColorField label={t('designer.textColor')} value={body['color'] ?? ''} computed="#000000" onCommit={(v) => setSiteRule('body', { color: v || null })} swatches={themeSwatches(variables)} />
       </Section>
     </div>
   )

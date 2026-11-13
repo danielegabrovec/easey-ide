@@ -85,6 +85,32 @@ for (const { data, dir } of entries) {
   lines.push(text ? '```text\n' + text + '\n```' : '_Testo della licenza non incluso nel pacchetto: vale la licenza indicata sopra._', '')
   if (SUPPLEMENTS[data.name]) lines.push(SUPPLEMENTS[data.name], '')
 }
+// Caratteri tipografici inclusi (design kit del designer): file woff2 in resources/fonts con la licenza
+// SIL Open Font License 1.1 accanto. L'elenco viene da src/shared/design-kit/fonts.ts (una sola fonte).
+const fontsSource = readFileSync(join(root, 'src', 'shared', 'design-kit', 'fonts.ts'), 'utf8')
+const fonts = [...fontsSource.matchAll(/\{ id: '([a-z0-9-]+)', family: '([^']+)'[^}]*source: '([^']+)', version: '([^']+)' \}/g)].map((m) => ({ id: m[1], family: m[2], source: m[3], version: m[4] }))
+if (fonts.length) {
+  lines.push(
+    '---',
+    '',
+    '# Caratteri tipografici inclusi',
+    '',
+    'Il designer include questi caratteri (sottoinsieme latino, formato woff2, presi dai pacchetti Fontsource',
+    'senza modifiche). Sono distribuiti con la **SIL Open Font License 1.1**: si possono usare, copiare nei',
+    'propri siti e ridistribuire liberamente, ma non vendere da soli. Quando si sceglie una coppia di caratteri,',
+    "il file viene copiato nella cartella `fonts/` del progetto dell'utente.",
+    '',
+    '| Carattere | File | Pacchetto | Licenza |',
+    '|---|---|---|---|',
+    ...fonts.map((f) => `| ${f.family} | resources/fonts/${f.id}.woff2 | ${f.source} ${f.version} | OFL-1.1 |`),
+    ''
+  )
+  for (const font of fonts) {
+    const license = join(root, 'resources', 'fonts', `${font.id}.OFL.txt`)
+    lines.push(`## ${font.family} (${font.source} ${font.version})`, '', 'Licenza: SIL Open Font License 1.1', '')
+    lines.push(existsSync(license) ? '```text\n' + readFileSync(license, 'utf8').replace(/\r\n?/g, '\n').trim() + '\n```' : '_Testo della licenza mancante._', '')
+  }
+}
 writeFileSync(join(root, 'THIRD_PARTY_NOTICES.md'), lines.join('\n'))
 mkdirSync(join(root, 'resources', 'legal'), { recursive: true })
 copyFileSync(join(root, 'THIRD_PARTY_NOTICES.md'), join(root, 'resources', 'legal', 'THIRD_PARTY_NOTICES.md'))

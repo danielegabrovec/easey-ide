@@ -2,6 +2,11 @@
 // come variabili CSS). Idea presa dagli editor visuali più diffusi: si parte da scelte coerenti e
 // poi si ritocca; ogni valore resta CSS normale, leggibile nel foglio di stile.
 
+import { activeFontPair } from '../design-kit/fonts'
+import { THEMES, type KitTheme } from '../design-kit/themes'
+import { designTokens } from '../design-kit/tokens'
+import { activeTypeScale, DEFAULT_TYPE_SCALE, typeVariables, type TypeStep } from '../design-kit/type'
+
 export type StylePatch = Record<string, string | null>
 
 export interface StylePreset {
@@ -14,13 +19,16 @@ export type PresetGroup = 'text' | 'button' | 'box' | 'layout'
 
 const PRIMARY = 'var(--colore-primario, #4f46e5)'
 
+/** Gradino della scala tipografica del kit, con il valore della scala «equilibrata» se il sito non ce l'ha. */
+const size = (step: TypeStep) => `var(--testo-${step}, ${typeVariables('equilibrata')[`--testo-${step}`]})`
+
 export const TEXT_PRESETS: StylePreset[] = [
-  { id: 'display', label: 'Titolo enorme', styles: { 'font-size': '56px', 'font-weight': '800', 'line-height': '1.05', 'letter-spacing': '-0.02em', 'font-family': 'var(--font-titoli)' } },
-  { id: 'titolo', label: 'Titolo', styles: { 'font-size': '40px', 'font-weight': '700', 'line-height': '1.15', 'letter-spacing': '-0.01em', 'font-family': 'var(--font-titoli)' } },
-  { id: 'sottotitolo', label: 'Sottotitolo', styles: { 'font-size': '24px', 'font-weight': '600', 'line-height': '1.3', 'letter-spacing': null } },
-  { id: 'corpo', label: 'Testo', styles: { 'font-size': '17px', 'font-weight': '400', 'line-height': '1.6', 'letter-spacing': null, 'text-transform': null } },
-  { id: 'didascalia', label: 'Didascalia', styles: { 'font-size': '13px', 'font-weight': '400', 'line-height': '1.4', color: 'var(--colore-tenue, #6b7385)' } },
-  { id: 'etichetta', label: 'Etichetta', styles: { 'font-size': '12px', 'font-weight': '700', 'letter-spacing': '0.08em', 'text-transform': 'uppercase' } }
+  { id: 'display', label: 'Titolo enorme', styles: { 'font-size': size('5xl'), 'font-weight': '800', 'line-height': '1.05', 'letter-spacing': '-0.02em', 'font-family': 'var(--font-titoli)', 'text-wrap': 'balance', 'max-width': '20ch' } },
+  { id: 'titolo', label: 'Titolo', styles: { 'font-size': size('3xl'), 'font-weight': '700', 'line-height': '1.15', 'letter-spacing': '-0.01em', 'font-family': 'var(--font-titoli)', 'text-wrap': 'balance' } },
+  { id: 'sottotitolo', label: 'Sottotitolo', styles: { 'font-size': size('xl'), 'font-weight': '600', 'line-height': '1.3', 'letter-spacing': null, 'text-wrap': 'balance' } },
+  { id: 'corpo', label: 'Testo', styles: { 'font-size': size('m'), 'font-weight': '400', 'line-height': '1.6', 'letter-spacing': null, 'text-transform': null, 'max-width': '65ch' } },
+  { id: 'didascalia', label: 'Didascalia', styles: { 'font-size': size('s'), 'font-weight': '400', 'line-height': '1.4', color: 'var(--colore-tenue, #6b7385)' } },
+  { id: 'etichetta', label: 'Etichetta', styles: { 'font-size': size('xs'), 'font-weight': '700', 'letter-spacing': '0.08em', 'text-transform': 'uppercase' } }
 ]
 
 export const BUTTON_PRESETS: StylePreset[] = [
@@ -32,7 +40,7 @@ export const BUTTON_PRESETS: StylePreset[] = [
 ]
 
 export const BOX_PRESETS: StylePreset[] = [
-  { id: 'scheda', label: 'Scheda', styles: { padding: '24px', 'border-radius': '16px', background: 'var(--colore-superficie, #ffffff)', border: null, 'box-shadow': '0 8px 24px rgba(0, 0, 0, 0.12)' } },
+  { id: 'scheda', label: 'Scheda', styles: { padding: '24px', 'border-radius': 'var(--raggio-l, 16px)', background: 'var(--colore-superficie, #ffffff)', border: null, 'box-shadow': 'var(--ombra-2, 0 8px 24px rgba(0, 0, 0, 0.12))' } },
   { id: 'bordo', label: 'Bordo sottile', styles: { padding: '20px', 'border-radius': '12px', border: '1px solid #e5e8ef', 'box-shadow': null } },
   { id: 'evidenza', label: 'In evidenza', styles: { padding: '20px 24px', 'border-left': `4px solid ${PRIMARY}`, 'border-radius': '8px', background: `color-mix(in srgb, ${PRIMARY} 8%, transparent)` } },
   { id: 'vetro', label: 'Vetro', styles: { padding: '24px', 'border-radius': '16px', border: '1px solid rgba(255, 255, 255, 0.45)', background: 'rgba(255, 255, 255, 0.6)', 'backdrop-filter': 'blur(12px)' } },
@@ -72,31 +80,9 @@ export const PRESETS: Record<PresetGroup, StylePreset[]> = { text: TEXT_PRESETS,
 
 // ---------------------------------------------------------------- temi del sito
 
-export interface SiteTheme {
-  id: string
-  label: string
-  primary: string
-  secondary: string
-  background: string
-  surface: string
-  text: string
-  muted: string
-  headingFont: string
-  bodyFont: string
-}
-
-const SANS = "system-ui, 'Segoe UI', Roboto, sans-serif"
-const SERIF = "Georgia, 'Times New Roman', serif"
-
-export const THEMES: SiteTheme[] = [
-  { id: 'indaco', label: 'Indaco', primary: '#4f46e5', secondary: '#9333ea', background: '#ffffff', surface: '#ffffff', text: '#1f2937', muted: '#6b7385', headingFont: SANS, bodyFont: SANS },
-  { id: 'oceano', label: 'Oceano', primary: '#0369a1', secondary: '#06b6d4', background: '#f8fbfd', surface: '#ffffff', text: '#0f2533', muted: '#5b7180', headingFont: SANS, bodyFont: SANS },
-  { id: 'foresta', label: 'Foresta', primary: '#15803d', secondary: '#84cc16', background: '#fbfdf8', surface: '#ffffff', text: '#1c2a1e', muted: '#5f6f61', headingFont: SERIF, bodyFont: SANS },
-  { id: 'tramonto', label: 'Tramonto', primary: '#ea580c', secondary: '#db2777', background: '#fffaf5', surface: '#ffffff', text: '#2b1d16', muted: '#7a6458', headingFont: SANS, bodyFont: SANS },
-  { id: 'elegante', label: 'Elegante', primary: '#9a6b2f', secondary: '#1f2937', background: '#fdfbf7', surface: '#ffffff', text: '#22201c', muted: '#776f63', headingFont: SERIF, bodyFont: SERIF },
-  { id: 'notte', label: 'Notte', primary: '#818cf8', secondary: '#f472b6', background: '#0f172a', surface: '#1e293b', text: '#e2e8f0', muted: '#94a3b8', headingFont: SANS, bodyFont: SANS },
-  { id: 'essenziale', label: 'Essenziale', primary: '#111827', secondary: '#6b7280', background: '#fafafa', surface: '#ffffff', text: '#111827', muted: '#6b7280', headingFont: SANS, bodyFont: SANS }
-]
+// I temi vivono nel design kit (condiviso): qui restano i nomi usati dal designer.
+export type SiteTheme = KitTheme
+export { THEMES }
 
 /**
  * Nomi brevi dei modelli di progetto (fino alla 1.3 avevano colori propri): se il foglio di stile li usa,
@@ -110,20 +96,19 @@ export const LEGACY_ALIASES: Record<string, string> = { '--accento': 'var(--colo
  */
 export function themeRules(theme: SiteTheme, variables: Record<string, string> = {}): { selector: string; styles: StylePatch }[] {
   const aliases = Object.fromEntries(Object.entries(LEGACY_ALIASES).filter(([name]) => name in variables))
+  // Tutti i token del kit (scala del primario, testo, spazi, raggi, ombre). La scala del testo resta
+  // quella scelta; una coppia di caratteri del kit già scelta resta (il tema cambia solo i colori).
+  const tokens = designTokens({ theme, typeScale: activeTypeScale(variables) ?? DEFAULT_TYPE_SCALE })
+  if (activeFontPair(variables)) {
+    delete tokens['--font-titoli']
+    delete tokens['--font-testo']
+  }
+  // Testo, spazi, raggi e ombre già presenti (magari ritoccati a mano) non si toccano: il tema porta i colori.
+  for (const name of Object.keys(tokens)) if (!name.startsWith('--colore-') && !name.startsWith('--font-') && name in variables) delete tokens[name]
   return [
     {
       selector: ':root',
-      styles: {
-        '--colore-primario': theme.primary,
-        '--colore-secondario': theme.secondary,
-        '--colore-sfondo': theme.background,
-        '--colore-superficie': theme.surface,
-        '--colore-testo': theme.text,
-        '--colore-tenue': theme.muted,
-        '--font-titoli': theme.headingFont,
-        '--font-testo': theme.bodyFont,
-        ...aliases
-      }
+      styles: { ...tokens, ...aliases }
     },
     { selector: 'body', styles: { background: 'var(--colore-sfondo)', color: 'var(--colore-testo)', 'font-family': 'var(--font-testo)' } },
     { selector: ':is(h1, h2, h3, h4)', styles: { 'font-family': 'var(--font-titoli)' } },

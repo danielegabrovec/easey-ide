@@ -26,6 +26,12 @@ xterm.js, esbuild, PGlite, Pyodide con CPython, React Flow). Ognuno resta propri
 con la propria licenza (MIT, Apache 2.0, ISC, BSD, MPL 2.0, Python Software Foundation e simili): l'elenco completo con i testi delle
 licenze è in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), incluso anche nell'installer.
 
+Il designer include alcuni caratteri tipografici (Inter, Manrope, DM Sans, Source Sans 3, Space Grotesk,
+Fraunces, Playfair Display, DM Serif Display) distribuiti con la **SIL Open Font License 1.1** e le icone
+**Lucide** (licenza ISC). Quando li usi in una pagina, i file dei caratteri vengono copiati nella cartella
+`fonts/` del tuo progetto: puoi pubblicarli con il tuo sito, ma non venderli da soli. I testi delle licenze
+sono in `resources/fonts/` e in THIRD_PARTY_NOTICES.md.
+
 ## Marchi
 
 Nomi e marchi citati — fra cui Windows, Visual Studio Code e Monaco (Microsoft), Electron (OpenJS

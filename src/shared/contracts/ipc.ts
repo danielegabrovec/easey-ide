@@ -62,6 +62,10 @@ export interface InvokeChannels {
   'workspace:reveal': (path: string) => void
   /** Sceglie un'immagine dal disco e la copia nella cartella indicata del progetto; restituisce il percorso o null. */
   'workspace:importAsset': (folder: string) => string | null
+  /** Copia un carattere del design kit (resources/fonts/<id>.woff2) nella cartella indicata del progetto; restituisce il percorso. */
+  'workspace:installFont': (fontId: string, folder: string) => string
+  /** Un carattere del design kit in base64 (per le anteprime nell'ispettore). */
+  'app:fontData': (fontId: string) => string
   'workspace:historyList': (path: string) => HistoryEntry[]
   'workspace:historyRead': (path: string, id: string) => string
 
@@ -182,6 +186,8 @@ export const INVOKE_CHANNELS = [
   'workspace:delete',
   'workspace:reveal',
   'workspace:importAsset',
+  'workspace:installFont',
+  'app:fontData',
   'workspace:historyList',
   'workspace:historyRead',
   'preview:url',

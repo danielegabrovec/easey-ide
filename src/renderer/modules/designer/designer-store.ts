@@ -35,6 +35,9 @@ interface DesignerState {
   viewScale: number
   /** Scala che avrebbe «adatta» con lo spazio di adesso (per l’etichetta del menu dello zoom). */
   viewFit: number
+  /** Cresce a ogni pagina ridisegnata nel canvas: chi legge gli stili calcolati (ispettore, ritocchi) si aggiorna. */
+  canvasVersion: number
+  canvasLoaded: () => void
   setZoom: (zoom: number | null) => void
   setViewScale: (scale: number, fit: number) => void
   setRevealSelection: (reveal: boolean) => void
@@ -78,6 +81,8 @@ export const useDesigner = create<DesignerState>((set) => ({
   zoom: null,
   viewScale: 1,
   viewFit: 1,
+  canvasVersion: 0,
+  canvasLoaded: () => set((state) => ({ canvasVersion: state.canvasVersion + 1 })),
   setZoom: (zoom) => set({ zoom }),
   setViewScale: (viewScale, viewFit) => set({ viewScale, viewFit }),
   setRevealSelection: (revealSelection) => set({ revealSelection }),

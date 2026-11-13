@@ -3,6 +3,8 @@
 // I colori dei blocchi usano le variabili dei temi (`--colore-primario`…) con un valore di riserva:
 // scegliendo un tema nella scheda «Sito» si ricolora tutta la pagina.
 
+import { ICON_CSS, iconSvg } from '../design-kit/icons'
+
 export type BlockCategory = 'struttura' | 'testo' | 'moduli' | 'media' | 'sezioni' | 'modelli'
 
 export interface Block {
@@ -56,6 +58,21 @@ const GRID_CSS = `.lab-griglia {
 }`
 
 const FORM_CSS = `.lab-modulo {\n  display: grid;\n  gap: 8px;\n  max-width: 420px;\n}\n\n.lab-modulo input,\n.lab-modulo textarea {\n  padding: 10px 12px;\n  border: 1px solid #cfd5df;\n  border-radius: 8px;\n  font: inherit;\n}\n\n.lab-modulo button {\n  justify-self: start;\n  margin-top: 8px;\n  padding: 12px 24px;\n  border: 0;\n  border-radius: 10px;\n  background: ${PRIMARY};\n  color: #ffffff;\n  font: inherit;\n  font-weight: 600;\n  cursor: pointer;\n}`
+
+/** Icona SVG del kit (lucide), in linea e del colore del testo. */
+const icon = (name: string) => iconSvg(name)!
+
+/** Riquadro morbido attorno a un'icona (caratteristiche, servizi). */
+const ICON_TILE_CSS = `.lab-icona {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--colore-primario, #4f46e5) 12%, transparent);
+  color: var(--colore-primario, #4f46e5);
+  font-size: 24px;
+}`
 
 const IMAGE_CSS = `.lab-immagine {
   display: block;
@@ -129,6 +146,7 @@ const BASE_BLOCKS: Block[] = [
   { id: 'spunta', label: 'Casella di spunta', category: 'moduli', html: '<label><input type="checkbox"> Accetto</label>', freeSize: { width: 160, height: 28 } },
   { id: 'immagine', label: 'Immagine', category: 'media', html: '<img class="lab-immagine" src="img/segnaposto-foto-1.svg" alt="Descrivi l’immagine" width="1200" height="800">', css: IMAGE_CSS, keywords: 'foto figura picture', freeSize: { width: 300, height: 200 } },
   { id: 'video', label: 'Video', category: 'media', html: '<video controls width="480"></video>', freeSize: { width: 320, height: 180 } },
+  { id: 'icona', label: 'Icona', category: 'media', html: `<span class="lab-icona">${icon('sparkles')}</span>`, css: `${ICON_TILE_CSS}\n\n${ICON_CSS}`, keywords: 'icona simbolo svg lucide pittogramma', freeSize: { width: 48, height: 48 } },
   { id: 'emoji', label: 'Emoji grande', category: 'media', html: '<span class="lab-emoji">🚀</span>', css: '.lab-emoji {\n  font-size: 64px;\n  line-height: 1;\n}', freeSize: { width: 80, height: 80 } },
   { id: 'forma', label: 'Forma colorata', category: 'media', html: '<div class="lab-forma"></div>', css: '.lab-forma {\n  width: 120px;\n  height: 120px;\n  border-radius: 24px;\n  background: linear-gradient(135deg, #6d7cff, #b26dff);\n}', freeSize: { width: 120, height: 120 } },
   {
@@ -181,9 +199,9 @@ const BASE_BLOCKS: Block[] = [
     id: 'caratteristiche',
     label: 'Caratteristiche con icone',
     category: 'sezioni',
-    html: '<section class="lab-sezione">\n  <h2>Perché sceglierci</h2>\n  <div class="lab-griglia">\n    <article class="lab-scheda">\n      <span class="lab-icona">⚡</span>\n      <h3>Veloce</h3>\n      <p>Tutto pronto in pochi minuti.</p>\n    </article>\n    <article class="lab-scheda">\n      <span class="lab-icona">🔒</span>\n      <h3>Sicuro</h3>\n      <p>I tuoi dati restano tuoi.</p>\n    </article>\n    <article class="lab-scheda">\n      <span class="lab-icona">💬</span>\n      <h3>Seguito</h3>\n      <p>Ti rispondiamo sempre.</p>\n    </article>\n  </div>\n</section>',
+    html: `<section class="lab-sezione">\n  <h2>Perché sceglierci</h2>\n  <div class="lab-griglia">\n    <article class="lab-scheda">\n      <span class="lab-icona">${icon('zap')}</span>\n      <h3>Veloce</h3>\n      <p>Tutto pronto in pochi minuti.</p>\n    </article>\n    <article class="lab-scheda">\n      <span class="lab-icona">${icon('shield-check')}</span>\n      <h3>Sicuro</h3>\n      <p>I tuoi dati restano tuoi.</p>\n    </article>\n    <article class="lab-scheda">\n      <span class="lab-icona">${icon('message-circle')}</span>\n      <h3>Seguito</h3>\n      <p>Ti rispondiamo sempre.</p>\n    </article>\n  </div>\n</section>`,
     keywords: 'vantaggi servizi punti di forza features',
-    css: `${SECTION_CSS}\n\n${GRID_CSS}\n\n.lab-icona {\n  display: inline-grid;\n  place-items: center;\n  width: 44px;\n  height: 44px;\n  border-radius: 12px;\n  background: color-mix(in srgb, ${PRIMARY} 12%, transparent);\n  font-size: 22px;\n}`
+    css: `${SECTION_CSS}\n\n${GRID_CSS}\n\n${ICON_TILE_CSS}\n\n${ICON_CSS}`
   },
   {
     id: 'testimonianze',
