@@ -1389,6 +1389,21 @@ button.ai-chip:hover {
 .designer-panel {
   display: flex;
   flex-direction: column;
+  container-type: inline-size;
+}
+
+/* Barra del designer: con il pannello stretto (codice affiancato, Esplora e chat aperte) restano le
+   icone; sotto una certa misura va a capo invece di finire sotto l'editor accanto. */
+.designer-panel > .panel-toolbar {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+@container (max-width: 900px) {
+  .designer-panel > .panel-toolbar .btn-label,
+  .designer-panel > .panel-toolbar > .title {
+    display: none;
+  }
 }
 
 .designer-body {
@@ -1683,10 +1698,21 @@ button.ai-chip:hover {
   min-height: 0;
 }
 
+/* Mano per spostare la vista (spazio premuto). */
+.designer-host.panning,
+.designer-host.panning .designer-overlay {
+  cursor: grab;
+}
+
+.designer-host.panning:active,
+.designer-host.panning:active .designer-overlay {
+  cursor: grabbing;
+}
+
+/* Posizione (left/top) e scala arrivano dal Canvas; --dz-inv = 1 / scala. */
 .designer-stage {
+  --dz-inv: 1;
   position: absolute;
-  top: 12px;
-  left: 12px;
   transform-origin: top left;
   background: #ffffff;
   box-shadow: var(--shadow);
@@ -1716,11 +1742,11 @@ button.ai-chip:hover {
 }
 
 .dz-hover {
-  outline: 1px dashed #6d7cff;
+  outline: calc(1px * var(--dz-inv)) dashed #6d7cff;
 }
 
 .dz-selected {
-  outline: 2px solid #6d7cff;
+  outline: calc(2px * var(--dz-inv)) solid #6d7cff;
 }
 
 .dz-selected.free {
@@ -1729,13 +1755,13 @@ button.ai-chip:hover {
 
 .dz-label {
   position: absolute;
-  top: -20px;
-  left: -2px;
+  top: calc(-20px * var(--dz-inv));
+  left: calc(-2px * var(--dz-inv));
   background: #6d7cff;
   color: white;
-  font: 600 11px var(--font-ui);
-  padding: 2px 6px;
-  border-radius: 4px 4px 0 0;
+  font: 600 calc(11px * var(--dz-inv)) / calc(16px * var(--dz-inv)) var(--font-ui);
+  padding: calc(2px * var(--dz-inv)) calc(6px * var(--dz-inv));
+  border-radius: calc(4px * var(--dz-inv)) calc(4px * var(--dz-inv)) 0 0;
   white-space: nowrap;
 }
 
@@ -1743,28 +1769,31 @@ button.ai-chip:hover {
   background: #b26dff;
 }
 
+/* Maniglie di 9 px sullo schermo a ogni zoom (la scala del canvas è compensata con --dz-inv). */
 .dz-handle {
+  --h: calc(5px * var(--dz-inv));
   position: absolute;
-  width: 9px;
-  height: 9px;
+  box-sizing: border-box;
+  width: calc(10px * var(--dz-inv));
+  height: calc(10px * var(--dz-inv));
   background: white;
-  border: 2px solid #6d7cff;
-  border-radius: 2px;
+  border: calc(2px * var(--dz-inv)) solid #6d7cff;
+  border-radius: calc(2px * var(--dz-inv));
   pointer-events: auto;
 }
 
-.dz-handle.h-nw { left: -5px; top: -5px; cursor: nwse-resize; }
-.dz-handle.h-n { left: calc(50% - 5px); top: -5px; cursor: ns-resize; }
-.dz-handle.h-ne { right: -5px; top: -5px; cursor: nesw-resize; }
-.dz-handle.h-e { right: -5px; top: calc(50% - 5px); cursor: ew-resize; }
-.dz-handle.h-se { right: -5px; bottom: -5px; cursor: nwse-resize; }
-.dz-handle.h-s { left: calc(50% - 5px); bottom: -5px; cursor: ns-resize; }
-.dz-handle.h-sw { left: -5px; bottom: -5px; cursor: nesw-resize; }
-.dz-handle.h-w { left: -5px; top: calc(50% - 5px); cursor: ew-resize; }
+.dz-handle.h-nw { left: calc(-1 * var(--h)); top: calc(-1 * var(--h)); cursor: nwse-resize; }
+.dz-handle.h-n { left: calc(50% - var(--h)); top: calc(-1 * var(--h)); cursor: ns-resize; }
+.dz-handle.h-ne { right: calc(-1 * var(--h)); top: calc(-1 * var(--h)); cursor: nesw-resize; }
+.dz-handle.h-e { right: calc(-1 * var(--h)); top: calc(50% - var(--h)); cursor: ew-resize; }
+.dz-handle.h-se { right: calc(-1 * var(--h)); bottom: calc(-1 * var(--h)); cursor: nwse-resize; }
+.dz-handle.h-s { left: calc(50% - var(--h)); bottom: calc(-1 * var(--h)); cursor: ns-resize; }
+.dz-handle.h-sw { left: calc(-1 * var(--h)); bottom: calc(-1 * var(--h)); cursor: nesw-resize; }
+.dz-handle.h-w { left: calc(-1 * var(--h)); top: calc(50% - var(--h)); cursor: ew-resize; }
 
 .dz-line {
   position: absolute;
-  height: 3px;
+  height: calc(3px * var(--dz-inv));
   background: #6d7cff;
   border-radius: 2px;
   pointer-events: none;
@@ -1773,11 +1802,11 @@ button.ai-chip:hover {
 
 /* Nelle righe flex e nelle griglie la linea d'inserimento è verticale. */
 .dz-line.vertical {
-  width: 3px;
+  width: calc(3px * var(--dz-inv));
 }
 
 .dz-inside {
-  outline: 2px dashed #6d7cff;
+  outline: calc(2px * var(--dz-inv)) dashed #6d7cff;
   background: rgb(109 124 255 / 0.08);
 }
 
@@ -1785,11 +1814,11 @@ button.ai-chip:hover {
 .dz-drop-label {
   position: absolute;
   pointer-events: none;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: calc(2px * var(--dz-inv)) calc(8px * var(--dz-inv));
+  border-radius: calc(4px * var(--dz-inv));
   background: #6d7cff;
   color: white;
-  font: 600 12px/16px system-ui, sans-serif;
+  font: 600 calc(12px * var(--dz-inv)) / calc(16px * var(--dz-inv)) system-ui, sans-serif;
   white-space: nowrap;
   z-index: 3;
 }
@@ -1808,13 +1837,13 @@ button.ai-chip:hover {
 .dz-guide.v {
   top: 0;
   bottom: 0;
-  width: 1px;
+  width: calc(1px * var(--dz-inv));
 }
 
 .dz-guide.h {
   left: 0;
   right: 0;
-  height: 1px;
+  height: calc(1px * var(--dz-inv));
 }
 
 .dz-editor {
@@ -3548,6 +3577,21 @@ button.quick-line:hover {
   max-width: 220px;
   height: 24px;
   font-size: 12px;
+}
+
+/* Zoom del canvas: − · percentuale · + */
+.designer-zoom {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+}
+
+.designer-zoom select {
+  height: 24px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  max-width: 130px;
 }
 
 /* ---------------------------------------------------------------- immagini del progetto */

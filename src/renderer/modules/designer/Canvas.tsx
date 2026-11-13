@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FREE_CANVAS_CLASS, hasClass, isFreeElement, type ElementInfo } from '@shared/designer/html-model'
 import { clampBox, decideDrop, elementLabel, flowAxis, targetParent, type Axis, type DropTarget } from '@shared/designer/drop'
+import { fitScale, STAGE_PAD, stageX, wheelZoom, zoomAround } from '@shared/designer/zoom'
 import { showContextMenu } from '../../ui/ContextMenu'
 import { t } from '../../i18n'
 import { notify } from '../../workbench/notifications'
@@ -53,6 +54,7 @@ interface Indicator {
 }
 
 const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
+/** Distanza di aggancio delle guide (px dello schermo: a ogni zoom si aggancia alla stessa distanza visiva). */
 const SNAP = 6
 /** Fascia (px dello schermo) vicino al bordo di un contenitore che vale «prima/dopo» invece di «dentro». */
 const EDGE = 7
@@ -110,8 +112,25 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   const ghost = useRef<{ clone: HTMLElement; node: HTMLElement } | null>(null)
   const pointer = useRef<{ clientX: number; clientY: number; alt: boolean } | null>(null)
   const scrollLoop = useRef(0)
-  const [scale, setScale] = useState(1)
-  const [height, setHeight] = useState(600)
+  const zoom = useDesigner((s) => s.zoom)
+  const [hostSize, setHostSize] = useState({ width: 0, height: 0 })
+  /** Posizione orizzontale chiesta per la pagina quando è più larga del canvas (vedi stageX). */
+  const [pan, setPan] = useState(STAGE_PAD)
+  /** Punto attorno a cui fare il prossimo zoom (la rotellina lo mette sotto il puntatore). */
+  const zoomAnchor = useRef<{ x: number; y: number } | null>(null)
+  const previous = useRef<{ scale: number; zoom: number | null; left: number }>({ scale: 1, zoom: null, left: STAGE_PAD })
+  /** Spostamento della vista: spazio premuto (o tasto centrale) + trascinamento. */
+  const panDrag = useRef<{ x: number; y: number; pointerId: number } | null>(null)
+  const [spaceHeld, setSpaceHeld] = useState(false)
+  const hovering = useRef(false)
+  const refreshFlowRef = useRef<() => void>(() => undefined)
+  const scale = zoom ?? fitScale(hostSize.width, width)
+  const height = Math.max(300, (hostSize.height - 2 * STAGE_PAD) / scale)
+  const left = stageX(hostSize.width, width * scale, pan)
+  const overflowsRef = useRef(false)
+  overflowsRef.current = width * scale + 2 * STAGE_PAD > hostSize.width
+  const leftRef = useRef(left)
+  leftRef.current = left
   const [, setTick] = useState(0)
   const [indicator, setIndicator] = useState<Indicator | null>(null)
   const [guides, setGuides] = useState<{ x: number[]; y: number[] }>({ x: [], y: [] })
@@ -142,19 +161,94 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     onReady?.()
   }, [canvasHtml, onReady])
 
-  // Adatta la scala alla larghezza disponibile.
+  // Misura lo spazio disponibile: la scala «adatta» e l'altezza della pagina dipendono da lì.
   useLayoutEffect(() => {
     const element = host.current
     if (!element) return
-    const observer = new ResizeObserver(() => {
-      const available = element.clientWidth - 24
-      const next = Math.min(1, available / width)
-      setScale(next > 0 ? next : 1)
-      setHeight(Math.max(300, (element.clientHeight - 24) / (next > 0 ? next : 1)))
-    })
+    const observer = new ResizeObserver(() => setHostSize({ width: element.clientWidth, height: element.clientHeight }))
     observer.observe(element)
     return () => observer.disconnect()
-  }, [width])
+  }, [])
+
+  // La scala effettiva si vede nella barra del designer.
+  const fit = fitScale(hostSize.width, width)
+  useEffect(() => {
+    useDesigner.getState().setViewScale(scale, fit)
+  }, [scale, fit])
+
+  // Cambiando lo zoom (rotellina, scorciatoie, menu) il punto sotto il puntatore, o il centro della vista,
+  // resta fermo: si ricalcolano lo scorrimento della pagina e la posizione orizzontale.
+  useLayoutEffect(() => {
+    const before = previous.current
+    previous.current = { scale, zoom, left: before.left }
+    if (before.zoom === zoom || before.scale === scale) return
+    const scroller = doc()?.scrollingElement
+    const anchor = zoomAnchor.current ?? { x: hostSize.width / 2, y: hostSize.height / 2 }
+    zoomAnchor.current = null
+    const next = zoomAround({ from: before.scale, to: scale, x: anchor.x, y: anchor.y, stageLeft: before.left, stageTop: STAGE_PAD, scrollTop: scroller?.scrollTop ?? 0 })
+    setPan(next.pan)
+    if (scroller) scroller.scrollTop = next.scrollTop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scale, zoom])
+
+  // Dopo ogni disegno: dove sta la pagina (serve al prossimo zoom, che parte dalla posizione di prima).
+  useLayoutEffect(() => {
+    previous.current.left = left
+  })
+
+  // Ctrl+rotellina (o pizzico sul touchpad) = zoom attorno al puntatore; rotellina = scorre la pagina,
+  // Maiusc+rotellina o rotellina orizzontale = sposta la vista di lato quando la pagina è più larga.
+  // Ascoltatore nativo non passivo: serve preventDefault (React registra la rotellina come passiva).
+  useEffect(() => {
+    const element = host.current
+    if (!element) return
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault()
+      const state = useDesigner.getState()
+      const box = element.getBoundingClientRect()
+      if (event.ctrlKey || event.metaKey) {
+        zoomAnchor.current = { x: event.clientX - box.left, y: event.clientY - box.top }
+        state.setZoom(wheelZoom(state.viewScale, event.deltaY))
+        return
+      }
+      const scroller = iframe.current?.contentDocument?.scrollingElement
+      const sideways = event.shiftKey && !event.deltaX ? event.deltaY : event.deltaX
+      if (scroller && !(event.shiftKey && !event.deltaX)) scroller.scrollTop += event.deltaY / state.viewScale
+      if (sideways) {
+        // Pagina più larga del canvas: si sposta la vista; altrimenti scorre la pagina (se sborda di lato).
+        if (overflowsRef.current) setPan(leftRef.current - sideways)
+        else if (scroller) scroller.scrollLeft += sideways / state.viewScale
+      }
+      // La pagina è scorsa sotto il puntatore: il bersaglio di un trascinamento va ricalcolato subito.
+      refreshFlowRef.current()
+    }
+    element.addEventListener('wheel', onWheel, { passive: false })
+    return () => element.removeEventListener('wheel', onWheel)
+  }, [])
+
+  // Spazio tenuto premuto con il puntatore sul canvas (o il fuoco nel canvas) = mano per spostare la vista.
+  useEffect(() => {
+    const editable = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+    const down = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' || editable(event.target)) return
+      const focused = overlay.current !== null && document.activeElement === overlay.current
+      if (!focused && !hovering.current) return
+      event.preventDefault()
+      if (!event.repeat) setSpaceHeld(true)
+    }
+    const up = (event: KeyboardEvent) => {
+      if (event.code === 'Space') setSpaceHeld(false)
+    }
+    const blur = () => setSpaceHeld(false)
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    window.addEventListener('blur', blur)
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+      window.removeEventListener('blur', blur)
+    }
+  }, [])
 
   // Ridisegna i riquadri: la pagina può cambiare (immagini caricate, scorrimento) senza avvisare.
   useEffect(() => {
@@ -344,6 +438,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     current.target = placement?.target ?? null
     setIndicator(placement?.indicator ?? null)
   }
+  refreshFlowRef.current = refreshFlow
 
   /** Vicino al bordo alto o basso del canvas la pagina scorre da sola. Restituisce di quanto ha scorso. */
   const edgeScroll = (clientY: number, step: number): number => {
@@ -400,7 +495,36 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
 
   // ------------------------------------------------------------ puntatore
 
+  // Spostamento della vista (sul canvas e anche sullo sfondo attorno alla pagina).
+  const isPanStart = (event: React.PointerEvent) => event.button === 1 || (event.button === 0 && spaceHeld)
+
+  const onHostPointerDown = (event: React.PointerEvent) => {
+    if (!isPanStart(event)) return
+    event.preventDefault()
+    panDrag.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId }
+    host.current?.setPointerCapture(event.pointerId)
+  }
+
+  const onHostPointerMove = (event: React.PointerEvent) => {
+    const current = panDrag.current
+    if (!current) return
+    const dx = event.clientX - current.x
+    const dy = event.clientY - current.y
+    current.x = event.clientX
+    current.y = event.clientY
+    if (dx) setPan(left + dx)
+    const scroller = doc()?.scrollingElement
+    if (scroller && dy) scroller.scrollTop -= dy / scale
+  }
+
+  const onHostPointerUp = (event: React.PointerEvent) => {
+    if (!panDrag.current) return
+    panDrag.current = null
+    host.current?.releasePointerCapture?.(event.pointerId)
+  }
+
   const onPointerDown = (event: React.PointerEvent) => {
+    if (isPanStart(event)) return
     if (event.button !== 0 || editing) return
     overlay.current?.focus()
     const { x, y } = toDoc(event)
@@ -425,6 +549,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   }
 
   const onPointerMove = (event: React.PointerEvent) => {
+    if (panDrag.current) return
     const { x, y } = toDoc(event)
     pointer.current = { clientX: event.clientX, clientY: event.clientY, alt: event.altKey }
     const current = drag.current
@@ -485,8 +610,8 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       }
       const w = current.origin.width
       const h = current.origin.height
-      const snapX = event.altKey ? null : xs.flatMap((gx) => [gx - left, gx - (left + w / 2), gx - (left + w)].map((delta) => ({ gx, delta }))).filter((c) => Math.abs(c.delta) <= SNAP).sort((a, b) => Math.abs(a.delta) - Math.abs(b.delta))[0]
-      const snapY = event.altKey ? null : ys.flatMap((gy) => [gy - top, gy - (top + h / 2), gy - (top + h)].map((delta) => ({ gy, delta }))).filter((c) => Math.abs(c.delta) <= SNAP).sort((a, b) => Math.abs(a.delta) - Math.abs(b.delta))[0]
+      const snapX = event.altKey ? null : xs.flatMap((gx) => [gx - left, gx - (left + w / 2), gx - (left + w)].map((delta) => ({ gx, delta }))).filter((c) => Math.abs(c.delta) <= SNAP / scale).sort((a, b) => Math.abs(a.delta) - Math.abs(b.delta))[0]
+      const snapY = event.altKey ? null : ys.flatMap((gy) => [gy - top, gy - (top + h / 2), gy - (top + h)].map((delta) => ({ gy, delta }))).filter((c) => Math.abs(c.delta) <= SNAP / scale).sort((a, b) => Math.abs(a.delta) - Math.abs(b.delta))[0]
       if (snapX) left += snapX.delta
       if (snapY) top += snapY.delta
       // Mai oltre i bordi della tavola (che taglia ciò che sborda): l'elemento resta sempre visibile.
@@ -534,6 +659,9 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     if (current.kind === 'free-move') void setFreeBox({ left: current.current.left, top: current.current.top })
     else if (current.kind === 'free-resize') {
       const { left, top, width, height } = current.current
+      const { origin } = current
+      // Un clic su una maniglia senza trascinare non cambia niente (niente id né larghezza scritti per caso).
+      if (Math.abs(width - origin.width) < 1 && Math.abs(height - origin.height) < 1 && Math.abs(left - origin.left) < 1 && Math.abs(top - origin.top) < 1) return
       if (current.free) void setFreeBox({ left, top, width, height })
       else void setStyles({ width: `${Math.round(width)}px`, height: handleChangesHeight(current.handle) ? `${Math.round(height)}px` : null })
     } else if (current.kind === 'flow' && current.target) {
@@ -656,8 +784,24 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   const resizable = selected && !['body', 'html'].includes(selected.tag)
 
   return (
-    <div className="designer-host" ref={host}>
-      <div className="designer-stage" style={{ width, height, transform: `scale(${scale})` }}>
+    <div
+      className={`designer-host${spaceHeld ? ' panning' : ''}`}
+      ref={host}
+      onPointerDown={onHostPointerDown}
+      onPointerMove={onHostPointerMove}
+      onPointerUp={onHostPointerUp}
+      onPointerCancel={onHostPointerUp}
+      onPointerEnter={() => (hovering.current = true)}
+      onPointerLeave={() => (hovering.current = false)}
+      onAuxClick={(event) => event.button === 1 && event.preventDefault()}
+      data-testid="designer-host"
+    >
+      <div
+        className="designer-stage"
+        // --dz-inv: le maniglie, le etichette e le linee restano della stessa misura sullo schermo a ogni zoom.
+        style={{ width, height, left, top: STAGE_PAD, transform: `scale(${scale})`, ['--dz-inv' as string]: String(1 / scale) }}
+        data-scale={scale}
+      >
         <iframe ref={iframe} title={t('designer.canvasTitle')} sandbox="allow-same-origin" className="designer-frame" data-testid="designer-frame" />
         <div
           ref={overlay}
@@ -674,15 +818,6 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
           onDrop={onDrop}
           onKeyDown={onKeyDown}
           onContextMenu={onContextMenu}
-          onWheel={(event) => {
-            const scroller = iframe.current?.contentDocument?.scrollingElement
-            if (scroller) {
-              scroller.scrollTop += event.deltaY
-              scroller.scrollLeft += event.deltaX
-            }
-            // La pagina è scorsa sotto il puntatore: il bersaglio va ricalcolato subito.
-            refreshFlow()
-          }}
           data-testid="designer-overlay"
         >
           {hoverRect && <div className="dz-hover" style={boxStyle(hoverRect)} />}
@@ -693,7 +828,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
                 {selected.attrs['id'] ? `#${selected.attrs['id']}` : ''}
                 {selectedFree ? ` · ${t('designer.free')}` : ''}
               </span>
-              {resizable && (selectedFree ? HANDLES : ['e', 's', 'se']).map((h) => <span key={h} className={`dz-handle h-${h}`} data-handle={h} />)}
+              {resizable && visibleHandles(selectedFree ? HANDLES : ['e', 's', 'se'], selectedRect.width * scale, selectedRect.height * scale).map((h) => <span key={h} className={`dz-handle h-${h}`} data-handle={h} />)}
             </div>
           )}
           {indicator?.parent && <div className={`dz-inside${indicator.free ? ' free' : ''}`} style={boxStyle(indicator.parent)} data-testid="designer-drop-parent" />}
@@ -707,8 +842,8 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
           {indicator && (
             <div
               className="dz-drop-label"
-              // Il canvas è scalato: l'etichetta compensa per restare leggibile.
-              style={{ left: Math.max(0, indicator.parent?.left ?? 0), top: Math.max(0, (indicator.parent?.top ?? 0) - 22 / scale), fontSize: 12 / scale, lineHeight: `${16 / scale}px`, padding: `${2 / scale}px ${8 / scale}px` }}
+              // Il canvas è scalato: l'etichetta compensa (CSS con --dz-inv) per restare leggibile.
+              style={{ left: Math.max(0, indicator.parent?.left ?? 0), top: Math.max(0, (indicator.parent?.top ?? 0) - 22 / scale) }}
               data-testid="designer-drop-label"
             >
               {indicator.label}
@@ -756,6 +891,14 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       </div>
     </div>
   )
+}
+
+/**
+ * Maniglie da mostrare: su un elemento piccolo sullo schermo (es. a zoom basso) quelle a metà lato
+ * coprirebbero l'elemento e un clic per selezionarlo o trascinarlo diventerebbe un ridimensionamento.
+ */
+function visibleHandles(handles: string[], screenWidth: number, screenHeight: number): string[] {
+  return handles.filter((h) => !((h === 'n' || h === 's') && screenHeight < 28) && !((h === 'e' || h === 'w') && screenWidth < 28))
 }
 
 function handleChangesHeight(handle: string): boolean {

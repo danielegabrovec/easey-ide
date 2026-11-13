@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import type * as Monaco from 'monaco-editor'
 import type { IDockviewPanelProps } from 'dockview'
-import { Columns2, FilePlus2, Globe, Laptop, Monitor, Redo2, Smartphone, Tablet, Undo2 } from 'lucide-react'
+import { Columns2, FilePlus2, Globe, Laptop, Monitor, Redo2, Smartphone, Tablet, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import { buildCanvasDocument, resolveRelative } from '@shared/designer/canvas-document'
 import type { Breakpoint } from '@shared/designer/css-edit'
 import { linkedStylesheets } from '@shared/designer/html-edit'
 import { elementAtOffset, parseHtml } from '@shared/designer/html-model'
 import { htmlPages } from '@shared/designer/pages'
+import { stepZoom, ZOOM_CHOICES, ZOOM_MAX, ZOOM_MIN, zoomPercent } from '@shared/designer/zoom'
 import { filePaths } from '@shared/paths'
 import { executeCommand } from '../../workbench/commands'
 import { on } from '../../workbench/events'
@@ -76,6 +77,33 @@ function useCanvasDocument(path: string): string {
     }
   }, [path])
   return html
+}
+
+/** Zoom del canvas: − / percentuale (con «Adatta») / +. Anche Ctrl+rotellina, Ctrl+0, Ctrl+1, Ctrl+= e Ctrl+-. */
+function ZoomControl() {
+  const zoom = useDesigner((s) => s.zoom)
+  const viewScale = useDesigner((s) => s.viewScale)
+  const viewFit = useDesigner((s) => s.viewFit)
+  const choices = zoom !== null && !ZOOM_CHOICES.includes(zoom) ? [...ZOOM_CHOICES, zoom].sort((a, b) => a - b) : ZOOM_CHOICES
+  const setZoom = (value: number | null) => useDesigner.getState().setZoom(value)
+  return (
+    <div className="designer-zoom" title={t('designer.zoom')}>
+      <button className="icon-btn" title={t('designer.zoomOut')} aria-label={t('designer.zoomOut')} onClick={() => setZoom(stepZoom(viewScale, -1))} disabled={viewScale <= ZOOM_MIN} data-testid="designer-zoom-out">
+        <ZoomOut size={14} />
+      </button>
+      <select value={zoom === null ? 'fit' : String(zoom)} onChange={(e) => setZoom(e.target.value === 'fit' ? null : Number(e.target.value))} aria-label={t('designer.zoom')} data-testid="designer-zoom">
+        <option value="fit">{t('designer.zoomFit', { percent: zoomPercent(viewFit) })}</option>
+        {choices.map((value) => (
+          <option key={value} value={String(value)}>
+            {zoomPercent(value)}
+          </option>
+        ))}
+      </select>
+      <button className="icon-btn" title={t('designer.zoomIn')} aria-label={t('designer.zoomIn')} onClick={() => setZoom(stepZoom(viewScale, 1))} disabled={viewScale >= ZOOM_MAX} data-testid="designer-zoom-in">
+        <ZoomIn size={14} />
+      </button>
+    </div>
+  )
 }
 
 /** Pagine del sito: si passa da una all'altra e se ne crea una nuova (con intestazione e piè di pagina comuni). */
@@ -164,6 +192,7 @@ export function DesignerPanel({ params }: IDockviewPanelProps<{ path: string }>)
             </button>
           ))}
         </div>
+        <ZoomControl />
         <span style={{ flex: 1 }} />
         <button className="icon-btn" title={`${t('designer.undo')} (Ctrl+Z)`} onClick={() => undo()}>
           <Undo2 size={14} />
@@ -172,10 +201,10 @@ export function DesignerPanel({ params }: IDockviewPanelProps<{ path: string }>)
           <Redo2 size={14} />
         </button>
         <button className={`btn ghost${split ? ' active' : ''}`} onClick={() => void toggleSplitCode('designer')} title={t('split.buttonHint')} aria-pressed={split} data-testid="split-code">
-          <Columns2 size={14} /> {t('split.button')}
+          <Columns2 size={14} /> <span className="btn-label">{t('split.button')}</span>
         </button>
-        <button className="btn ghost" onClick={() => executeCommand('run.preview', { entry: path })} title={t('designer.realPreview')}>
-          <Globe size={14} /> {t('toolbar.preview')}
+        <button className="btn ghost" onClick={() => executeCommand('run.preview', { entry: path })} title={t('designer.realPreview')} aria-label={t('toolbar.preview')}>
+          <Globe size={14} /> <span className="btn-label">{t('toolbar.preview')}</span>
         </button>
       </div>
       <div className="designer-body">

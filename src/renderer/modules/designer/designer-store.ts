@@ -29,6 +29,14 @@ interface DesignerState {
   styleClipboard: number
   /** Dopo il prossimo ridisegno del canvas, porta in vista l'elemento selezionato (es. appena inserito). */
   revealSelection: boolean
+  /** Zoom scelto: null = «adatta» (la pagina entra in larghezza), altrimenti la scala (1 = 100 %). */
+  zoom: number | null
+  /** Scala effettiva del canvas (quella di «adatta» quando zoom è null), mostrata nella barra. */
+  viewScale: number
+  /** Scala che avrebbe «adatta» con lo spazio di adesso (per l’etichetta del menu dello zoom). */
+  viewFit: number
+  setZoom: (zoom: number | null) => void
+  setViewScale: (scale: number, fit: number) => void
   setRevealSelection: (reveal: boolean) => void
   setPaletteQuery: (query: string) => void
   setStyleClipboard: (count: number) => void
@@ -67,6 +75,11 @@ export const useDesigner = create<DesignerState>((set) => ({
   paletteQuery: '',
   styleClipboard: 0,
   revealSelection: false,
+  zoom: null,
+  viewScale: 1,
+  viewFit: 1,
+  setZoom: (zoom) => set({ zoom }),
+  setViewScale: (viewScale, viewFit) => set({ viewScale, viewFit }),
   setRevealSelection: (revealSelection) => set({ revealSelection }),
   setPaletteQuery: (paletteQuery) => set({ paletteQuery }),
   setStyleClipboard: (styleClipboard) => set({ styleClipboard }),

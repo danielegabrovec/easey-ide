@@ -1,6 +1,7 @@
 // Modulo Designer: progettazione visuale delle pagine HTML (stile Canva nelle tavole libere,
 // stile Wix a sezioni), con modifiche chirurgiche al codice HTML/CSS dell'utente.
 import { newPageHtml, pageFileName, pageFolder } from '@shared/designer/pages'
+import { stepZoom } from '@shared/designer/zoom'
 import { basenameOf, extensionOf, filePaths } from '@shared/paths'
 import type * as Monaco from 'monaco-editor'
 import { ide } from '../../ipc'
@@ -62,6 +63,17 @@ export function activateDesigner(): void {
       openDesigner(path)
     }
   })
+  // Zoom del canvas: le scorciatoie valgono con il designer attivo (hanno la precedenza su Ctrl+= / Ctrl+-
+  // del testo dell'IDE).
+  const zoomCommands: [string, string, string, () => number | null][] = [
+    ['designer.zoomIn', 'Ctrl+=', t('cmd.designerZoomIn'), () => stepZoom(useDesigner.getState().viewScale, 1)],
+    ['designer.zoomOut', 'Ctrl+-', t('cmd.designerZoomOut'), () => stepZoom(useDesigner.getState().viewScale, -1)],
+    ['designer.zoomFit', 'Ctrl+0', t('cmd.designerZoomFit'), () => null],
+    ['designer.zoom100', 'Ctrl+1', t('cmd.designerZoom100'), () => 1]
+  ]
+  for (const [id, keybinding, title, next] of zoomCommands) {
+    registerCommand({ id, title, category: t('category.design'), keybinding, panel: 'designer', when: () => useDesigner.getState().path !== null, run: () => useDesigner.getState().setZoom(next()) })
+  }
   registerCommand({
     id: 'designer.newPage',
     title: t('cmd.designerNewPage'),
