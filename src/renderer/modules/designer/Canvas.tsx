@@ -56,6 +56,11 @@ const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
 const SNAP = 6
 /** Fascia (px dello schermo) vicino al bordo di un contenitore che vale «prima/dopo» invece di «dentro». */
 const EDGE = 7
+/**
+ * ...ma mai più di 10 px della pagina: con il canvas rimpicciolito la fascia coprirebbe tutto il padding
+ * (che deve valere «dentro»). Per andare prima/dopo basta lasciarlo appena fuori dal contenitore.
+ */
+const EDGE_MAX = 10
 /** Fascia (px dello schermo) vicino al bordo del canvas che fa scorrere la pagina durante il trascinamento. */
 const SCROLL_ZONE = 48
 /** Di quanto (px dello schermo) il puntatore deve uscire da una tavola perché l'elemento libero ne esca. */
@@ -254,7 +259,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       const box = clampBox(x - rect.left - grab.x, y - rect.top - grab.y, width, height, node?.clientWidth ?? rect.width, node?.clientHeight ?? rect.height)
       return { indicator: { parent: rect, line: null, free: true, label: `${t('designer.dropInto', { parent: elementLabel(page.elements[tavola]!) })} › ${t('designer.dropFree')}` }, target: { freeIn: tavola, x: box.left, y: box.top } }
     }
-    const target = decideDrop({ model: page, hit: id, x, y, rectOf: (n) => rectOf(elementNode(n)), axisOf, edge: EDGE / scale, outside: options.alt, exclude })
+    const target = decideDrop({ model: page, hit: id, x, y, rectOf: (n) => rectOf(elementNode(n)), axisOf, edge: Math.min(EDGE / scale, EDGE_MAX), outside: options.alt, exclude })
     if (!target) return null
     const indicator = indicatorFor(target)
     return indicator ? { indicator, target } : null
