@@ -6,10 +6,11 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { FREE_CANVAS_CLASS, hasClass, isFreeElement, type ElementInfo } from '@shared/designer/html-model'
 import { clampBox, decideDrop, elementLabel, flowAxis, targetParent, type Axis, type DropTarget } from '@shared/designer/drop'
 import { fitScale, STAGE_PAD, stageX, wheelZoom, zoomAround } from '@shared/designer/zoom'
+import { blockById } from '@shared/designer/blocks'
 import { showContextMenu } from '../../ui/ContextMenu'
 import { t } from '../../i18n'
 import { notify } from '../../workbench/notifications'
-import { copyStyle, duplicateSelected, endOfBody, insertBlock, moveNode, moveOutOfFreeCanvas, pasteStyle, removeSelected, setElementText, setFreeBox, setStyles } from './actions'
+import { copyStyle, duplicateSelected, insertBlock, moveNode, moveOutOfFreeCanvas, pasteStyle, placePage, removeSelected, setElementText, setFreeBox, setStyles } from './actions'
 import { redo, undo } from './document'
 import { keyOf, resolveSelection, useDesigner } from './designer-store'
 import { registerFrame } from './frame-access'
@@ -689,11 +690,12 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     if (!blockId) return
     event.preventDefault()
     const { x, y } = toDoc(event)
-    const placement = dropPlacement(x, y, { alt: event.altKey })
+    // In una tavola libera il blocco nuovo (con la sua misura iniziale) resta dentro i bordi.
+    const placement = dropPlacement(x, y, { alt: event.altKey, size: blockById(blockId)?.freeSize })
     if (!placement) return
     const target = placement.target
-    // Una pagina intera va sempre in fondo alla pagina, anche se la si lascia sopra una tavola libera.
-    if (blockId.startsWith('pagina-') && page) void insertBlock(blockId, endOfBody(page))
+    // Una pagina intera sostituisce la pagina (o va in fondo), anche se la si lascia sopra una tavola libera.
+    if (blockId.startsWith('pagina-') && page) void placePage(blockId)
     else void insertBlock(blockId, 'freeIn' in target ? target : { targetId: target.id, where: target.where })
   }
 

@@ -211,3 +211,42 @@ export function confirm(options: ConfirmOptions): Promise<boolean> {
     })
   })
 }
+
+interface ChooseOptions<T extends string> {
+  title: string
+  message: ReactNode
+  /** Scelte da destra a sinistra in ordine d'importanza: la prima è quella consigliata (pulsante principale). */
+  choices: { value: T; label: string; testId?: string }[]
+}
+
+/** Dialogo con più scelte (più «Annulla»): restituisce il valore scelto o null. */
+export function choose<T extends string>(options: ChooseOptions<T>): Promise<T | null> {
+  return new Promise((resolve) => {
+    openDialog((close) => {
+      const done = (value: T | null) => {
+        close()
+        resolve(value)
+      }
+      return (
+        <Modal
+          title={options.title}
+          onClose={() => done(null)}
+          footer={
+            <>
+              <button className="btn" onClick={() => done(null)}>
+                {t('common.cancel')}
+              </button>
+              {[...options.choices].reverse().map((choice, index, all) => (
+                <button key={choice.value} className={`btn${index === all.length - 1 ? ' primary' : ''}`} autoFocus={index === all.length - 1} onClick={() => done(choice.value)} data-testid={choice.testId}>
+                  {choice.label}
+                </button>
+              ))}
+            </>
+          }
+        >
+          <div>{options.message}</div>
+        </Modal>
+      )
+    })
+  })
+}

@@ -98,8 +98,18 @@ export const THEMES: SiteTheme[] = [
   { id: 'essenziale', label: 'Essenziale', primary: '#111827', secondary: '#6b7280', background: '#fafafa', surface: '#ffffff', text: '#111827', muted: '#6b7280', headingFont: SANS, bodyFont: SANS }
 ]
 
-/** Regole CSS di un tema: variabili in :root, poi pagina, titoli e collegamenti che le usano. */
-export function themeRules(theme: SiteTheme): { selector: string; styles: StylePatch }[] {
+/**
+ * Nomi brevi dei modelli di progetto (fino alla 1.3 avevano colori propri): se il foglio di stile li usa,
+ * il tema li collega alle variabili del tema, così anche i pulsanti «vecchi» cambiano colore.
+ */
+export const LEGACY_ALIASES: Record<string, string> = { '--accento': 'var(--colore-primario)', '--sfondo': 'var(--colore-sfondo)', '--testo': 'var(--colore-testo)' }
+
+/**
+ * Regole CSS di un tema: variabili in :root (con gli alias dei nomi brevi già presenti fra `variables`),
+ * poi pagina, titoli e collegamenti che le usano.
+ */
+export function themeRules(theme: SiteTheme, variables: Record<string, string> = {}): { selector: string; styles: StylePatch }[] {
+  const aliases = Object.fromEntries(Object.entries(LEGACY_ALIASES).filter(([name]) => name in variables))
   return [
     {
       selector: ':root',
@@ -111,7 +121,8 @@ export function themeRules(theme: SiteTheme): { selector: string; styles: StyleP
         '--colore-testo': theme.text,
         '--colore-tenue': theme.muted,
         '--font-titoli': theme.headingFont,
-        '--font-testo': theme.bodyFont
+        '--font-testo': theme.bodyFont,
+        ...aliases
       }
     },
     { selector: 'body', styles: { background: 'var(--colore-sfondo)', color: 'var(--colore-testo)', 'font-family': 'var(--font-testo)' } },

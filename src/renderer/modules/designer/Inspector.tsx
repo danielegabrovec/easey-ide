@@ -169,6 +169,76 @@ function PresetChips({ groups }: { groups: PresetGroup[] }) {
   )
 }
 
+const RATIOS: [string | null, string][] = [
+  [null, ''],
+  ['16 / 9', '16:9'],
+  ['4 / 3', '4:3'],
+  ['3 / 2', '3:2'],
+  ['1 / 1', '1:1'],
+  ['3 / 4', '3:4']
+]
+const FOCUS: [string, string][] = [
+  ['left top', '↖'],
+  ['center top', '↑'],
+  ['right top', '↗'],
+  ['left center', '←'],
+  ['center center', '•'],
+  ['right center', '→'],
+  ['left bottom', '↙'],
+  ['center bottom', '↓'],
+  ['right bottom', '↘']
+]
+
+/** Immagini e video: come stanno nel riquadro (object-fit), proporzione (aspect-ratio) e punto a fuoco. */
+function ImageSection({ get }: { get: (prop: string) => string }) {
+  const fit = get('object-fit')
+  const ratio = get('aspect-ratio').replace(/\s+/g, ' ')
+  const focus = get('object-position') || 'center center'
+  const fits: [string | null, string, string][] = [
+    ['cover', t('designer.fitCover'), t('designer.fitCoverHint')],
+    ['contain', t('designer.fitContain'), t('designer.fitContainHint')],
+    [null, t('designer.fitFill'), t('designer.fitFillHint')]
+  ]
+  return (
+    <Section title={t('designer.image')}>
+      <span className="hint">{t('designer.imageFit')}</span>
+      <div className="preset-chips">
+        {fits.map(([value, label, hint]) => (
+          <button key={label} className={`chip${(fit || null) === value ? ' active' : ''}`} title={hint} onClick={() => void setStyles({ 'object-fit': value })} data-testid={`image-fit-${value ?? 'fill'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <span className="hint">{t('designer.imageRatio')}</span>
+      <div className="preset-chips">
+        {RATIOS.map(([value, label]) => (
+          <button
+            key={label || 'free'}
+            className={`chip${(ratio || null) === value ? ' active' : ''}`}
+            // Con una proporzione l'altezza segue la larghezza e l'immagine riempie il riquadro senza deformarsi.
+            onClick={() => void setStyles(value ? { 'aspect-ratio': value, height: 'auto', 'object-fit': fit || 'cover' } : { 'aspect-ratio': null })}
+            data-testid={`image-ratio-${label || 'free'}`}
+          >
+            {label || t('designer.ratioFree')}
+          </button>
+        ))}
+      </div>
+      {fit && fit !== 'fill' && (
+        <>
+          <span className="hint">{t('designer.imageFocus')}</span>
+          <div className="focus-grid">
+            {FOCUS.map(([value, glyph]) => (
+              <button key={value} className={focus === value || (value === 'center center' && focus === 'center') ? 'active' : undefined} title={`object-position: ${value}`} onClick={() => void setStyles({ 'object-position': value === 'center center' ? null : value })}>
+                {glyph}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </Section>
+  )
+}
+
 function StyleTab({ element }: { element: ElementInfo }) {
   const page = useDesigner((s) => s.html)!
   const target = useDesigner((s) => s.target)
@@ -230,6 +300,8 @@ function StyleTab({ element }: { element: ElementInfo }) {
       </div>
 
       <PresetChips groups={presetGroupsFor(element.tag, element.attrs)} />
+
+      {(element.tag === 'img' || element.tag === 'video') && <ImageSection get={get} />}
 
       {free && (
         <Section title={t('designer.position')}>

@@ -63,13 +63,10 @@ try {
   // 4. Ctrl+rotellina sul titolo: ingrandisce e il titolo resta sotto il puntatore.
   await page.keyboard.press('Control+0')
   await until(async () => (await scale()) === fit, 3000)
-  // Pagina lunga (solo nel canvas): una pagina alta quanto la finestra e centrata in verticale si
-  // ricentra a ogni altezza della vista, e non scorrerebbe.
+  // Pagina lunga (solo nel canvas): così la vista può scorrere in verticale anche ingrandita.
   await page.evaluate(() => {
     const d = document.querySelector('[data-testid="designer-frame"]').contentDocument
     d.body.style.minHeight = '3000px'
-    d.body.style.placeItems = 'start center'
-    d.body.style.paddingTop = '400px'
   })
   await wait(100)
   const h1 = await box('h1')

@@ -49,7 +49,7 @@ import { CATEGORY_LABELS, searchBlocks, type Block, type BlockCategory } from '@
 import { FREE_CANVAS_CLASS, hasClass, isFreeElement } from '@shared/designer/html-model'
 import { t } from '../../i18n'
 import { canContain, defaultInsertTarget } from '@shared/designer/drop'
-import { endOfBody, insertBlock } from './actions'
+import { endOfBody, insertBlock, placePage } from './actions'
 import { selectedElement, useDesigner } from './designer-store'
 import { visibleContainer } from './frame-access'
 
@@ -103,9 +103,9 @@ function insertWithClick(blockId: string): void {
   const page = useDesigner.getState().html
   const selected = selectedElement()
   if (!page) return
-  // Le pagine intere vanno sempre in fondo al body, mai dentro la selezione.
+  // Le pagine intere sostituiscono la pagina (o vanno in fondo al body), mai dentro la selezione.
   if (blockId.startsWith('pagina-')) {
-    void insertBlock(blockId, endOfBody(page))
+    void placePage(blockId)
     return
   }
   if (selected && hasClass(selected, FREE_CANVAS_CLASS)) {

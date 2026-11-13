@@ -1631,6 +1631,35 @@ button.ai-chip:hover {
   background: var(--accent-soft);
 }
 
+.designer-inspector .chip.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast, #ffffff);
+}
+
+/* Punto a fuoco dell'immagine: quadrato 3 × 3 (object-position). */
+.focus-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 26px);
+  gap: 3px;
+}
+
+.focus-grid button {
+  height: 22px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.focus-grid button.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

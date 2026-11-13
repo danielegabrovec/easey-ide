@@ -202,6 +202,20 @@ export function ensureId(model: HtmlModel, id: number): { id: string; edits: Tex
   return { id: generated, edits: setAttribute(model, id, 'id', generated) }
 }
 
+/** Elementi del body che non si vedono (codice e modelli): restano quando si sostituisce la pagina. */
+const KEPT_ON_REPLACE = new Set(['script', 'style', 'template', 'noscript', 'link', 'meta'])
+
+/** Figli visibili del body: quelli che «Sostituisci la pagina» toglie (gli script restano dove sono). */
+export function visibleBodyChildren(model: HtmlModel): number[] {
+  if (model.body === null) return []
+  return model.elements[model.body]!.children.filter((id) => !KEPT_ON_REPLACE.has(model.elements[id]!.tag))
+}
+
+/** Toglie il contenuto visibile del body (primo passo di «Sostituisci la pagina»; poi si inserisce in testa). */
+export function clearBody(model: HtmlModel): TextEdit[] {
+  return visibleBodyChildren(model).flatMap((id) => removeElement(model, id))
+}
+
 /** Primo foglio di stile locale collegato dalla pagina (href relativo), se c'è. */
 export function linkedStylesheets(model: HtmlModel): string[] {
   return model.elements

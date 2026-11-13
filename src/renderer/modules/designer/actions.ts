@@ -1,8 +1,15 @@
 // Azioni del designer: ognuna diventa una modifica chirurgica di HTML e/o CSS in un unico passo annullabile.
-import { blockById } from '@shared/designer/blocks'
-import { appendRulesOnce, BREAKPOINTS, getDeclarations, setDeclarations } from '@shared/designer/css-edit'
+import { blockById, PAGE_BODY_RESET } from '@shared/designer/blocks'
+import { appendRulesOnce, BREAKPOINTS, getDeclarations, getVariables, setDeclarations } from '@shared/designer/css-edit'
 import { copyableStyles, themeRules, type SiteTheme, type StylePatch } from '@shared/designer/presets'
+import { DEFAULT_PLACEHOLDER_COLORS, placeholderNames, placeholderPath, placeholderSvg } from '@shared/design-kit/placeholder'
+import { dirnameOf, filePaths } from '@shared/paths'
+import { ide } from '../../ipc'
+import { t } from '../../i18n'
+import { choose } from '../../ui/dialogs'
+import { workbench } from '../../workbench/store'
 import {
+  clearBody,
   duplicateElement,
   ensureId,
   insertHtml,
@@ -12,6 +19,7 @@ import {
   setAttribute,
   setText,
   suggestId,
+  visibleBodyChildren,
   type InsertPosition,
   type TextEdit
 } from '@shared/designer/html-edit'
@@ -74,12 +82,17 @@ function inlineStyle(declarations: Record<string, string>): string {
     .join('; ')
 }
 
+/** `<body>` e `<html>` sono unici: lo stile va sul loro tag (`body { … }`), senza aggiungere un id. */
+function pageSelector(element: ElementInfo): string | null {
+  return element.tag === 'body' || element.tag === 'html' ? element.tag : null
+}
+
 /** Selettore e dichiarazioni attuali per il bersaglio scelto nell'ispettore. */
 export function currentRule(element: ElementInfo | null): { selector: string | null; declarations: Record<string, string> } {
   const { target, targetClass, css, stylesheet } = useDesigner.getState()
   if (!element) return { selector: null, declarations: {} }
   if (target === 'inline') return { selector: 'style=""', declarations: parseInlineStyle(element.attrs['style'] ?? '') }
-  const selector = target === 'class' && targetClass ? `.${targetClass}` : element.attrs['id'] ? `#${element.attrs['id']}` : null
+  const selector = target === 'class' && targetClass ? `.${targetClass}` : (pageSelector(element) ?? (element.attrs['id'] ? `#${element.attrs['id']}` : null))
   if (!selector || !stylesheet) return { selector, declarations: {} }
   return { selector, declarations: getDeclarations(css[stylesheet] ?? '', selector, media()) }
 }
@@ -101,7 +114,9 @@ export function setStyles(declarations: Record<string, string | null>): Promise<
       return
     }
     let selector: string
+    const tagSelector = pageSelector(el)
     if (target === 'class' && targetClass) selector = `.${targetClass}`
+    else if (tagSelector) selector = tagSelector
     else {
       const { id, edits } = ensureId(html, el.id)
       if (edits.length) {
@@ -222,7 +237,7 @@ export function applyPreset(styles: StylePatch): Promise<void> {
 /** Un tema = variabili dei colori e dei caratteri in :root + pagina, titoli e link che le usano. */
 export function applyTheme(theme: SiteTheme): Promise<void> {
   return withPage(async ({ editCss }) => {
-    await editCss((css) => themeRules(theme).reduce((next, rule) => setDeclarations(next, rule.selector, rule.styles), css))
+    await editCss((css) => themeRules(theme, getVariables(css)).reduce((next, rule) => setDeclarations(next, rule.selector, rule.styles), css))
   })
 }
 
@@ -269,6 +284,7 @@ export function insertBlock(blockId: string, placement: Placement, overrides?: {
     const tag = /^<([a-z][\w-]*)/i.exec(block.html)?.[1]?.toLowerCase() ?? 'div'
     const newId = suggestId(html, tag)
     const fragment = withRootId(overrides?.html ?? block.html, newId)
+    await ensurePlaceholders(fragment)
     if ('freeIn' in placement) {
       editHtml((h) => insertHtml(h, placement.freeIn, 'inside-end', fragment))
       const size = block.freeSize ?? { width: 200, height: 80 }
@@ -285,6 +301,82 @@ export function insertBlock(blockId: string, placement: Placement, overrides?: {
     const inserted = findByAttrId(page, newId)
     if (inserted) useDesigner.getState().select(keyOf(inserted))
   })
+}
+
+/**
+ * Crea accanto alla pagina i segnaposto (`img/segnaposto-….svg`) usati da un frammento, nei colori del
+ * tema attuale. Quelli che esistono già non si toccano (l'utente può averli sostituiti con foto vere).
+ */
+async function ensurePlaceholders(fragment: string): Promise<void> {
+  const names = placeholderNames(fragment)
+  const { path, css, stylesheet } = useDesigner.getState()
+  if (!names.length || !path) return
+  const variables = stylesheet ? getVariables(css[stylesheet] ?? '') : {}
+  const colors = { primary: variables['--colore-primario'] ?? DEFAULT_PLACEHOLDER_COLORS.primary, secondary: variables['--colore-secondario'] ?? DEFAULT_PLACEHOLDER_COLORS.secondary }
+  const dir = dirnameOf(path)
+  const existing = new Set(filePaths(workbench().tree))
+  for (const name of names) {
+    const file = `${dir ? `${dir}/` : ''}${placeholderPath(name)}`
+    const svg = placeholderSvg(name, colors)
+    if (existing.has(file) || !svg) continue
+    try {
+      await ide.invoke('workspace:createFile', file, svg)
+    } catch {
+      /* esiste già (albero non ancora aggiornato) */
+    }
+  }
+}
+
+export type PageMode = 'replace' | 'append'
+
+/**
+ * Pagina intera della palette. «replace» toglie il contenuto visibile del body (gli script restano) e la
+ * mette al suo posto; «append» la aggiunge in fondo. In tutti e due i casi il body perde le regole che lo
+ * stringevano (griglia centrata dei modelli vecchi) e la pagina occupa tutta la larghezza.
+ */
+export function insertPage(blockId: string, mode: PageMode): Promise<void> {
+  const block = blockById(blockId)
+  if (!block) return Promise.resolve()
+  return withPage(async ({ html, editHtml, editCss }) => {
+    const newId = suggestId(html, 'div')
+    const fragment = withRootId(block.html, newId)
+    await ensurePlaceholders(fragment)
+    let current = html
+    if (mode === 'replace') current = editHtml((h) => clearBody(h))
+    if (current.body === null) editHtml((h) => insertHtml(h, null, 'inside-end', fragment))
+    else if (mode === 'replace') editHtml((h) => insertHtml(h, h.body, 'inside-start', fragment))
+    else {
+      const target = appendTarget(current, current.body)
+      editHtml((h) => insertHtml(h, target.id, target.where, fragment))
+    }
+    await editCss((css) => setDeclarations(block.css ? appendRulesOnce(css, block.css) : css, 'body', PAGE_BODY_RESET))
+    const page = parse(await modelFor(useDesigner.getState().path!))
+    const inserted = findByAttrId(page, newId)
+    if (inserted) useDesigner.getState().select(keyOf(inserted))
+  })
+}
+
+/**
+ * Clic (o rilascio) su una «Pagina intera»: se la pagina ha già del contenuto visibile si chiede se
+ * sostituirlo (consigliato: una landing sta meglio da sola) o aggiungere in fondo.
+ */
+export async function placePage(blockId: string): Promise<void> {
+  const page = useDesigner.getState().html
+  if (!page) return
+  const busy = visibleBodyChildren(page).length > 0
+  const mode = busy
+    ? await choose<PageMode>({
+        title: t('designer.pageModeTitle'),
+        message: t('designer.pageModeMessage'),
+        choices: [
+          { value: 'replace', label: t('designer.pageReplace'), testId: 'page-replace' },
+          { value: 'append', label: t('designer.pageAppend'), testId: 'page-append' }
+        ]
+      })
+    : 'replace'
+  if (!mode) return
+  useDesigner.getState().setRevealSelection(true)
+  await insertPage(blockId, mode)
 }
 
 /** Variabili e stili globali del sito (scheda "Sito"). */

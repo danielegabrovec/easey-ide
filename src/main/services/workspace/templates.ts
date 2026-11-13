@@ -38,27 +38,48 @@ const TSCONFIG_NODE = `{
 }
 `
 
+/**
+ * Colori del sito come variabili: gli stessi nomi dei temi del designer (scheda «Sito»), così scegliendo
+ * un tema si ricolora tutto, anche i pulsanti. I nomi brevi (--accento…) restano per chi li usa già.
+ */
+const TOKENS_CSS = `:root {
+  --colore-primario: #4f46e5;
+  --colore-secondario: #9333ea;
+  --colore-sfondo: #f6f7fb;
+  --colore-superficie: #ffffff;
+  --colore-testo: #1d2333;
+  --colore-tenue: #6b7385;
+  --font-titoli: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-testo: system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* nomi brevi, collegati ai colori del tema */
+  --accento: var(--colore-primario);
+  --sfondo: var(--colore-sfondo);
+  --testo: var(--colore-testo);
+}`
+
 const BASE_CSS = `/* Stili della pagina. Prova a cambiare i colori e salva: l'anteprima si aggiorna. */
-:root {
-  --sfondo: #f6f7fb;
-  --testo: #1d2333;
-  --accento: #4f46e5;
-}
+${TOKENS_CSS}
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
-  background: var(--sfondo);
-  color: var(--testo);
-  display: grid;
-  place-items: center;
   min-height: 100vh;
+  font-family: var(--font-testo);
+  background: var(--colore-sfondo);
+  color: var(--colore-testo);
 }
 
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* La scheda si centra da sola: la pagina resta libera di occupare tutta la larghezza. */
 .scheda {
-  background: white;
+  max-width: 32rem;
+  margin: 4rem auto;
+  background: var(--colore-superficie);
   padding: 2rem 2.5rem;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgb(0 0 0 / 0.08);
@@ -67,7 +88,7 @@ body {
 
 button {
   font: inherit;
-  background: var(--accento);
+  background: var(--colore-primario);
   color: white;
   border: 0;
   border-radius: 10px;
@@ -91,8 +112,11 @@ function designerSite(): Record<string, string> {
     .map((b) => (b.id === 'griglia' || b.id === 'modulo' ? indent(`<section class="lab-sezione">\n${indent(b.html, '  ')}\n</section>`, '    ') : indent(b.html, '    ')))
     .join('\n')
   const rules = [
-    ':root {\n  --accento: #4f46e5;\n  --sfondo: #f6f7fb;\n  --testo: #1d2333;\n}',
-    'body {\n  margin: 0;\n  font-family: system-ui, sans-serif;\n  background: var(--sfondo);\n  color: var(--testo);\n}',
+    TOKENS_CSS,
+    '* {\n  box-sizing: border-box;\n}',
+    'body {\n  margin: 0;\n  font-family: var(--font-testo);\n  background: var(--colore-sfondo);\n  color: var(--colore-testo);\n}',
+    'img {\n  max-width: 100%;\n  height: auto;\n}',
+    'button {\n  font: inherit;\n  cursor: pointer;\n}',
     '.lab-sezione {\n  padding: 64px 24px;\n  max-width: 1080px;\n  margin: 0 auto;\n}',
     ...blocks.map((b) => b.css).filter((c): c is string => !!c && !c.startsWith('.lab-sezione'))
   ]

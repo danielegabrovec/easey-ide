@@ -55,7 +55,33 @@ const GRID_CSS = `.lab-griglia {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }`
 
-const FORM_CSS = '.lab-modulo {\n  display: grid;\n  gap: 8px;\n  max-width: 420px;\n}\n\n.lab-modulo input,\n.lab-modulo textarea {\n  padding: 10px;\n  border: 1px solid #cfd5df;\n  border-radius: 8px;\n  font: inherit;\n}'
+const FORM_CSS = `.lab-modulo {\n  display: grid;\n  gap: 8px;\n  max-width: 420px;\n}\n\n.lab-modulo input,\n.lab-modulo textarea {\n  padding: 10px 12px;\n  border: 1px solid #cfd5df;\n  border-radius: 8px;\n  font: inherit;\n}\n\n.lab-modulo button {\n  justify-self: start;\n  margin-top: 8px;\n  padding: 12px 24px;\n  border: 0;\n  border-radius: 10px;\n  background: ${PRIMARY};\n  color: #ffffff;\n  font: inherit;\n  font-weight: 600;\n  cursor: pointer;\n}`
+
+const IMAGE_CSS = `.lab-immagine {
+  display: block;
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 12px;
+}`
+
+/**
+ * Regole di base di una pagina intera: le immagini non escono mai dal loro contenitore e la pagina
+ * occupa tutta la larghezza (il body lo sistema l'azione che inserisce la pagina, vedi PAGE_BODY_RESET).
+ */
+export const PAGE_CSS = `img {
+  max-width: 100%;
+  height: auto;
+}
+
+.lab-pagina {
+  width: 100%;
+}`
+
+/** Proprietà del body tolte o fissate inserendo una pagina intera (es. il body «centrato» dei modelli vecchi). */
+export const PAGE_BODY_RESET: Record<string, string | null> = { margin: '0', display: null, 'place-items': null, 'place-content': null, 'align-items': null, 'justify-content': null, 'justify-items': null }
 
 const SECTION_CSS = `.lab-sezione {
   padding: 64px 24px;
@@ -101,7 +127,7 @@ const BASE_BLOCKS: Block[] = [
   { id: 'area', label: 'Area di testo', category: 'moduli', html: '<textarea rows="4" placeholder="Testo lungo"></textarea>', freeSize: { width: 280, height: 100 } },
   { id: 'selezione', label: 'Menu a tendina', category: 'moduli', html: '<select>\n  <option>Prima scelta</option>\n  <option>Seconda scelta</option>\n</select>', freeSize: { width: 200, height: 40 } },
   { id: 'spunta', label: 'Casella di spunta', category: 'moduli', html: '<label><input type="checkbox"> Accetto</label>', freeSize: { width: 160, height: 28 } },
-  { id: 'immagine', label: 'Immagine', category: 'media', html: '<img src="https://picsum.photos/600/360" alt="Descrivi l’immagine" width="600" height="360">', freeSize: { width: 300, height: 180 } },
+  { id: 'immagine', label: 'Immagine', category: 'media', html: '<img class="lab-immagine" src="img/segnaposto-foto-1.svg" alt="Descrivi l’immagine" width="1200" height="800">', css: IMAGE_CSS, keywords: 'foto figura picture', freeSize: { width: 300, height: 200 } },
   { id: 'video', label: 'Video', category: 'media', html: '<video controls width="480"></video>', freeSize: { width: 320, height: 180 } },
   { id: 'emoji', label: 'Emoji grande', category: 'media', html: '<span class="lab-emoji">🚀</span>', css: '.lab-emoji {\n  font-size: 64px;\n  line-height: 1;\n}', freeSize: { width: 80, height: 80 } },
   { id: 'forma', label: 'Forma colorata', category: 'media', html: '<div class="lab-forma"></div>', css: '.lab-forma {\n  width: 120px;\n  height: 120px;\n  border-radius: 24px;\n  background: linear-gradient(135deg, #6d7cff, #b26dff);\n}', freeSize: { width: 120, height: 120 } },
@@ -118,7 +144,7 @@ const BASE_BLOCKS: Block[] = [
     category: 'sezioni',
     html: '<section class="lab-hero">\n  <h1>Un titolo che colpisce</h1>\n  <p>Una frase che spiega in breve di cosa si tratta.</p>\n  <a class="lab-bottone" href="#">Scopri di più</a>\n</section>',
     keywords: 'banner apertura titolo principale',
-    css: `.lab-hero {\n  padding: 96px 24px;\n  text-align: center;\n  color: #ffffff;\n  background: linear-gradient(135deg, ${PRIMARY}, ${SECONDARY});\n}\n\n.lab-hero h1 {\n  font-size: 48px;\n  margin: 0 0 12px;\n}\n\n${BUTTON_CSS}`
+    css: `.lab-hero {\n  padding: 96px 24px;\n  text-align: center;\n  color: #ffffff;\n  background: linear-gradient(135deg, ${PRIMARY}, ${SECONDARY});\n}\n\n.lab-hero h1 {\n  max-width: 22ch;\n  margin: 0 auto 16px;\n  font-size: clamp(2.25rem, 1.5rem + 3vw, 3.5rem);\n  line-height: 1.1;\n  text-wrap: balance;\n}\n\n.lab-hero p {\n  max-width: 56ch;\n  margin: 0 auto;\n  font-size: 1.125rem;\n}\n\n${BUTTON_CSS}`
   },
   {
     id: 'prezzi',
@@ -132,8 +158,9 @@ const BASE_BLOCKS: Block[] = [
     id: 'galleria',
     label: 'Galleria di immagini',
     category: 'sezioni',
-    html: '<section class="lab-galleria">\n  <img src="https://picsum.photos/id/10/400/300" alt="Foto 1">\n  <img src="https://picsum.photos/id/20/400/300" alt="Foto 2">\n  <img src="https://picsum.photos/id/30/400/300" alt="Foto 3">\n</section>',
-    css: '.lab-galleria {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));\n  gap: 12px;\n  padding: 24px;\n}\n\n.lab-galleria img {\n  width: 100%;\n  border-radius: 10px;\n}'
+    html: '<section class="lab-galleria">\n  <img src="img/segnaposto-foto-1.svg" alt="Descrivi la foto 1" width="1200" height="800">\n  <img src="img/segnaposto-foto-2.svg" alt="Descrivi la foto 2" width="1200" height="800">\n  <img src="img/segnaposto-foto-3.svg" alt="Descrivi la foto 3" width="1200" height="800">\n</section>',
+    keywords: 'foto immagini album portfolio',
+    css: '.lab-galleria {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));\n  gap: 16px;\n  max-width: 1080px;\n  margin: 0 auto;\n  padding: 48px 24px;\n}\n\n.lab-galleria img {\n  display: block;\n  width: 100%;\n  height: auto;\n  aspect-ratio: 4 / 3;\n  object-fit: cover;\n  border-radius: 12px;\n}'
   },
   {
     id: 'piede',
@@ -194,7 +221,7 @@ const BASE_BLOCKS: Block[] = [
     id: 'squadra',
     label: 'Squadra',
     category: 'sezioni',
-    html: '<section class="lab-sezione">\n  <h2>Chi siamo</h2>\n  <div class="lab-griglia lab-squadra">\n    <article>\n      <img src="https://picsum.photos/id/64/240/240" alt="Foto di Sara">\n      <h3>Sara</h3>\n      <p>Fondatrice</p>\n    </article>\n    <article>\n      <img src="https://picsum.photos/id/91/240/240" alt="Foto di Paolo">\n      <h3>Paolo</h3>\n      <p>Progettista</p>\n    </article>\n  </div>\n</section>',
+    html: '<section class="lab-sezione">\n  <h2>Chi siamo</h2>\n  <div class="lab-griglia lab-squadra">\n    <article>\n      <img src="img/segnaposto-persona-1.svg" alt="Foto di Sara" width="480" height="480">\n      <h3>Sara</h3>\n      <p>Fondatrice</p>\n    </article>\n    <article>\n      <img src="img/segnaposto-persona-2.svg" alt="Foto di Paolo" width="480" height="480">\n      <h3>Paolo</h3>\n      <p>Progettista</p>\n    </article>\n  </div>\n</section>',
     keywords: 'team persone staff chi siamo',
     css: `${SECTION_CSS}\n\n${GRID_CSS}\n\n.lab-squadra {\n  text-align: center;\n}\n\n.lab-squadra img {\n  width: 120px;\n  height: 120px;\n  border-radius: 50%;\n  object-fit: cover;\n}`
   },
@@ -224,10 +251,7 @@ function pageTemplate(id: string, label: string, sections: string[], keywords: s
     category: 'modelli',
     keywords: `pagina modello template ${keywords}`,
     html: `<div class="lab-pagina">\n${parts.map((p) => indentBlock(p.html, '  ')).join('\n')}\n</div>`,
-    css: parts
-      .map((p) => p.css)
-      .filter(Boolean)
-      .join('\n\n')
+    css: [PAGE_CSS, ...parts.map((p) => p.css)].filter(Boolean).join('\n\n')
   }
 }
 

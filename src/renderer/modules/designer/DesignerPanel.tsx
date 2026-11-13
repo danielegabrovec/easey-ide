@@ -36,7 +36,12 @@ function useCanvasDocument(path: string): string {
     let disposed = false
     let timer: ReturnType<typeof setTimeout> | null = null
     let subscriptions: Monaco.IDisposable[] = []
+    // Ogni ricostruzione aspetta i modelli (asincrono): vale solo l'ultima partita. Senza questo, una
+    // ricostruzione lenta iniziata con il CSS vecchio poteva finire dopo quella nuova e lasciare nel
+    // canvas l'HTML nuovo con gli stili di prima (es. pagina intera inserita «senza stile»).
+    let generation = 0
     const rebuild = async () => {
+      const mine = ++generation
       try {
         const htmlModel = await modelFor(path)
         const source = htmlModel.getValue()
@@ -54,8 +59,8 @@ function useCanvasDocument(path: string): string {
             /* foglio di stile mancante */
           }
         }
-        if (disposed) return
-        const first = linkedStylesheets(parsed).map((h) => resolveRelative(path, h)).find((p) => p && css[p] !== undefined) ?? null
+        if (disposed || mine !== generation) return
+        const first =linkedStylesheets(parsed).map((h) => resolveRelative(path, h)).find((p) => p && css[p] !== undefined) ?? null
         useDesigner.getState().setParsed(parsed, css, first)
         setHtml(buildCanvasDocument(source, { htmlPath: path, stylesheet: (p) => css[p] ?? null }))
         // Si ascoltano i modelli coinvolti (cambiano anche quando si aggiunge un foglio di stile).

@@ -61,17 +61,19 @@ try {
   await run.shot('02-tavola')
 
   // Spostamento libero con il mouse
-  const leftBefore = Number(/#titolo-1 \{[^}]*left: (\d+)px/.exec(css())?.[1])
+  const topBefore = Number(/#titolo-1 \{[^}]*top: (\d+)px/.exec(css())?.[1])
+  const leftOf = () => Number(/#titolo-1 \{[^}]*left: (\d+)px/.exec(css())?.[1])
+  check('tavola: il titolo rilasciato resta dentro la tavola (larga quanto la scheda)', leftOf() + 420 <= (await frame.locator('.tavola').evaluate((t) => t.clientWidth)) + 1, `left ${leftOf()}`)
   const box = await clickIn('#titolo-1')
-  // Si afferra il titolo dal lato sinistro e si resta dentro la tavola (che qui è più stretta del titolo):
-  // tirando il puntatore ben fuori, l'elemento uscirebbe dalla tavola.
+  // Si afferra il titolo dal lato sinistro e si resta dentro la tavola (larga quasi quanto il titolo:
+  // di lato non c'è spazio, si sposta in basso). Tirando il puntatore ben fuori uscirebbe dalla tavola.
   await page.mouse.move(box.x + 12, box.y + box.height / 2)
   await page.mouse.down()
   await page.mouse.move(box.x + 12 + 20, box.y + box.height / 2 + 20, { steps: 6 })
   await page.mouse.move(box.x + 12 + 40, box.y + box.height / 2 + 40, { steps: 6 })
   await page.mouse.up()
-  const moved = await until(() => Number(/#titolo-1 \{[^}]*left: (\d+)px/.exec(css())?.[1]) > leftBefore + 20, 8000)
-  check('libero: trascinamento aggiorna left/top nel CSS', !!moved, `${leftBefore} → ${/#titolo-1 \{[^}]*left: (\d+)px/.exec(css())?.[1]}`)
+  const moved = await until(() => Number(/#titolo-1 \{[^}]*top: (\d+)px/.exec(css())?.[1]) > topBefore + 20, 8000)
+  check('libero: trascinamento aggiorna left/top nel CSS', !!moved, `top ${topBefore} → ${/#titolo-1 \{[^}]*top: (\d+)px/.exec(css())?.[1]}`)
   await run.shot('03-spostato')
 
   // Modifica del testo in linea + annulla
@@ -150,9 +152,11 @@ try {
   await run.shot('07-tema')
   await page.getByTestId('insp-tab-style').click()
 
-  // Pagina intera dalla palette: in fondo al body, prima degli script
+  // Pagina intera dalla palette: la pagina ha già del contenuto, quindi si sceglie; qui «Aggiungi in fondo»
+  // (in fondo al body, prima degli script). «Sostituisci la pagina» è in designer-page.mjs.
   await page.getByTestId('designer-palette-search').fill('pagina contatti')
   await page.locator('[data-block="pagina-contatti"]').click()
+  await page.getByTestId('page-append').click()
   const pageAdded = await until(() => {
     const text = html()
     const start = text.indexOf('class="lab-pagina"')
