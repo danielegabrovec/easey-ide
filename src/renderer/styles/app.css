@@ -552,6 +552,65 @@ body.side-resizing webview {
   margin: 4px 0;
 }
 
+.context-menu {
+  max-height: 80vh;
+  overflow-y: auto;
+  max-width: 460px;
+}
+
+/* 1.6: titoli dei gruppi, testo grigio a destra (tasti), voci spente, sottomenu e voce attiva da tastiera. */
+.context-menu-heading {
+  padding: 6px 10px 2px;
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: normal;
+}
+
+.context-menu-detail {
+  margin-left: auto;
+  padding-left: 12px;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.context-menu button.checked {
+  font-weight: 600;
+  color: var(--accent-strong);
+}
+
+.context-menu button.disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.context-menu button.disabled:hover {
+  background: transparent;
+}
+
+.context-menu button.active,
+.context-menu button:focus-visible {
+  background: var(--accent-soft);
+  outline: none;
+}
+
+.context-menu button.submenu {
+  padding-right: 6px;
+}
+
+.context-menu .context-menu-chevron {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--text-faint);
+}
+
+.context-menu .context-menu-detail + .context-menu-chevron {
+  margin-left: 6px;
+}
+
+.context-menu.context-submenu {
+  z-index: 1101;
+}
+
 /* ---------------------------------------------------------------- avvisi */
 .toasts {
   position: absolute;

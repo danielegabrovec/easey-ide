@@ -132,8 +132,10 @@ export class TerminalService {
     if (request.kind === 'shell') {
       const wanted = request.shellId ?? (await this.defaultShell())
       const shell = this.shells.find((s) => s.id === wanted) ?? this.shells[0]!
-      const info: TerminalSessionInfo = { id, kind: 'shell', title: shell.label }
-      this.start(info, shell.file, shell.args, cwd, {}, true)
+      const info: TerminalSessionInfo = { id, kind: 'shell', title: request.dir ? `${shell.label} · ${request.dir}` : shell.label }
+      // Una sottocartella del progetto (absolute() rifiuta i percorsi che escono dal progetto).
+      const here = request.dir && this.workspace.root() ? this.workspace.absolute(request.dir) : cwd
+      this.start(info, shell.file, shell.args, here, {}, true)
       return info
     }
     if (request.kind === 'repl') {

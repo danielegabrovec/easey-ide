@@ -176,6 +176,14 @@ export class WorkspaceService {
     await rename(this.absolute(from), target)
   }
 
+  /** «Duplica» dell'Esplora: copia byte per byte (anche immagini e database), mai sopra un file che c'è già. */
+  async copy(from: string, to: string): Promise<void> {
+    const target = this.absolute(to)
+    if (existsSync(target)) throw new Error(`Esiste già: ${to}`)
+    await mkdir(resolve(target, '..'), { recursive: true })
+    await copyFile(this.absolute(from), target)
+  }
+
   /** «Elimina» dell'Esplora: nel Cestino di Windows, da cui si può recuperare. */
   async delete(path: string): Promise<void> {
     await this.trash(path)

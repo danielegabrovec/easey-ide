@@ -4,11 +4,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, FilePlus2, FolderPlus, FolderOpen, RefreshCw, ChevronsDownUp, Folder } from 'lucide-react'
 import type { FileEntry } from '@shared/contracts/workspace'
-import { treeKey, visibleRows } from '@shared/file-tree'
-import { dirnameOf, extensionOf, isScriptFile } from '@shared/paths'
+import { folderPaths, treeKey, visibleRows } from '@shared/file-tree'
+import { dirnameOf } from '@shared/paths'
 import { executeCommand } from '../../workbench/commands'
 import { useWorkbench } from '../../workbench/store'
-import { showContextMenu } from '../../ui/ContextMenu'
+import { isContextMenuKey, showContextMenu, showContextMenuAt } from '../../ui/ContextMenu'
+import { treeMenuItems, type TreeMenuLocal } from './tree-menu'
 import { t } from '../../i18n'
 import { FileIcon } from './FileIcon'
 import { refreshTree } from './project'
@@ -41,6 +42,7 @@ interface TreeContext {
   setFocused: (path: string) => void
   dropDir: string | null
   setDropDir: (dir: string | null) => void
+  local: TreeMenuLocal
 }
 
 /** Cartella che riceve un file lasciato sopra una riga: la cartella stessa, o quella che contiene il file. */
@@ -51,30 +53,8 @@ function TreeNode({ entry, depth, context }: { entry: FileEntry; depth: number; 
   const isDir = entry.kind === 'dir'
   const open = isDir && expanded.has(entry.path)
 
-  const onContext = (event: React.MouseEvent) => {
-    const parent = isDir ? entry.path : entry.path.includes('/') ? entry.path.slice(0, entry.path.lastIndexOf('/')) : ''
-    const items: Parameters<typeof showContextMenu>[1] = []
-    if (!isDir) items.push({ label: t('explorer.open'), run: () => executeCommand('editor.open', { path: entry.path }) })
-    if (!isDir && ['html', 'htm'].includes(extensionOf(entry.path))) items.push({ label: t('explorer.openPreview'), run: () => executeCommand('run.preview', { entry: entry.path }) }, { label: t('explorer.openDesigner'), run: () => executeCommand('designer.open', { path: entry.path }) })
-    if (!isDir && isScriptFile(entry.path)) items.push({ label: t('explorer.runInTerminal'), run: () => executeCommand('run.fileInTerminal', { path: entry.path }) })
-    if (!isDir) items.push({ label: t('explorer.history'), run: () => executeCommand('editor.history', { path: entry.path }) })
-    if (items.length) items.push('separator')
-    items.push(
-      { label: t('explorer.newFile'), run: () => executeCommand('explorer.newFile', { dir: parent }) },
-      { label: t('explorer.newFolder'), run: () => executeCommand('explorer.newFolder', { dir: parent }) },
-      { label: t('visual.newBlocks'), run: () => executeCommand('visual.newBlocks') },
-      { label: t('visual.newNodes'), run: () => executeCommand('visual.newNodes') },
-      { label: t('diagram.newTitle'), run: () => executeCommand('diagram.new') },
-      'separator',
-      { label: `${t('explorer.rename')} (F2)`, run: () => executeCommand('explorer.rename', { path: entry.path }) },
-      { label: t('explorer.move'), run: () => executeCommand('explorer.move', { path: entry.path }) },
-      { label: t('explorer.copyPath'), run: () => executeCommand('explorer.copyPath', { path: entry.path }) },
-      { label: t('explorer.reveal'), run: () => executeCommand('explorer.reveal', { path: entry.path }) },
-      'separator',
-      { label: `${t('explorer.delete')} (Canc)`, danger: true, run: () => executeCommand('explorer.delete', { path: entry.path, kind: entry.kind }) }
-    )
-    showContextMenu(event, items)
-  }
+  // Tasto destro completo (1.6): gruppi e sottomenu da @shared/explorer-menu.
+  const onContext = (event: React.MouseEvent) => showContextMenu(event, treeMenuItems({ path: entry.path, kind: entry.kind }, context.local))
 
   return (
     <>
@@ -185,8 +165,36 @@ export function ExplorerPanel() {
     else requestAnimationFrame(() => row()?.focus())
   }
 
+  // Espandi/Comprimi tutto del tasto destro: la cartella e tutte quelle dentro ('' = tutto l'albero).
+  const inside = (folder: string) => (path: string) => folder === '' || path === folder || path.startsWith(`${folder}/`)
+  const local: TreeMenuLocal = {
+    expandAll: (folder) => {
+      const next = new Set(expanded)
+      for (const path of folderPaths(tree).filter(inside(folder))) next.add(path)
+      setExpanded(next)
+      if (project) saveExpanded(project.root, next)
+    },
+    collapseAll: (folder) => {
+      const next = new Set([...expanded].filter((path) => !inside(folder)(path)))
+      setExpanded(next)
+      if (project) saveExpanded(project.root, next)
+    }
+  }
+
   const onKeyDown = (event: React.KeyboardEvent) => {
     if ((event.target as HTMLElement).getAttribute('role') !== 'treeitem') return
+    // Tasto Menu o Maiusc+F10: il tasto destro da tastiera, accanto alla riga.
+    if (isContextMenuKey(event)) {
+      const row = event.target as HTMLElement
+      const path = row.dataset['path']
+      const entry = path ? rows.find((r) => r.path === path) : undefined
+      if (!entry) return
+      event.preventDefault()
+      event.stopPropagation()
+      const rect = row.getBoundingClientRect()
+      showContextMenuAt(rect.left + 24, rect.bottom, treeMenuItems({ path: entry.path, kind: entry.kind }, local))
+      return
+    }
     const result = treeKey(rows, focused && rows.some((r) => r.path === focused) ? focused : null, event.key, expanded)
     if (!result) return
     event.preventDefault()
@@ -222,7 +230,7 @@ export function ExplorerPanel() {
 
   // Se nessuna riga ha il fuoco, la prima resta raggiungibile col Tab.
   const tabbable = focused && rows.some((r) => r.path === focused) ? focused : (rows[0]?.path ?? null)
-  const context: TreeContext = { expanded, toggle, activeFile, focused: tabbable, setFocused, dropDir, setDropDir }
+  const context: TreeContext = { expanded, toggle, activeFile, focused: tabbable, setFocused, dropDir, setDropDir, local }
 
   return (
     <div className="panel">
@@ -277,12 +285,7 @@ export function ExplorerPanel() {
           event.preventDefault()
           void executeCommand('explorer.move', { path: from, dir: '' })
         }}
-        onContextMenu={(event) =>
-          showContextMenu(event, [
-            { label: t('explorer.newFile'), run: () => executeCommand('explorer.newFile', { dir: '' }) },
-            { label: t('explorer.newFolder'), run: () => executeCommand('explorer.newFolder', { dir: '' }) }
-          ])
-        }
+        onContextMenu={(event) => showContextMenu(event, treeMenuItems({ path: '', kind: 'root' }, local))}
         data-testid="explorer-tree"
       >
         {tree.map((entry) => (

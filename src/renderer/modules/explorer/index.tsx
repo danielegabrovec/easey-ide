@@ -7,7 +7,8 @@ import { notifyError } from '../../workbench/notifications'
 import { workbench } from '../../workbench/store'
 import { confirm, openDialog, prompt } from '../../ui/dialogs'
 import { notify } from '../../workbench/notifications'
-import { basenameOf, dirnameOf, joinRelative } from '@shared/paths'
+import { basenameOf, dirnameOf, filePaths, joinRelative } from '@shared/paths'
+import { duplicateName } from '@shared/explorer-menu'
 import { folderPaths, moveDestination } from '@shared/file-tree'
 import { LEGACY_PROJECT_CONFIG_FILE, PROJECT_CONFIG_FILE } from '@shared/contracts/workspace'
 import { t } from '../../i18n'
@@ -123,16 +124,47 @@ export function activateExplorer(): void {
       await refreshTree()
     }
   })
-  registerCommand<{ path: string }>({
+  // Percorso nel progetto (di serie), percorso completo sul disco, o solo il nome.
+  registerCommand<{ path: string; mode?: 'relative' | 'absolute' | 'name' }>({
     id: 'explorer.copyPath',
     title: t('explorer.copyPath'),
     palette: false,
     run: async (args) => {
       if (!args) return
-      await navigator.clipboard.writeText(args.path)
-      notify(t('explorer.pathCopied', { path: args.path }), 'success')
+      const mode = args.mode ?? 'relative'
+      if (mode === 'name') {
+        const name = basenameOf(args.path) || (workbench().project?.name ?? '')
+        await navigator.clipboard.writeText(name)
+        notify(t('explorer.nameCopied', { name }), 'success')
+        return
+      }
+      const root = workbench().project?.root ?? ''
+      const separator = root.includes('\\') ? '\\' : '/'
+      const text = mode === 'absolute' ? [root, ...args.path.split('/').filter(Boolean)].join(separator) : args.path
+      await navigator.clipboard.writeText(text)
+      notify(t('explorer.pathCopied', { path: text }), 'success')
     }
   })
+  // «Duplica» del tasto destro: «nome copia.ext» accanto all'originale (prima si salva il testo dell'editor).
+  registerCommand<{ path: string }>({
+    id: 'explorer.duplicate',
+    title: t('treeMenu.duplicate'),
+    palette: false,
+    run: async (args) => {
+      if (!args) return
+      try {
+        await executeCommand('editor.saveAll')
+        const target = duplicateName(args.path, filePaths(workbench().tree))
+        await ide.invoke('workspace:copy', args.path, target)
+        await refreshTree()
+        notify(t('explorer.duplicated', { path: target }), 'success')
+        await executeCommand('editor.open', { path: target })
+      } catch (error) {
+        notifyError(error)
+      }
+    }
+  })
+  registerCommand({ id: 'explorer.refresh', title: t('explorer.refresh'), category, when: hasProject, run: () => refreshTree() })
   registerCommand<{ path: string }>({
     id: 'explorer.rename',
     title: t('explorer.rename'),

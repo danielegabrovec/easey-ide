@@ -59,7 +59,8 @@ export interface TerminalCapabilities {
 }
 
 export type CreateTerminalRequest =
-  | { kind: 'shell'; shellId?: string }
+  /** `dir` = cartella del progetto in cui aprire il terminale («Apri il terminale qui»); di serie la principale. */
+  | { kind: 'shell'; shellId?: string; dir?: string }
   | { kind: 'run'; entry: string }
   | { kind: 'repl' }
 

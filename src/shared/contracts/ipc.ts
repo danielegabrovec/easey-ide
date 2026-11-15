@@ -58,6 +58,7 @@ export interface InvokeChannels {
   'workspace:createFile': (path: string, content: string) => void
   'workspace:createFolder': (path: string) => void
   'workspace:rename': (from: string, to: string) => void
+  'workspace:copy': (from: string, to: string) => void
   'workspace:delete': (path: string) => void
   'workspace:reveal': (path: string) => void
   /** Sceglie un'immagine dal disco e la copia nella cartella indicata del progetto; restituisce il percorso o null. */
@@ -183,6 +184,7 @@ export const INVOKE_CHANNELS = [
   'workspace:createFile',
   'workspace:createFolder',
   'workspace:rename',
+  'workspace:copy',
   'workspace:delete',
   'workspace:reveal',
   'workspace:importAsset',

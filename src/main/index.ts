@@ -230,6 +230,7 @@ registerHandlers(
     'workspace:createFile': (path, content) => workspace.createFile(path, content),
     'workspace:createFolder': (path) => workspace.createFolder(path),
     'workspace:rename': (from, to) => workspace.rename(from, to),
+    'workspace:copy': (from, to) => workspace.copy(from, to),
     'workspace:delete': (path) => workspace.delete(path),
     'workspace:reveal': (path) => shell.showItemInFolder(workspace.absolute(path)),
     'workspace:importAsset': async (folder) => {

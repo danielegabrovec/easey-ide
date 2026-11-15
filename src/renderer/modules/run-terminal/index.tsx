@@ -18,14 +18,14 @@ export function activateRunTerminal(): void {
   installTerminalListeners()
 
   const category = t('category.terminal')
-  registerCommand({
+  registerCommand<{ dir?: string }>({
     id: 'terminal.new',
     title: t('cmd.newTerminal'),
     category,
     keybinding: 'Ctrl+Shift+`',
-    run: async () => {
+    run: async (args) => {
       showTerminalPanel()
-      await createSession({ kind: 'shell' })
+      await createSession({ kind: 'shell', dir: args?.dir || undefined })
     }
   })
   registerCommand({
