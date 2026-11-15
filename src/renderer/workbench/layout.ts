@@ -13,7 +13,30 @@ import { chooseCenterGroup, isSideGroup, newCenterPosition, type SideGroups } fr
  * diagrammi, Scrittura rapida) nascondono da soli i pannelli di servizio, MAI l'Esplora; tornando a
  * un file riappaiono. Niente più gruppi ingranditi senza un pulsante per tornare indietro.
  */
-export const useLayout = create<{ sidebar: boolean; panels: boolean; split: string[] }>(() => ({ sidebar: true, panels: true, split: [] }))
+/** Disposizione pronta (1.6): «Standard» o «Laboratorio» (presets.ts). Si ricorda tra i riavvii. */
+export type LayoutPreset = 'standard' | 'lab'
+const PRESET_KEY = 'easey.layout.preset'
+
+function loadPreset(): LayoutPreset {
+  try {
+    return localStorage.getItem(PRESET_KEY) === 'lab' ? 'lab' : 'standard'
+  } catch {
+    return 'standard'
+  }
+}
+
+export const useLayout = create<{ sidebar: boolean; panels: boolean; split: string[]; preset: LayoutPreset }>(() => ({ sidebar: true, panels: true, split: [], preset: loadPreset() }))
+
+export const layoutPreset = (): LayoutPreset => useLayout.getState().preset
+
+export function setLayoutPreset(preset: LayoutPreset): void {
+  useLayout.setState({ preset })
+  try {
+    localStorage.setItem(PRESET_KEY, preset)
+  } catch {
+    /* archiviazione non disponibile: vale per questa sessione */
+  }
+}
 
 /** Pannelli che hanno bisogno di spazio: aperti, nascondono anteprima e console. */
 const WIDE_PANELS = ['designer', 'quick', 'visual:', 'diagram:']
@@ -114,6 +137,8 @@ function onActivePanel(panel: IDockviewPanel | null): void {
   // Le schede dei gruppi laterali (Esplora, anteprima, console) non cambiano la disposizione.
   if ([areaGroups.left, areaGroups.right, areaGroups.bottom].includes(panel.group.id)) return
   if (companions.has(panel.id)) return
+  // Nel Laboratorio la Scrittura rapida ha l'output e la console sotto: non li nasconde.
+  if (panel.id === 'quick' && layoutPreset() === 'lab') return
   if (isWidePanel(panel.id)) {
     lastWide = panel.id
     if (useLayout.getState().panels && keptFor !== panel.id) setPanelsVisible(false, true)
@@ -246,6 +271,21 @@ export function findPanels(prefix: string): IDockviewPanel[] {
 export function rememberArea(area: Area, groupId: string): void {
   if (area === 'center' && isSideGroup(groupId, sideGroups())) return
   areaGroups[area] = groupId
+}
+
+/** Il gruppo di un'area, se c'è ancora (per le disposizioni pronte). */
+export function areaGroup(area: Area) {
+  return liveGroup(area)
+}
+
+/** Dimentica i gruppi laterali (le disposizioni pronte li rifanno). */
+export function forgetSideAreas(): void {
+  delete areaGroups.left
+  delete areaGroups.right
+  delete areaGroups.bottom
+  autoHidden = false
+  keptFor = null
+  useLayout.setState({ sidebar: true, panels: true })
 }
 
 /** I gruppi laterali che esistono ancora. */

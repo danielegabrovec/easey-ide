@@ -38,6 +38,11 @@ function load(): SidePanelState {
 interface SidePanelStore extends SidePanelState {
   /** Cresce a ogni richiesta di fuoco nella casella (Ctrl+Shift+A): il contenuto la osserva. */
   focusRequest: number
+  /**
+   * 'side' = colonna fuori dalla griglia (di serie); 'panel' = pannello della griglia (Laboratorio, presets.ts):
+   * «aperto» e il pannello vanno insieme, la colonna laterale non si mostra.
+   */
+  mode: 'side' | 'panel'
   setOpen: (open: boolean, focus?: boolean) => void
   toggle: () => void
   setWidth: (width: number) => void
@@ -47,6 +52,7 @@ interface SidePanelStore extends SidePanelState {
 export const useSidePanel = create<SidePanelStore>((set, get) => ({
   ...load(),
   focusRequest: 0,
+  mode: 'side',
   setOpen: (open, focus = false) => {
     if (!open && document.activeElement?.closest('.side-panel')) void executeCommand('editor.focus')
     set((state) => ({ open, focusRequest: focus ? state.focusRequest + 1 : state.focusRequest }))

@@ -3881,3 +3881,16 @@ button.quick-line:hover {
   max-width: none;
   max-height: none;
 }
+
+/* ---------------------------------------------------------------- Laboratorio (1.6): pannelli della griglia */
+.quick-output.quick-output-docked {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+}
+
+.quick-collection-docked .quick-collection {
+  width: 100%;
+  height: 100%;
+  border-right: 0;
+}

@@ -1,5 +1,7 @@
 // Pannello della Scrittura rapida: barra (linguaggio, titolo, livello di aiuto, Esegui, Salva…),
 // raccolta dei salvataggi a sinistra, editor al centro, risultati a destra. Nessun progetto richiesto.
+// Nel Laboratorio (1.6, presets.ts) raccolta e risultati sono pannelli della griglia (QuickCollectionPanel a
+// sinistra, QuickOutputPanel sotto): qui resta l'editor, con sopra lo spazio «quick.top» (esempi da provare).
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { IDockviewPanelProps } from 'dockview'
 import * as monaco from 'monaco-editor'
@@ -39,7 +41,8 @@ import {
 import { SAMPLE_DATABASES } from '@shared/sql/samples'
 import { ide } from '../../ipc'
 import { executeCommand } from '../../workbench/commands'
-import { dockApi } from '../../workbench/layout'
+import { dockApi, useLayout } from '../../workbench/layout'
+import { Slot } from '../../workbench/slots'
 import { notify } from '../../workbench/notifications'
 import { useWorkbench, workbench } from '../../workbench/store'
 import { updateSettings } from '../../workbench/workbench-commands'
@@ -322,7 +325,7 @@ function SqlBar() {
   )
 }
 
-function Collection({ onCollapse }: { onCollapse: () => void }) {
+function Collection({ onCollapse }: { onCollapse?: () => void }) {
   const snippets = useQuick((s) => s.snippets)
   const currentId = useQuick((s) => s.docs[s.language].snippetId)
   const [filter, setFilter] = useState('')
@@ -337,9 +340,11 @@ function Collection({ onCollapse }: { onCollapse: () => void }) {
         <button className="icon-btn" onClick={() => void ide.invoke('quick:revealFolder')} title={t('quick.openFolder')}>
           <FolderOpen size={15} />
         </button>
-        <button className="icon-btn" onClick={onCollapse} title={t('quick.hideCollection')}>
-          <PanelLeftClose size={15} />
-        </button>
+        {onCollapse && (
+          <button className="icon-btn" onClick={onCollapse} title={t('quick.hideCollection')}>
+            <PanelLeftClose size={15} />
+          </button>
+        )}
       </header>
       {snippets.length > 4 && <input className="quick-filter" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t('quick.filter')} spellCheck={false} />}
       <ul>
@@ -707,6 +712,7 @@ export function QuickPanel({ api }: IDockviewPanelProps) {
   const level = useWorkbench((s) => s.settings.quick.level)
   const [showCollection, setShowCollection] = useState(() => readLocal('easey.quick.collection', '1') === '1')
   const [split, setSplit] = useState(() => Number(readLocal('easey.quick.split', '42')) || 42)
+  const lab = useLayout((s) => s.preset === 'lab')
 
   useEffect(() => {
     if (!host.current) return
@@ -770,12 +776,13 @@ export function QuickPanel({ api }: IDockviewPanelProps) {
   }
 
   return (
-    <div className="panel quick-panel" data-testid="quick-panel" data-language={language} data-level={level}>
+    <div className="panel quick-panel" data-testid="quick-panel" data-language={language} data-level={level} data-lab={lab ? 'true' : undefined}>
       <Toolbar api={api} />
+      <Slot name="quick.top" />
       <PromptBar />
       {language === 'sql' && <SqlBar />}
       <div className="quick-body" ref={body}>
-        {showCollection ? (
+        {lab ? null : showCollection ? (
           <Collection onCollapse={() => toggleCollection(false)} />
         ) : (
           <button className="quick-collection-open icon-btn" onClick={() => toggleCollection(true)} title={t('quick.showCollection')}>
@@ -783,21 +790,53 @@ export function QuickPanel({ api }: IDockviewPanelProps) {
           </button>
         )}
         <div className="quick-editor" ref={host} data-testid="quick-editor" />
-        <div className="quick-splitter" onMouseDown={startDrag} role="separator" aria-orientation="vertical" />
-        <div className="quick-output" style={{ width: `${split}%` }}>
-          <header>
-            <span>{t('quick.output')}</span>
-            {language === 'sql' ? <SqlSummary /> : <Summary />}
-            <span className="spacer" />
-            <ToolchainChip />
-            <button className="icon-btn" onClick={() => void copyQuick()} title={t('quick.copy')}>
-              <Copy size={14} />
-            </button>
-          </header>
-          {language === 'sql' ? <SqlOutput /> : language === 'html' ? <PageOutput /> : <CodeOutput />}
-          <StdinBox />
-        </div>
+        {!lab && (
+          <>
+            <div className="quick-splitter" onMouseDown={startDrag} role="separator" aria-orientation="vertical" />
+            <div className="quick-output" style={{ width: `${split}%` }}>
+              <OutputColumn />
+            </div>
+          </>
+        )}
       </div>
+    </div>
+  )
+}
+
+/** Risultati: riassunto, output (testo, tabelle SQL o pagina HTML) e riquadro «Input». */
+function OutputColumn() {
+  const language = useQuick((s) => s.language)
+  return (
+    <>
+      <header>
+        <span>{t('quick.output')}</span>
+        {language === 'sql' ? <SqlSummary /> : <Summary />}
+        <span className="spacer" />
+        <ToolchainChip />
+        <button className="icon-btn" onClick={() => void copyQuick()} title={t('quick.copy')}>
+          <Copy size={14} />
+        </button>
+      </header>
+      {language === 'sql' ? <SqlOutput /> : language === 'html' ? <PageOutput /> : <CodeOutput />}
+      <StdinBox />
+    </>
+  )
+}
+
+/** Laboratorio: i risultati della Scrittura rapida come pannello in basso. */
+export function QuickOutputPanel() {
+  return (
+    <div className="panel quick-output quick-output-docked" data-testid="quick-output-panel">
+      <OutputColumn />
+    </div>
+  )
+}
+
+/** Laboratorio: la raccolta dei salvataggi come pannello a sinistra. */
+export function QuickCollectionPanel() {
+  return (
+    <div className="panel quick-collection-docked">
+      <Collection />
     </div>
   )
 }

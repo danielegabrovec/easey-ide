@@ -7,6 +7,7 @@ import { activateExplorer } from './explorer'
 import { activateGit } from './git'
 import { activateGuide } from './guide'
 import { activateQuickCode } from './quick-code'
+import { activateLab } from './lab'
 import { activateLearn } from './learn'
 import { activateRunTerminal } from './run-terminal'
 import { activateRunWeb } from './run-web'
@@ -28,6 +29,8 @@ export function activateModules(): void {
   activateStepRun()
   activateGit()
   activateQuickCode()
+  // Dopo la Scrittura rapida: la striscia degli esempi e la cronologia la usano.
+  activateLab()
   // Per ultimo: i percorsi e «Cosa fare adesso» usano i comandi degli altri moduli.
   activateGuide()
 }

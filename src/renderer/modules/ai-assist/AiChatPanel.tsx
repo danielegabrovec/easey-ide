@@ -151,6 +151,8 @@ function Header() {
   const expanded = useSidePanel((s) => s.expanded)
   const toggleExpanded = useSidePanel((s) => s.toggleExpanded)
   const setOpen = useSidePanel((s) => s.setOpen)
+  // Come pannello della griglia (Laboratorio) la larghezza la decide la griglia: niente «Espandi».
+  const docked = useSidePanel((s) => s.mode === 'panel')
   const reset = useChat((s) => s.reset)
   const empty = useChat((s) => s.messages.length === 0)
   return (
@@ -161,7 +163,7 @@ function Header() {
       <button className="icon-btn" title={t('ai.newChat')} aria-label={t('ai.newChat')} onClick={reset} disabled={empty} data-testid="ai-new">
         <Plus size={15} />
       </button>
-      <button
+      {!docked && <button
         className="icon-btn"
         title={expanded ? t('ai.shrink') : t('ai.expand')}
         aria-label={expanded ? t('ai.shrink') : t('ai.expand')}
@@ -170,7 +172,7 @@ function Header() {
         data-testid="ai-expand"
       >
         {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-      </button>
+      </button>}
       <button className="icon-btn" title={`${t('ai.closePanel')} (Ctrl+Alt+B)`} aria-label={t('ai.closePanel')} onClick={() => setOpen(false)} data-testid="ai-close">
         <X size={15} />
       </button>

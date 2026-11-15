@@ -3,9 +3,10 @@
 // Non contiene logica di dominio: tutte le azioni passano dai comandi registrati dai moduli.
 import { useCallback, useEffect, useState } from 'react'
 import { DockviewReact, themeDark, themeLight, type DockviewReadyEvent } from 'dockview'
-import { AlertCircle, AlertTriangle, Copy, History, X, Command as CommandIcon, Moon, Play, Settings2, Sun, SquareTerminal, TerminalSquare, Globe, PenTool, Database, Zap, PanelLeftClose, PanelLeftOpen, PanelBottomClose, PanelBottomOpen } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Copy, History, X, Command as CommandIcon, Moon, Play, Settings2, Sun, SquareTerminal, TerminalSquare, Globe, PenTool, Database, Zap, FlaskConical, PanelLeftClose, PanelLeftOpen, PanelBottomClose, PanelBottomOpen } from 'lucide-react'
 import { executeCommand } from './commands'
-import { buildDefaultLayout, panelComponents, setDockApi, useLayout } from './layout'
+import { panelComponents, setDockApi, useLayout } from './layout'
+import { initLayout } from './presets'
 import { useWorkbench } from './store'
 import { CommandPalette } from './CommandPalette'
 import { SidePanelHost } from './SidePanel'
@@ -84,6 +85,7 @@ function Toolbar() {
         <Zap size={15} />
         {t('toolbar.quick')}
       </button>
+      <LabToggle />
       <div className="divider" />
       <button className="icon-btn" title={`${t('toolbar.newTerminal')} (Ctrl+Shift+\`)`} onClick={() => executeCommand('terminal.new')}>
         <SquareTerminal size={16} />
@@ -204,6 +206,17 @@ function ActivityButton() {
   )
 }
 
+/** Laboratorio ⇄ Standard (1.6): acceso quando la disposizione è il Laboratorio. */
+function LabToggle() {
+  const lab = useLayout((s) => s.preset === 'lab')
+  return (
+    <button className={`btn ghost${lab ? ' active' : ''}`} title={lab ? t('lab.toolbarBack') : t('lab.toolbarHint')} aria-pressed={lab} onClick={() => executeCommand('layout.toggleLab')} data-testid="lab-toggle">
+      <FlaskConical size={15} />
+      {t('lab.toolbar')}
+    </button>
+  )
+}
+
 export function Workbench() {
   const theme = useWorkbench((s) => s.settings.theme)
 
@@ -212,8 +225,7 @@ export function Workbench() {
   }, [theme])
 
   const onReady = useCallback((event: DockviewReadyEvent) => {
-    setDockApi(event.api)
-    buildDefaultLayout()
+    initLayout(event.api)
   }, [])
 
   useEffect(() => () => setDockApi(null), [])

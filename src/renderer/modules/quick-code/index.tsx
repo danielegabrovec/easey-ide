@@ -1,7 +1,7 @@
 // Modulo Scrittura rapida: codice JavaScript, TypeScript, Python, SQL, HTML, C, C++, C#, Java o Rust scritto al volo,
 // eseguito subito, con aiuto AI a livelli e raccolta di salvataggi. Non crea né richiede un progetto.
 import type { EditorContext } from '@shared/contracts/editor'
-import { ASSIST_LEVEL_ORDER, QUICK_EXTENSIONS, QUICK_LANGUAGE_INFO, QUICK_LANGUAGES, type AssistLevel } from '@shared/contracts/quick'
+import { ASSIST_LEVEL_ORDER, QUICK_EXTENSIONS, QUICK_LANGUAGE_INFO, QUICK_LANGUAGES, type AssistLevel, type QuickLanguage } from '@shared/contracts/quick'
 import { schemaComment } from '@shared/sql/completion'
 import { executeCommand, registerCommand } from '../../workbench/commands'
 import { on } from '../../workbench/events'
@@ -14,7 +14,7 @@ import { newQuick, saveQuick, selectLanguage } from './actions'
 import { registerQuickAssist } from './assist'
 import { quickEditor } from './quick-editor'
 import { flushQuickDraft, quick } from './quick-store'
-import { QuickPanel } from './QuickPanel'
+import { QuickCollectionPanel, QuickOutputPanel, QuickPanel } from './QuickPanel'
 import { connectRunEvents, runQuick, stopQuick } from './run'
 
 export const QUICK_PANEL = 'quick'
@@ -107,6 +107,9 @@ function QuickSettingsSection() {
 
 export function activateQuickCode(): void {
   registerPanel('quick', QuickPanel)
+  // Laboratorio (1.6): risultati e raccolta come pannelli della griglia.
+  registerPanel('quick-output', QuickOutputPanel)
+  registerPanel('quick-collection', QuickCollectionPanel)
   registerQuickAssist()
   connectRunEvents()
   registerSettingsSection({ id: 'quick', title: t('quick.brand'), render: QuickSettingsSection })
@@ -124,6 +127,27 @@ export function activateQuickCode(): void {
   registerCommand({ id: 'quick.new', title: t('quick.new'), category, when: isOpen, run: () => newQuick() })
   registerCommand({ id: 'quick.generate', title: t('quick.generate'), category, keybinding: 'Ctrl+I', panel: QUICK_PANEL, when: isOpen, run: () => quick().setPromptOpen(true) })
   registerCommand({ id: 'quick.suggest', title: t('suggest.commandQuick'), category, keybinding: 'Ctrl+Alt+I', panel: QUICK_PANEL, when: isOpen, run: () => suggestOnQuick() })
+  // Esempi del Laboratorio e «di nuovo nell'editor» della Cronologia: il codice al posto di quello scritto
+  // (si torna indietro con Ctrl+Z), nel linguaggio giusto; con `run` si esegue anche.
+  registerCommand<{ code: string; language?: QuickLanguage; run?: boolean }>({
+    id: 'quick.insertCode',
+    title: 'quick.insertCode',
+    palette: false,
+    run: async (args) => {
+      if (!args) return
+      showQuick()
+      if (args.language && args.language !== quick().language) await selectLanguage(args.language)
+      const editor = quickEditor()
+      const model = editor?.getModel()
+      if (!editor || !model) return
+      editor.pushUndoStop()
+      editor.executeEdits('quick-example', [{ range: model.getFullModelRange(), text: args.code }])
+      editor.pushUndoStop()
+      editor.setPosition(model.getPositionAt(args.code.length))
+      editor.focus()
+      if (args.run) await runQuick(false)
+    }
+  })
   for (const language of QUICK_LANGUAGES) {
     registerCommand({
       id: `quick.language.${language}`,

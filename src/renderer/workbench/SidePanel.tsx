@@ -18,6 +18,7 @@ function useWindowWidth(): number {
 export function SidePanelHost() {
   const registration = sidePanelRegistration()
   const open = useSidePanel((s) => s.open)
+  const mode = useSidePanel((s) => s.mode)
   const chosenWidth = useSidePanel((s) => s.width)
   const expanded = useSidePanel((s) => s.expanded)
   const state = { open, width: chosenWidth, expanded }
@@ -28,7 +29,8 @@ export function SidePanelHost() {
   const [dragWidth, setDragWidth] = useState<number | null>(null)
   const drag = useRef<{ x: number; width: number; pointer: number } | null>(null)
 
-  if (!registration) return null
+  // Nel Laboratorio l'assistente è un pannello della griglia (presets.ts): qui niente colonna né pulsante.
+  if (!registration || mode === 'panel') return null
   if (!state.open) {
     return (
       <button className="side-reopen" onClick={() => setOpen(true, true)} title={registration.reopenTitle} aria-label={registration.reopenTitle} data-testid="side-reopen">
