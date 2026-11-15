@@ -92,6 +92,22 @@ describe('WorkspaceService', () => {
     expect((await history.list(root, 'note/appunti.md')).length).toBe(1)
   })
 
+  it('«Elimina» sposta nel Cestino (mai la radice), anche le cartelle', async () => {
+    const root = await createFromTemplate('web-ts', 'cestino', dir)
+    const trashed: string[] = []
+    const workspace = new WorkspaceService(new HistoryService(join(dir, 'history')), () => undefined, async (absolute) => {
+      trashed.push(absolute)
+    })
+    await workspace.open(root)
+    await workspace.writeFile('note/appunti.md', 'uno')
+    await workspace.delete('note')
+    expect(trashed).toEqual([join(root, 'note')])
+    // Un percorso che non c'è più non va nel Cestino (e non dà errore).
+    await workspace.delete('sparito.txt')
+    expect(trashed).toHaveLength(1)
+    await expect(workspace.trash('')).rejects.toThrow(/radice/)
+  })
+
   it('aggiorna la configurazione quando si salva easey.json', async () => {
     const { workspace } = await openSample()
     await workspace.writeFile('easey.json', '{"name":"demo","run":{"mode":"terminal","entry":"src/main.ts"}}')

@@ -111,8 +111,8 @@ export class DbService {
       return
     }
     await this.close(id)
-    await rm(this.workspace.absolute(path), { recursive: true, force: true })
-    await rm(this.workspace.absolute(this.snapshotDir(id)), { recursive: true, force: true })
+    // Nel Cestino; le istantanee restano nel progetto (.laboratorio/snapshots) per poterlo ricostruire.
+    await this.workspace.trash(path)
   }
 
   private snapshotDir(id: string): string {

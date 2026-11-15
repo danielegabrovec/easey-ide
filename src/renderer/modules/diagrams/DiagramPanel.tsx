@@ -1,5 +1,5 @@
 // Editor dei diagrammi (flowchart, ER, UML, mappe, liberi) sul motore a grafo comune.
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { IDockviewPanelProps } from 'dockview'
 import {
   ConnectionMode,
@@ -27,6 +27,7 @@ import { GraphCanvas } from '../../graph-canvas/GraphCanvas'
 import { executeCommand } from '../../workbench/commands'
 import { notify, notifyError } from '../../workbench/notifications'
 import { useWorkbench } from '../../workbench/store'
+import { useDeferredSave } from '../../workbench/unsaved'
 import { Modal, openDialog } from '../../ui/dialogs'
 import { t } from '../../i18n'
 import { DiagramContext } from './diagram-context'
@@ -174,8 +175,8 @@ function Editor({ path }: { path: string }) {
   const [loaded, setLoaded] = useState(false)
   const theme = useWorkbench((s) => s.settings.theme)
   const flow = useReactFlow()
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const base = path.replace(DIAGRAM_SUFFIX, '')
+  const { schedule } = useDeferredSave(t('unsaved.diagram', { name: basenameOf(base) }), 400)
 
   const load = useCallback((diagram: Diagram) => {
     setType(diagram.type)
@@ -196,9 +197,8 @@ function Editor({ path }: { path: string }) {
 
   useEffect(() => {
     if (!loaded) return
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => void ide.invoke('workspace:writeFile', path, serializeDiagram(diagram)).catch(notifyError), 400)
-  }, [diagram, loaded, path])
+    schedule(() => ide.invoke('workspace:writeFile', path, serializeDiagram(diagram)))
+  }, [diagram, loaded, path, schedule])
 
   const setText = useCallback((id: string, text: string) => setNodes((list) => list.map((n) => (n.id === id ? { ...n, data: { ...n.data, text } } : n))), [setNodes])
 

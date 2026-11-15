@@ -4,6 +4,7 @@ import { emit } from '../../workbench/events'
 import { executeCommand } from '../../workbench/commands'
 import { notifyError } from '../../workbench/notifications'
 import { workbench } from '../../workbench/store'
+import { collectUnsavedWork } from '../../workbench/unsaved'
 import { confirm } from '../../ui/dialogs'
 import { t } from '../../i18n'
 
@@ -28,6 +29,8 @@ export function scheduleTreeRefresh(): void {
 
 async function leaveCurrentProject(): Promise<void> {
   if (!workbench().project) return
+  // Prima i salvataggi rimandati (blocchi, nodi, diagrammi), poi i file: cambiando progetto non si perde niente.
+  await collectUnsavedWork()
   await executeCommand('editor.saveAll')
   emit('project:closed')
 }

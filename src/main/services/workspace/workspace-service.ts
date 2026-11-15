@@ -48,7 +48,9 @@ export class WorkspaceService {
 
   constructor(
     private readonly history: HistoryService,
-    private readonly emitChange: (change: WorkspaceChange) => void
+    private readonly emitChange: (change: WorkspaceChange) => void,
+    /** Sposta un percorso assoluto nel Cestino (nell'app: `shell.trashItem`; nei test: rimozione). */
+    private readonly moveToTrash: (absolute: string) => Promise<void> = (absolute) => rm(absolute, { recursive: true, force: true })
   ) {}
 
   root(): string | null {
@@ -174,10 +176,17 @@ export class WorkspaceService {
     await rename(this.absolute(from), target)
   }
 
+  /** «Elimina» dell'Esplora: nel Cestino di Windows, da cui si può recuperare. */
   async delete(path: string): Promise<void> {
+    await this.trash(path)
+  }
+
+  /** Sposta nel Cestino un percorso del progetto (mai la radice). */
+  async trash(path: string): Promise<void> {
     const absolute = this.absolute(path)
     if (absolute === this.requireRoot()) throw new Error('Non si può eliminare la radice del progetto')
-    await rm(absolute, { recursive: true, force: true })
+    if (!existsSync(absolute)) return
+    await this.moveToTrash(absolute)
   }
 
   /** Copia un file esterno nella cartella del progetto (nome reso univoco). Restituisce il percorso relativo. */

@@ -96,6 +96,14 @@ describe('SQLite (node:sqlite)', () => {
     expect(result(await service.execute(id, 'SELECT COUNT(*) AS n FROM ordini')).rows[0]![0]).toBe(5)
   })
 
+  it('eliminare un database lo toglie dal progetto ma tiene le sue istantanee', async () => {
+    const info = await service.create({ name: 'da buttare', engine: 'sqlite', sample: null })
+    await service.snapshot(info.id)
+    await service.delete(info.id)
+    expect((await service.list()).some((c) => c.id === info.id)).toBe(false)
+    expect((await service.snapshots(info.id)).length).toBe(1)
+  })
+
   it('DDL del designer eseguito davvero', async () => {
     const sql = createTableSql({ name: 'fornitori', columns: [{ ...emptyColumn(), name: 'id', type: 'INTEGER', primaryKey: true, autoIncrement: true }, { ...emptyColumn(), name: 'nome', type: 'TEXT', notNull: true }] }, 'sqlite')
     expect((await service.execute(MEMORY_ID, sql))[0]!.kind).toBe('result')

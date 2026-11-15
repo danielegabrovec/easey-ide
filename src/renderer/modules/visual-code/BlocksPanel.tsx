@@ -7,6 +7,7 @@ import { basenameOf } from '@shared/paths'
 import { generatedHeader, STEP_HELPER, type BlocksProgram, type VisualProgram } from '@shared/visual/program'
 import { on } from '../../workbench/events'
 import { notifyError } from '../../workbench/notifications'
+import { useDeferredSave } from '../../workbench/unsaved'
 import { useWorkbench } from '../../workbench/store'
 import { t } from '../../i18n'
 import { Blockly, generateBlocksCode, setElementIds, setupBlockly, toolbox } from './blocks-setup'
@@ -31,7 +32,8 @@ export function BlocksPanel({ params }: IDockviewPanelProps<{ path: string }>) {
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null)
   const sideOpen = useCodeSideOpen(`visual:${path}`)
   const programRef = useRef<BlocksProgram | null>(null)
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Prima dell'effetto che crea l'area di lavoro: alla chiusura il salvataggio in sospeso legge ancora i blocchi.
+  const saver = useDeferredSave(t('unsaved.visual', { name: basenameOf(path) }), 500)
   const theme = useWorkbench((s) => s.settings.theme)
 
   const regenerate = useCallback(() => {
@@ -48,17 +50,21 @@ export function BlocksPanel({ params }: IDockviewPanelProps<{ path: string }>) {
     return { program: next, code: generated }
   }, [path])
 
-  const flush = useCallback(async () => {
-    if (saveTimer.current) clearTimeout(saveTimer.current)
+  const { schedule, flush: flushPending } = saver
+  const writeNow = useCallback(async () => {
     const { program: next, code: generated } = regenerate()
-    if (next) await writeProgram(path, next, generated).catch(notifyError)
+    if (next) await writeProgram(path, next, generated)
   }, [path, regenerate])
 
+  const flush = useCallback(async () => {
+    schedule(writeNow)
+    await flushPending()
+  }, [flushPending, schedule, writeNow])
+
   const scheduleSave = useCallback(() => {
-    if (saveTimer.current) clearTimeout(saveTimer.current)
     regenerate()
-    saveTimer.current = setTimeout(() => void flush(), 500)
-  }, [flush, regenerate])
+    schedule(writeNow)
+  }, [regenerate, schedule, writeNow])
 
   // Caricamento del programma e creazione dell'area di lavoro.
   useEffect(() => {
@@ -97,10 +103,6 @@ export function BlocksPanel({ params }: IDockviewPanelProps<{ path: string }>) {
     })()
     return () => {
       disposed = true
-      if (saveTimer.current) {
-        clearTimeout(saveTimer.current)
-        void flush()
-      }
       workspace.current?.dispose()
       workspace.current = null
     }

@@ -13,6 +13,7 @@ import { generatedPath, type ExportedFunction, type NodesProgram, type VisualPro
 import { GraphCanvas } from '../../graph-canvas/GraphCanvas'
 import { on } from '../../workbench/events'
 import { notifyError } from '../../workbench/notifications'
+import { useDeferredSave } from '../../workbench/unsaved'
 import { t } from '../../i18n'
 import { CodePreview } from './CodePreview'
 import { loadSymbols, readProgram, writeProgram, type ProjectSymbols } from './project-files'
@@ -137,7 +138,7 @@ function Editor({ path }: { path: string }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
   const [loaded, setLoaded] = useState(false)
   const flow = useReactFlow()
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const saver = useDeferredSave(t('unsaved.visual', { name: basenameOf(path) }), 500)
   const canvasRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -188,17 +189,17 @@ function Editor({ path }: { path: string }) {
     void flow.setCenter(target.position.x + (target.measured?.width ?? 180) / 2, target.position.y + (target.measured?.height ?? 80) / 2, { zoom: flow.getZoom(), duration: 250 })
   }
 
+  const { schedule, flush: flushPending } = saver
   const flush = useCallback(async () => {
-    if (timer.current) clearTimeout(timer.current)
-    if (current) await writeProgram(path, current, code).catch(notifyError)
-  }, [current, code, path])
+    if (current) schedule(() => writeProgram(path, current, code))
+    await flushPending()
+  }, [current, code, path, schedule, flushPending])
 
   // Salvataggio automatico (poco dopo l'ultima modifica).
   useEffect(() => {
     if (!loaded || !current) return
-    if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(() => void writeProgram(path, current, code).catch(notifyError), 500)
-  }, [loaded, current, code, path])
+    schedule(() => writeProgram(path, current, code))
+  }, [loaded, current, code, path, schedule])
 
   // Nodo in esecuzione nell'anteprima.
   useEffect(() => {

@@ -62,7 +62,16 @@ let closeGuard: CloseGuard | null = null
 
 const settings = new SettingsService(join(app.getPath('userData'), 'settings.json'))
 const history = new HistoryService(join(app.getPath('userData'), 'history'))
-const workspace = new WorkspaceService(history, (change) => broadcast('workspace:changed', change))
+/** Nel Cestino di Windows; se non si può (unità di rete, cartella senza Cestino) si elimina. */
+async function trashOrRemove(path: string): Promise<void> {
+  try {
+    await shell.trashItem(path)
+  } catch {
+    await rm(path, { recursive: true, force: true })
+  }
+}
+
+const workspace = new WorkspaceService(history, (change) => broadcast('workspace:changed', change), trashOrRemove)
 const preview = new PreviewService(workspace)
 const git = new GitService()
 const databases = new DbService(workspace)
@@ -89,13 +98,7 @@ const learn = new LearnService(
 // database SQL in memoria. Il worker è un file a sé; nell'app installata sta in app.asar.unpacked.
 const quickStore = new QuickStore(
   testUserData ? join(resolve(testUserData), 'Scrittura rapida') : join(app.getPath('documents'), APP_NAME, 'Scrittura rapida'),
-  async (path) => {
-    try {
-      await shell.trashItem(path)
-    } catch {
-      await rm(path, { force: true })
-    }
-  }
+  trashOrRemove
 )
 const unpacked = (file: string) => join(here, file).replace(/app\.asar([\\/])/, 'app.asar.unpacked$1')
 const quickRunner = new QuickRunner(

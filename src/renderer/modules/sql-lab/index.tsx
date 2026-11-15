@@ -12,6 +12,7 @@ import { registerPanel, showPanel } from '../../workbench/layout'
 import { registerFileOpener } from '../../workbench/openers'
 import { notify, notifyError } from '../../workbench/notifications'
 import { workbench } from '../../workbench/store'
+import { registerUnsavedWork } from '../../workbench/unsaved'
 import { confirm, openDialog } from '../../ui/dialogs'
 import { t } from '../../i18n'
 import { DatabasePanel } from './DatabasePanel'
@@ -68,6 +69,11 @@ export function activateSqlLab(): void {
   registerPanel('sql-er', ErDiagramPanel)
   registerPanel('sql-builder', QueryBuilderPanel)
   registerSqlCompletion()
+  // Il database in memoria (quello di partenza) si svuota chiudendo l'app: lo si dice prima.
+  registerUnsavedWork(() => {
+    const tables = useSql.getState().schemas[MEMORY_ID]?.tables.length ?? 0
+    return tables > 0 ? [t('unsaved.memoryDb', { count: tables })] : []
+  })
 
   const category = 'SQL'
   const hasProject = () => workbench().project !== null
