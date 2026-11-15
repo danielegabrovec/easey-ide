@@ -1,4 +1,38 @@
-# Miglioramenti — analisi del 13/11/2026 (dopo la 1.3.0)
+# Miglioramenti — Easey IDE
+
+## Confronto con Easey DB 1.0 — analisi del 15/11/2026 (verso la 1.5.0)
+
+Easey DB nasce da una copia di Easey IDE ed è stato rifatto in 12 fasi (0.5 → 1.0). Questa analisi confronta
+Easey IDE 1.4.0 con ciò che Easey DB ha adesso, dal punto di vista di chi impara a programmare e non è esperto.
+Metodo: lettura del codice dei due progetti (file:riga qui sotto), dei documenti di Easey DB (VISIONE, ROADMAP,
+MIGLIORAMENTI, CHANGELOG) e delle note del vault. Priorità: **A** = fa perdere lavoro o confonde,
+**B** = utile e visibile, **C** = rifinitura o lavoro grosso. Le voci «roadmap» sono in [ROADMAP](ROADMAP.md).
+
+| # | Area | Cosa manca o è rotto (riferimento) | Come lo risolve Easey DB | Pri. | Stato |
+|---|---|---|---|---|---|
+| E1 | Lavoro perso | Blocchi, nodi e diagrammi salvano con un ritardo (`BlocksPanel.tsx:60` 500 ms, `NodesPanel.tsx:200` 500 ms, `DiagramPanel.tsx:200` 400 ms) e non ascoltano `app:closing`: chiudendo la finestra o cambiando progetto in quel momento l'ultima modifica si perde. La guardia di chiusura conosce solo i file modificati (`close-guard.tsx:56-60`) | `workbench/unsaved.tsx`: ogni modulo dichiara il lavoro non salvato con `registerUnsavedWork` (anche salvandolo da sé); la chiusura elenca tutto | A | da fare |
+| E2 | Lavoro perso | Il database in memoria (`sql-store.ts:9`, quello di partenza senza progetto) si svuota chiudendo l'app senza avviso | Avviso nell'elenco del lavoro non salvato | A | da fare |
+| E3 | Eliminazioni | «Elimina» nell'Esplora cancella per sempre (`workspace-service.ts:177-181`, `rm` ricorsivo); «Elimina il database» cancella anche le sue istantanee (`db-service.ts:108-116`) | Tutto nel Cestino di Windows; le istantanee restano | A | da fare |
+| E4 | Errori | Gli avvisi d'errore spariscono dopo 7 s (`notifications.ts:28`), si chiudono con un clic qualsiasi (`Workbench.tsx:149`), non si possono copiare e non resta traccia | Errori fissi finché non si chiudono, «Copia», «Dettagli», **registro delle attività** nella barra di stato | A | da fare |
+| E5 | Robustezza | Nessun error boundary: un errore in un pannello (designer, nodi, SQL…) rende bianca tutta la finestra (`main.tsx:36`, `layout.ts:41` registra i pannelli senza barriera) | `ErrorBoundary.tsx`: «Il pannello si è bloccato — Riapri», barriera della radice con «Ricarica la finestra» | A | da fare |
+| E6 | Dialoghi | Un clic fuori chiude il dialogo e perde ciò che si è scritto (`dialogs.tsx:101`); niente ✕ nell'intestazione né «Vuoi scartare le modifiche?». (Esc chiude già solo quello in cima, voce 3 della revisione del 13/11) | `Modal` con `dirty`, clic fuori ignorato se si è scritto qualcosa, ✕, conferma | A | da fare |
+| E7 | Disposizione | **Pannelli che finiscono nella colonna di sinistra**: chiusa la scheda Benvenuto il gruppo centrale sparisce e `showPanel` ripiega sul gruppo attivo (`layout.ts:215`), cioè l'Esplora appena cliccata: il file aperto con un clic finisce nella colonna dell'albero. Stesso difetto per le differenze di Git, il designer, i diagrammi, l'ER e il costruttore SQL aperti da una colonna laterale; e `rememberArea` (`EditorPanel.tsx:111,116`) prende per «centro» qualunque gruppo in cui si trascini un editor, anche l'Esplora | (In Easey DB il difetto c'è ancora con il doppio clic sulle tabelle: stessa riga di `layout.ts`) | A | da fare |
+| E8 | Guida | Nessun percorso guidato, nessun «prossimo passo», nessun glossario, F1 non fa niente | `ui/Tour.tsx` + `src/shared/guide/` (percorsi, suggerimenti, aiuto F1), glossario con ricerca | A | da fare |
+| E9 | AI | Formule LaTeX mostrate come testo nelle risposte (`$\rightarrow$`, `\frac{a}{b}`): `Markdown.tsx:48` non le riconosce e il prompt di sistema (`it.ts:202`) non le vieta | — (non c'è nemmeno in Easey DB) | B | da fare |
+| E10 | AI | Suggerimenti d'avvio della chat sempre uguali («let e const», «centrare con CSS», «Promise», `AiChatPanel.tsx:383`) anche con un file Python o C aperto | `starterPrompts(schema)` presi dal lavoro aperto | B | da fare |
+| E11 | Completamento | Due motori di completamento AI in linea (doppione): quello dei file del progetto (`inline-completion.ts`) vale solo per 9 linguaggi web (`:7`), niente Python, C, C++, C#, Java, Rust, e non usa la misura e la pulizia di quello della Scrittura rapida (`assist.ts:42`); parole chiave e modelli rapidi dei linguaggi senza servizio di Monaco esistono solo nella Scrittura rapida (`assist.ts:105,131`) | Un contesto AI solo; completamento AI in grigio spento di serie dove non serve | B | da fare |
+| E12 | AI | Se Ollama non ha modelli si dice solo «Scarica Ollama»: manca «Scarica il modello consigliato» con la barra (`ai:pull`) | `ai:pull` annullabile, `AiUnavailableCard.tsx` | B | roadmap |
+| E13 | Errori | Gli errori dei programmi (console, terminale, compilatori) restano grezzi e in inglese; Easey DB ne spiega 40 in italiano con «Cosa fare» | `explain-error.ts` | B | roadmap (catalogo per JS/TS/Python/C/Java da costruire) |
+| E14 | Interfaccia | Nessuna «Modalità avanzata»: Git, terminale, Problemi e strumenti sempre visibili anche al primo giorno | Esplora file, terminale e Problemi solo in Modalità avanzata | C | roadmap (da decidere col titolare: in un IDE per imparare il terminale serve presto) |
+| E15 | Impostazioni | `settings.json` scritto direttamente: un file rovinato riparte da zero in silenzio | Scrittura sicura con `.bak` | C | roadmap |
+
+Già allo stesso livello (verificato): menu nativo tradotto dal renderer (`app-menu.ts` + `app:setMenu`), Esc sul
+solo dialogo in cima con il fuoco intrappolato (`dialogs.tsx`), chiusura che chiede per i file modificati,
+progetti recenti ripulibili, chat AI nella colonna destra, vista affiancata grafica ↔ codice.
+
+---
+
+## Analisi del 13/11/2026 (dopo la 1.3.0)
 
 Analisi fatta leggendo README, CONVENTION, ROADMAP, ADR, i moduli in `src/renderer/modules/` e le suite e2e
 (eseguite con gli screenshot), confrontando i flussi con VS Code, Webflow/Framer (designer), Replit/StackBlitz
