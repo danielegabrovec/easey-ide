@@ -1223,7 +1223,9 @@ export const it = {
   'designer.freeMoveHint': 'Sposta liberamente: trascini un elemento e resta esattamente dove lo lasci (spento: si mette in fila prima o dopo gli altri)',
   'designer.freeMoveOnHint': 'Sposta liberamente è acceso: ogni elemento resta dove lo lasci. Con Alt premuto lo metti in fila. Clic per spegnere',
   'designer.makeFree': 'Mettilo dove vuoi (posizione libera)',
-  'designer.backToFlow': 'Rimetti in fila (nel flusso della pagina)'
+  'designer.backToFlow': 'Rimetti in fila (nel flusso della pagina)',
+  'designer.multiCount': '{n} scelti',
+  'designer.multiNote': '{n} elementi scelti: gli stili che cambi qui valgono per tutti. Canc li toglie tutti; quelli liberi si spostano insieme (trascinandoli o con le frecce). Esc = resta solo il primo.'
 }
 
 export type MessageKey = keyof typeof it

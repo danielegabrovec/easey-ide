@@ -132,9 +132,11 @@ try {
 
   // Padding lato per lato
   await clickIn('#pulsante')
+  // L'ispettore deve mostrare il pulsante prima di scrivere (altrimenti il padding va all'elemento di prima).
+  await until(async () => (await page.getByTestId('designer-selection').innerText()).startsWith('button#pulsante'), 3000)
   await page.getByTestId('style-padding-top').fill('40px')
   await page.getByTestId('style-padding-top').press('Enter')
-  check('padding: il solo lato alto diventa la scorciatoia «40px 0 0»', !!(await until(() => /#pulsante \{[^}]*padding: 40px 0 0;/.test(css()), 8000)), css().slice(-200))
+  check('padding: il solo lato alto diventa la scorciatoia «40px 0 0»', !!(await until(() => /#pulsante \{[^}]*padding: 40px 0 0;/.test(css()), 8000)), [...css().matchAll(/[^}]*padding:[^}]*\}/g)].map((m) => m[0].trim().replace(/\s+/g, ' ')).join(' || '))
 
   // Copia stile dal titolo e incolla sul pulsante
   await clickIn('#titolo')

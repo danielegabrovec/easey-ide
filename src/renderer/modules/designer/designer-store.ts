@@ -18,6 +18,11 @@ interface DesignerState {
   css: Record<string, string>
   stylesheet: string | null
   selection: SelectionKey | null
+  /**
+   * Selezione multipla (1.6): gli altri elementi scelti oltre a `selection` (rettangolo di selezione, Maiusc o Ctrl
+   * + clic). Gli stili si applicano a tutti, Canc li toglie tutti, gli elementi liberi si spostano insieme.
+   */
+  others: SelectionKey[]
   hoverId: number | null
   breakpoint: Breakpoint
   target: StyleTarget
@@ -52,8 +57,14 @@ interface DesignerState {
   setStyleClipboard: (count: number) => void
   setPage: (path: string | null) => void
   setParsed: (html: HtmlModel, css: Record<string, string>, stylesheet: string | null) => void
+  /** Cambia l'elemento principale (dopo una modifica): gli altri della selezione multipla restano. */
   select: (key: SelectionKey | null) => void
+  /** Clic dell'utente su un elemento: solo lui (la selezione multipla si svuota). */
   selectElement: (element: ElementInfo | null) => void
+  /** Selezione multipla: il primo è il principale (quello dell'ispettore). */
+  setGroup: (elements: ElementInfo[]) => void
+  /** Maiusc o Ctrl + clic: aggiunge o toglie un elemento dalla selezione. */
+  toggleInGroup: (element: ElementInfo) => void
   setHover: (id: number | null) => void
   setBreakpoint: (breakpoint: Breakpoint) => void
   setTarget: (target: StyleTarget, targetClass?: string) => void
@@ -71,6 +82,7 @@ export function resolveSelection(html: HtmlModel | null, key: SelectionKey | nul
 }
 
 const FREE_MOVE_KEY = 'easey.designer.freeMove'
+const NO_OTHERS: SelectionKey[] = []
 
 function readFreeMove(): boolean {
   try {
@@ -86,6 +98,7 @@ export const useDesigner = create<DesignerState>((set) => ({
   css: {},
   stylesheet: null,
   selection: null,
+  others: NO_OTHERS,
   hoverId: null,
   breakpoint: 'desktop',
   target: 'id',
@@ -116,16 +129,34 @@ export const useDesigner = create<DesignerState>((set) => ({
   setRevealSelection: (revealSelection) => set({ revealSelection }),
   setPaletteQuery: (paletteQuery) => set({ paletteQuery }),
   setStyleClipboard: (styleClipboard) => set({ styleClipboard }),
-  setPage: (path) => set({ path, html: null, selection: null, hoverId: null }),
+  setPage: (path) => set({ path, html: null, selection: null, others: NO_OTHERS, hoverId: null }),
   setParsed: (html, css, stylesheet) => set({ html, css, stylesheet }),
-  select: (selection) => set({ selection }),
-  selectElement: (element) => set({ selection: element ? keyOf(element) : null }),
+  // Lo stesso elenco vuoto ogni volta: chi osserva `others` non si ridisegna a ogni clic.
+  select: (selection) => set((state) => ({ selection, others: !state.others.length ? state.others : selection ? state.others.filter((key) => !sameKey(key, selection)) : NO_OTHERS })),
+  selectElement: (element) => set((state) => ({ selection: element ? keyOf(element) : null, others: state.others.length ? NO_OTHERS : state.others })),
+  setGroup: (elements) => set({ selection: elements[0] ? keyOf(elements[0]) : null, others: elements.slice(1).map(keyOf) }),
+  toggleInGroup: (element) =>
+    set((state) => {
+      const key = keyOf(element)
+      const all = [...(state.selection ? [state.selection] : []), ...state.others]
+      const next = all.some((k) => sameKey(k, key)) ? all.filter((k) => !sameKey(k, key)) : [...all, key]
+      return { selection: next[0] ?? null, others: next.slice(1) }
+    }),
   setHover: (hoverId) => set({ hoverId }),
   setBreakpoint: (breakpoint) => set({ breakpoint }),
   setTarget: (target, targetClass) => set((state) => ({ target, targetClass: targetClass ?? state.targetClass })),
   setLeftTab: (leftTab) => set({ leftTab }),
   setRightTab: (rightTab) => set({ rightTab })
 }))
+
+const sameKey = (a: SelectionKey, b: SelectionKey) => (a.attrId && b.attrId ? a.attrId === b.attrId : a.path.join('/') === b.path.join('/'))
+
+/** Tutti gli elementi scelti (il principale per primo), quelli che esistono ancora. */
+export function selectedElements(): ElementInfo[] {
+  const { html, selection, others } = useDesigner.getState()
+  const list = [selection, ...others].map((key) => resolveSelection(html, key)).filter((e): e is ElementInfo => !!e)
+  return list.filter((element, index) => list.findIndex((e) => e.id === element.id) === index)
+}
 
 export function selectedElement(): ElementInfo | null {
   const { html, selection } = useDesigner.getState()

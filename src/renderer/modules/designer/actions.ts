@@ -32,7 +32,8 @@ import { FREE_ELEMENT_CLASS, findByAttrId, hasClass, isFreeElement, withClass, t
 import { FREE_PROPS, appendTarget, freeContainerStyle, freeStyleChange, landsInFreeCanvas } from '@shared/designer/drop'
 import { notifyError } from '../../workbench/notifications'
 import { modelFor, parse, stylesheetFor, Transaction } from './document'
-import { keyOf, selectedElement, useDesigner } from './designer-store'
+import { keyOf, selectedElement, selectedElements, useDesigner } from './designer-store'
+import { outermostLastFirst } from '@shared/designer/selection'
 
 type PageWork = (context: {
   html: HtmlModel
@@ -102,35 +103,45 @@ export function currentRule(element: ElementInfo | null): { selector: string | n
   return { selector, declarations: getDeclarations(css[stylesheet] ?? '', selector, media()) }
 }
 
+/** Stili dall'ispettore: all'elemento scelto e, con la selezione multipla, a tutti gli scelti (1.6). */
 export function setStyles(declarations: Record<string, string | null>): Promise<void> {
-  const element = selectedElement()
-  if (!element) return Promise.resolve()
+  const elements = selectedElements()
+  if (!elements.length) return Promise.resolve()
   const { target, targetClass } = useDesigner.getState()
   return withPage(async ({ html, editHtml, editCss }) => {
-    const el = html.elements[element.id]!
-    if (target === 'inline') {
-      const current = parseInlineStyle(el.attrs['style'] ?? '')
-      for (const [prop, value] of Object.entries(declarations)) {
-        if (value === null || value === '') delete current[prop]
-        else current[prop] = value
-      }
-      const style = inlineStyle(current)
-      editHtml((h) => setAttribute(h, el.id, 'style', style || null))
+    // Una classe è una regola sola, comune a tutti.
+    if (target === 'class' && targetClass) {
+      await editCss((css) => setDeclarations(css, `.${targetClass}`, declarations, media()))
       return
     }
-    let selector: string
-    const tagSelector = pageSelector(el)
-    if (target === 'class' && targetClass) selector = `.${targetClass}`
-    else if (tagSelector) selector = tagSelector
-    else {
-      const { id, edits } = ensureId(html, el.id)
-      if (edits.length) {
-        editHtml(() => edits)
-        useDesigner.getState().select({ attrId: id, path: el.path })
+    let current = html
+    const selectors: string[] = []
+    for (const [index, element] of elements.entries()) {
+      const el = current.elements[element.id]!
+      if (target === 'inline') {
+        const style = parseInlineStyle(el.attrs['style'] ?? '')
+        for (const [prop, value] of Object.entries(declarations)) {
+          if (value === null || value === '') delete style[prop]
+          else style[prop] = value
+        }
+        const text = inlineStyle(style)
+        current = editHtml((h) => setAttribute(h, el.id, 'style', text || null))
+        continue
       }
-      selector = `#${id}`
+      const tagSelector = pageSelector(el)
+      if (tagSelector) {
+        selectors.push(tagSelector)
+        continue
+      }
+      const { id, edits } = ensureId(current, el.id)
+      if (edits.length) {
+        current = editHtml(() => edits)
+        // Il principale ora ha un id: la selezione lo segue (gli altri restano scelti).
+        if (index === 0) useDesigner.getState().select({ attrId: id, path: el.path })
+      }
+      selectors.push(`#${id}`)
     }
-    await editCss((css) => setDeclarations(css, selector, declarations, media()))
+    for (const selector of selectors) await editCss((css) => setDeclarations(css, selector, declarations, media()))
   })
 }
 
@@ -147,13 +158,15 @@ export function setElementAttribute(id: number, name: string, value: string | nu
   })
 }
 
+/** Canc: toglie l'elemento scelto, o tutti quelli della selezione multipla (dal fondo, così i numeri restano giusti). */
 export function removeSelected(): Promise<void> {
-  const element = selectedElement()
-  if (!element || ['html', 'head', 'body'].includes(element.tag)) return Promise.resolve()
-  const parent = element.parent
-  return withPage(({ editHtml }) => {
-    const html = editHtml((h) => removeElement(h, element.id))
-    useDesigner.getState().selectElement(parent !== null ? (html.elements[parent] ?? null) : null)
+  const elements = selectedElements().filter((e) => !['html', 'head', 'body'].includes(e.tag))
+  if (!elements.length) return Promise.resolve()
+  const parent = elements[0]!.parent
+  return withPage(({ html, editHtml }) => {
+    let current = html
+    for (const id of outermostLastFirst(html, elements.map((e) => e.id))) current = editHtml((h) => removeElement(h, id))
+    useDesigner.getState().selectElement(parent !== null && elements.length === 1 ? (current.elements[parent] ?? null) : null)
   })
 }
 
@@ -332,12 +345,27 @@ export function pasteStyle(): Promise<void> {
   return setStyles(copiedStyle)
 }
 
-/** Posizione e dimensioni di un elemento in una tavola libera (px). */
+/** Posizione (e misura) di elementi liberi, ciascuno nella sua regola #id: uno o più, spostati insieme (px). */
+export function setFreeBoxes(boxes: { id: number; left?: number; top?: number; width?: number; height?: number }[]): Promise<void> {
+  if (!boxes.length) return Promise.resolve()
+  return withPage(async ({ html, editHtml, editCss }) => {
+    let current = html
+    const rules: [string, Record<string, string>][] = []
+    for (const { id: elementId, ...box } of boxes) {
+      const { id, edits } = ensureId(current, elementId)
+      if (edits.length) current = editHtml(() => edits)
+      const declarations: Record<string, string> = { position: 'absolute' }
+      for (const [prop, value] of Object.entries(box)) if (value !== undefined) declarations[prop] = `${Math.round(value)}px`
+      rules.push([`#${id}`, declarations])
+    }
+    await editCss((css) => rules.reduce((next, [selector, declarations]) => setDeclarations(next, selector, declarations), css))
+  })
+}
+
+/** Posizione e dimensioni dell'elemento libero scelto (px): solo lui, anche con la selezione multipla. */
 export function setFreeBox(box: { left?: number; top?: number; width?: number; height?: number }): Promise<void> {
-  const px = (v: number | undefined) => (v === undefined ? undefined : `${Math.round(v)}px`)
-  const declarations: Record<string, string> = { position: 'absolute' }
-  for (const [prop, value] of Object.entries(box)) if (value !== undefined) declarations[prop] = px(value)!
-  return setStyles(declarations)
+  const element = selectedElement()
+  return element ? setFreeBoxes([{ id: element.id, ...box }]) : Promise.resolve()
 }
 
 function withRootId(html: string, id: string): string {

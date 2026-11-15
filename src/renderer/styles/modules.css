@@ -3894,3 +3894,10 @@ button.quick-line:hover {
   height: 100%;
   border-right: 0;
 }
+
+.designer-multi-note {
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--border);
+}

@@ -1224,5 +1224,7 @@ export const en: Record<MessageKey, string> = {
   'designer.freeMoveHint': 'Move freely: drag an element and it stays exactly where you drop it (off: it lines up before or after the others)',
   'designer.freeMoveOnHint': 'Move freely is on: every element stays where you drop it. Hold Alt to line it up. Click to switch off',
   'designer.makeFree': 'Put it where you want (free position)',
-  'designer.backToFlow': 'Line it up again (page flow)'
+  'designer.backToFlow': 'Line it up again (page flow)',
+  'designer.multiCount': '{n} selected',
+  'designer.multiNote': '{n} elements selected: the styles you change here apply to all. Delete removes them all; free ones move together (dragging or with the arrows). Esc = keep only the first.'
 }

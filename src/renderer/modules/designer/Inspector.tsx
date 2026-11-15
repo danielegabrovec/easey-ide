@@ -766,6 +766,7 @@ export function Inspector() {
   const selection = useDesigner((s) => s.selection)
   const tab = useDesigner((s) => s.rightTab)
   const quality = useDesigner((s) => s.quality)
+  const others = useDesigner((s) => s.others.length)
   const element = resolveSelection(page, selection)
   return (
     <div className="designer-inspector" data-testid="designer-inspector">
@@ -777,6 +778,12 @@ export function Inspector() {
           </button>
         ))}
       </div>
+      {/* 1.6: con la selezione multipla gli stili valgono per tutti gli scelti. */}
+      {others > 0 && tab === 'style' && (
+        <p className="hint designer-multi-note" data-testid="designer-multi-note">
+          {t('designer.multiNote', { n: others + 1 })}
+        </p>
+      )}
       {tab === 'site' ? <SiteTab /> : tab === 'quality' ? <QualityTab /> : !element ? <div className="hint" style={{ padding: 12 }}>{t('designer.selectSomething')}</div> : tab === 'style' ? <StyleTab element={element} /> : <ElementTab element={element} />}
     </div>
   )

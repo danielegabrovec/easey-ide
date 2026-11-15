@@ -10,9 +10,10 @@ import { blockById } from '@shared/designer/blocks'
 import { showContextMenu } from '../../ui/ContextMenu'
 import { t } from '../../i18n'
 import { notify } from '../../workbench/notifications'
-import { backToFlow, copyStyle, duplicateSelected, insertBlock, makeFreeInPlace, moveNode, moveOutOfFreeCanvas, pasteStyle, placePage, removeSelected, setElementText, setFreeBox, setStyles } from './actions'
+import { backToFlow, copyStyle, duplicateSelected, insertBlock, makeFreeInPlace, moveNode, moveOutOfFreeCanvas, pasteStyle, placePage, removeSelected, setElementText, setFreeBox, setFreeBoxes, setStyles } from './actions'
 import { redo, undo } from './document'
-import { keyOf, resolveSelection, useDesigner } from './designer-store'
+import { keyOf, resolveSelection, selectedElements, useDesigner } from './designer-store'
+import { boxBetween, marqueeHits, type Box } from '@shared/designer/selection'
 import { registerFrame } from './frame-access'
 
 interface Rect {
@@ -42,9 +43,19 @@ interface FlowDrag {
 
 type Drag =
   | { kind: 'pending'; startX: number; startY: number; id: number; grab: { x: number; y: number } }
-  | { kind: 'free-move'; startX: number; startY: number; id: number; origin: Rect; current: Rect; home: number; grab: { x: number; y: number } }
+  | { kind: 'free-move'; startX: number; startY: number; id: number; origin: Rect; current: Rect; home: number; grab: { x: number; y: number }; group: GroupMember[] }
+  /** Rettangolo di selezione (1.6): trascinato sullo sfondo, prende gli elementi che ci stanno dentro. */
+  | { kind: 'marquee'; startX: number; startY: number; current: { x: number; y: number } }
   | { kind: 'free-resize'; startX: number; startY: number; id: number; handle: string; origin: Rect; current: Rect; free: boolean }
   | FlowDrag
+
+/** Un altro elemento libero della selezione multipla che si sposta insieme a quello trascinato. */
+interface GroupMember {
+  id: number
+  node: HTMLElement
+  left: number
+  top: number
+}
 
 interface Indicator {
   /** Contenitore che riceverà l'elemento. */
@@ -111,6 +122,8 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   const overlay = useRef<HTMLDivElement>(null)
   const host = useRef<HTMLDivElement>(null)
   const drag = useRef<Drag | null>(null)
+  const [marquee, setMarquee] = useState<Box | null>(null)
+  const others = useDesigner((s) => s.others)
   const ghost = useRef<{ clone: HTMLElement; node: HTMLElement } | null>(null)
   const pointer = useRef<{ clientX: number; clientY: number; alt: boolean } | null>(null)
   const scrollLoop = useRef(0)
@@ -499,6 +512,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   const cancelDrag = () => {
     const current = drag.current
     drag.current = null
+    setMarquee(null)
     cancelAnimationFrame(scrollLoop.current)
     hideGhost()
     setIndicator(null)
@@ -555,13 +569,25 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     }
     const id = idAt(x, y)
     const element = id !== null ? page!.elements[id]! : null
-    if (!element) return
-    select(element)
-    if (element.tag !== 'body') {
-      const r = rectOf(elementNode(element.id))
-      drag.current = { kind: 'pending', startX: x, startY: y, id: element.id, grab: r ? { x: x - r.left, y: y - r.top } : { x: 0, y: 0 } }
+    // Sullo sfondo (il body o fuori dalla pagina): rettangolo di selezione (1.6).
+    if (!element || element.tag === 'body') {
+      select(element)
+      drag.current = { kind: 'marquee', startX: x, startY: y, current: { x, y } }
       overlay.current?.setPointerCapture(event.pointerId)
+      return
     }
+    // Maiusc o Ctrl + clic: aggiunge o toglie l'elemento dalla selezione multipla.
+    if (event.shiftKey || event.ctrlKey || event.metaKey) {
+      useDesigner.getState().toggleInGroup(element)
+      return
+    }
+    // Clic su un elemento già nella selezione multipla: resta tutto scelto (per spostarli insieme).
+    const group = selectedElements()
+    if (group.length > 1 && group.some((e) => e.id === element.id)) useDesigner.getState().setGroup([element, ...group.filter((e) => e.id !== element.id)])
+    else select(element)
+    const r = rectOf(elementNode(element.id))
+    drag.current = { kind: 'pending', startX: x, startY: y, id: element.id, grab: r ? { x: x - r.left, y: y - r.top } : { x: 0, y: 0 } }
+    overlay.current?.setPointerCapture(event.pointerId)
   }
 
   const onPointerMove = (event: React.PointerEvent) => {
@@ -574,13 +600,24 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       if (id !== useDesigner.getState().hoverId) useDesigner.getState().setHover(id)
       return
     }
+    if (current.kind === 'marquee') {
+      current.current = { x, y }
+      setMarquee(boxBetween({ x: current.startX, y: current.startY }, current.current))
+      return
+    }
     if (current.kind === 'pending') {
       if (Math.hypot(x - current.startX, y - current.startY) < 5) return
       const node = elementNode(current.id)
       if (!node) return
       if (isFreeElement(page!, current.id)) {
         const origin = { left: node.offsetLeft, top: node.offsetTop, width: node.offsetWidth, height: node.offsetHeight }
-        drag.current = { kind: 'free-move', startX: current.startX, startY: current.startY, id: current.id, origin, current: origin, home: page!.elements[current.id]!.parent!, grab: current.grab }
+        // Gli altri elementi liberi scelti si spostano insieme (stesso spostamento).
+        const group = selectedElements()
+          .filter((e) => e.id !== current.id && isFreeElement(page!, e.id))
+          .map((e) => ({ id: e.id, node: elementNode(e.id) }))
+          .filter((m): m is { id: number; node: HTMLElement } => !!m.node)
+          .map((m) => ({ ...m, left: m.node.offsetLeft, top: m.node.offsetTop }))
+        drag.current = { kind: 'free-move', startX: current.startX, startY: current.startY, id: current.id, origin, current: origin, home: page!.elements[current.id]!.parent!, grab: current.grab, group }
       } else {
         enterFlow(current, null, null)
         refreshFlow()
@@ -594,7 +631,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
         hideGhost()
         cancelAnimationFrame(scrollLoop.current)
         setIndicator(null)
-        drag.current = { kind: 'free-move', startX: current.startX, startY: current.startY, id: current.id, origin: current.origin, current: current.origin, home: current.home!, grab: current.grab }
+        drag.current = { kind: 'free-move', startX: current.startX, startY: current.startY, id: current.id, origin: current.origin, current: current.origin, home: current.home!, grab: current.grab, group: [] }
         return
       }
       refreshFlow()
@@ -638,6 +675,10 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       current.current = { ...current.origin, left, top }
       node.style.left = `${left}px`
       node.style.top = `${top}px`
+      for (const member of current.group) {
+        member.node.style.left = `${member.left + left - current.origin.left}px`
+        member.node.style.top = `${member.top + top - current.origin.top}px`
+      }
       return
     }
     // Ridimensionamento.
@@ -672,7 +713,26 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     setGuides({ x: [], y: [] })
     setIndicator(null)
     if (!current) return
-    if (current.kind === 'free-move') void setFreeBox({ left: current.current.left, top: current.current.top })
+    // Clic (senza trascinare) su un elemento della selezione multipla: resta solo lui.
+    if (current.kind === 'pending' && useDesigner.getState().others.length) {
+      useDesigner.getState().selectElement(page!.elements[current.id] ?? null)
+      return
+    }
+    if (current.kind === 'marquee') {
+      setMarquee(null)
+      const box = boxBetween({ x: current.startX, y: current.startY }, current.current)
+      // Un clic senza trascinare resta un clic (il body scelto).
+      if (box.width < 4 && box.height < 4) return
+      const hits = marqueeHits(page!, box, (id) => rectOf(elementNode(id)))
+      if (hits.length) useDesigner.getState().setGroup(hits.map((id) => page!.elements[id]!))
+      return
+    }
+    if (current.kind === 'free-move') {
+      const dx = current.current.left - current.origin.left
+      const dy = current.current.top - current.origin.top
+      if (current.group.length) void setFreeBoxes([{ id: current.id, left: current.current.left, top: current.current.top }, ...current.group.map((m) => ({ id: m.id, left: m.left + dx, top: m.top + dy }))])
+      else void setFreeBox({ left: current.current.left, top: current.current.top })
+    }
     else if (current.kind === 'free-resize') {
       const { left, top, width, height } = current.current
       const { origin } = current
@@ -750,21 +810,29 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     } else if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault()
       void removeSelected()
-    } else if (event.key === 'Escape' && selected?.parent != null) {
+    } else if (event.key === 'Escape' && selected?.parent != null && !others.length) {
       select(page!.elements[selected.parent]!)
     } else if (event.key === 'Enter' && selected?.leafText) {
       event.preventDefault()
       startEditing(selected)
-    } else if (event.key.startsWith('Arrow') && selected && isFreeElement(page!, selected.id)) {
+    } else if (event.key === 'Escape' && others.length) {
+      // Prima Esc: resta solo l'elemento principale.
       event.preventDefault()
-      const node = elementNode(selected.id)
-      if (!node) return
+      useDesigner.getState().selectElement(selected ?? null)
+    } else if (event.key.startsWith('Arrow') && selectedElements().some((e) => isFreeElement(page!, e.id))) {
+      event.preventDefault()
       const step = event.shiftKey ? 10 : 1
       const dx = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0
       const dy = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0
-      const parent = node.parentElement!
-      const box = clampBox(node.offsetLeft + dx, node.offsetTop + dy, node.offsetWidth, node.offsetHeight, parent.clientWidth, parent.clientHeight)
-      void setFreeBox(box)
+      const boxes = selectedElements()
+        .filter((e) => isFreeElement(page!, e.id))
+        .map((e) => ({ id: e.id, node: elementNode(e.id) }))
+        .filter((m): m is { id: number; node: HTMLElement } => !!m.node)
+        .map(({ id, node }) => {
+          const parent = node.parentElement!
+          return { id, ...clampBox(node.offsetLeft + dx, node.offsetTop + dy, node.offsetWidth, node.offsetHeight, parent.clientWidth, parent.clientHeight) }
+        })
+      void setFreeBoxes(boxes)
     }
   }
 
@@ -865,10 +933,19 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
                 {selected.tag}
                 {selected.attrs['id'] ? `#${selected.attrs['id']}` : ''}
                 {selectedFree ? ` · ${t('designer.free')}` : ''}
+                {others.length > 0 ? ` · ${t('designer.multiCount', { n: others.length + 1 })}` : ''}
               </span>
               {resizable && visibleHandles(selectedFree ? HANDLES : ['e', 's', 'se'], selectedRect.width * scale, selectedRect.height * scale).map((h) => <span key={h} className={`dz-handle h-${h}`} data-handle={h} />)}
             </div>
           )}
+          {others.length > 0 &&
+            selectedElements()
+              .slice(1)
+              .map((element) => {
+                const rect = rectOf(elementNode(element.id))
+                return rect ? <div key={element.id} className="dz-multi" style={boxStyle(rect)} data-testid="designer-multi" /> : null
+              })}
+          {marquee && <div className="dz-marquee" style={boxStyle(marquee)} data-testid="designer-marquee" />}
           {indicator?.parent && <div className={`dz-inside${indicator.free ? ' free' : ''}`} style={boxStyle(indicator.parent)} data-testid="designer-drop-parent" />}
           {indicator?.line && (
             <div
