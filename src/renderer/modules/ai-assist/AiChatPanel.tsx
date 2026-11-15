@@ -12,6 +12,7 @@ import { planStarters, splitStarters } from '@shared/ai/starters'
 import { basenameOf } from '@shared/paths'
 import { executeCommand } from '../../workbench/commands'
 import { notify } from '../../workbench/notifications'
+import { currentVirtualDocument, useVirtualDocument } from '../../workbench/documents'
 import { useSidePanel } from '../../workbench/side-panel'
 import { useWorkbench } from '../../workbench/store'
 import { updateSettings } from '../../workbench/workbench-commands'
@@ -195,6 +196,26 @@ function ContextChips({
   const activeFile = useWorkbench((s) => s.activeFile)
   const selection = useWorkbench((s) => s.selection)
   const problems = useFileProblemCount(activeFile)
+  const virtual = useVirtualDocument((s) => s.current)
+  // La Scrittura rapida (documento senza file): l'AI vede il suo codice.
+  if (virtual) {
+    return (
+      <div className="ai-chips">
+        {withFile ? (
+          <span className="ai-chip" title={t('ai.withFileHint')} data-testid="ai-chip-file" data-virtual="true">
+            <FileCode2 size={12} /> {virtual.label}
+            <button className="ai-chip-x" onClick={() => setWithFile(false)} title={t('ai.chipRemove', { name: virtual.label })} aria-label={t('ai.chipRemove', { name: virtual.label })}>
+              <X size={11} />
+            </button>
+          </span>
+        ) : (
+          <button className="ai-chip off" onClick={() => setWithFile(true)} title={t('ai.chipAdd', { name: virtual.label })} data-testid="ai-chip-file-add">
+            <Plus size={11} /> {virtual.label}
+          </button>
+        )}
+      </div>
+    )
+  }
   if (!activeFile) {
     return (
       <div className="ai-chips">
@@ -245,13 +266,14 @@ function ContextChips({
 }
 
 /** Suggerimenti d'avvio presi dal file aperto, dagli errori e dalla selezione (src/shared/ai/starters.ts). */
-function starters(file: string | null, errors: number, selection: boolean): string[] {
+function starters(file: string | null, errors: number, selection: boolean, label?: string): string[] {
   const plan = planStarters({ file, errors, selection })
   const list = splitStarters(t(`ai.starters.${plan.topic}`))
   const context = plan.context
   if (context?.kind === 'errors') list.unshift(t('ai.starterErrors', { count: context.count ?? 0, file: context.file ?? '' }))
   else if (context?.kind === 'selection') list.unshift(t('ai.starterSelection'))
-  else if (context?.kind === 'file') list.unshift(t('ai.starterFile', { file: context.file ?? '' }))
+  // Un documento senza file (la Scrittura rapida) si chiama col suo nome, non col percorso finto.
+  else if (context?.kind === 'file') list.unshift(t('ai.starterFile', { file: label ?? context.file ?? '' }))
   return list.slice(0, 4)
 }
 
@@ -262,6 +284,9 @@ function ChatBody() {
   const ai = useWorkbench((s) => s.settings.ai)
   const language = useWorkbench((s) => s.settings.language)
   const activeFile = useWorkbench((s) => s.activeFile)
+  // Con la Scrittura rapida in uso i suggerimenti d'avvio parlano del suo linguaggio (scrittura-rapida.py…).
+  const document = useVirtualDocument((s) => s.current?.path ?? null)
+  const documentLabel = useVirtualDocument((s) => s.current?.label ?? '')
   const errors = useWorkbench((s) => s.problems.errors)
   const hasSelection = useWorkbench((s) => s.selection !== null)
   const messages = useChat((s) => s.messages)
@@ -318,7 +343,7 @@ function ChatBody() {
       return
     }
     let snapshot: ChatContextSnapshot | null = null
-    if (withFile && activeFile) {
+    if (withFile && (activeFile || currentVirtualDocument())) {
       const context = (await executeCommand('editor.getContext')) as EditorContext | null
       if (context) snapshot = snapshotOf(context, { problems: withProblems })
     }
@@ -396,7 +421,7 @@ function ChatBody() {
             <p>{ai.tutorMode ? t('ai.introTutor') : t('ai.intro')}</p>
             <p className="hint">{t('ai.introSlash')}</p>
             <div className="ai-suggestions">
-              {starters(activeFile, errors, hasSelection).map((s) => (
+              {starters(document ?? activeFile, document ? 0 : errors, document ? false : hasSelection, document ? documentLabel : undefined).map((s) => (
                 <button key={s} className="btn" onClick={() => changeInput(s)} data-testid="ai-starter">
                   {s}
                 </button>

@@ -4,7 +4,7 @@
 //   POST /v1/chat/completions       → chat in streaming (Server-Sent Events, "data: {…}")
 //   POST /v1/completions            → autocompletamento (prompt + suffix, se il server lo supporta)
 import type { AiChatChunk, AiChatRequest, AiCompleteRequest, AiModel, AiProvider, AiStatus } from '@shared/contracts/ai'
-import { cleanCompletion } from './ollama-provider'
+import { cleanContext, postProcess, SPECIAL_TOKENS } from '@shared/ai/inline'
 
 /** Modelli "da codice": li si propone per l'autocompletamento. */
 const CODE_MODEL = /coder|codegemma|starcoder|codellama|deepseek-coder|codestral|santacoder/i
@@ -52,12 +52,13 @@ export class OpenAiCompatibleProvider implements AiProvider {
       max_tokens: request.maxTokens ?? 80,
       temperature: 0.1,
       stream: false,
-      stop: ['\n\n\n', '<|endoftext|>', '<|file_sep|>']
+      // Le API compatibili OpenAI accettano al massimo 4 stop: quelli del livello più il token di fine.
+      stop: [...(request.stop ?? ['\n\n\n']), SPECIAL_TOKENS[0]!].slice(0, 4)
     }
     const response = await fetch(this.url('/completions'), { method: 'POST', headers: this.headers(), body: JSON.stringify(body), signal })
     if (!response.ok) throw new Error(`Server AI: HTTP ${response.status} ${await response.text().catch(() => '')}`)
     const data = (await response.json()) as { choices?: { text?: string }[] }
-    return cleanCompletion(data.choices?.[0]?.text ?? '', request.suffix)
+    return postProcess(data.choices?.[0]?.text ?? '', cleanContext(request.prefix, request.suffix, request.blankStops ?? true))
   }
 
   async chat(request: AiChatRequest, onChunk: (chunk: AiChatChunk) => void, signal: AbortSignal): Promise<void> {

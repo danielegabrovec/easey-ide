@@ -3,7 +3,10 @@ import type { AddressInfo } from 'node:net'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { parseSize, pickChatModel, pickCompletionModel, type AiChatChunk, type AiModel } from '@shared/contracts/ai'
 import { AiService } from '../../src/main/services/ai/ai-service'
-import { cleanCompletion, isRemoteModel, OllamaProvider } from '../../src/main/services/ai/ollama-provider'
+import { isRemoteModel, OllamaProvider } from '../../src/main/services/ai/ollama-provider'
+import { cleanContext, postProcess } from '../../src/shared/ai/inline'
+
+const cleanCompletion = (text: string, suffix: string) => postProcess(text, cleanContext('', suffix))
 import { OpenAiCompatibleProvider, openAiBase } from '../../src/main/services/ai/openai-provider'
 
 const model = (name: string, size: string, capabilities: string[], remote = false): AiModel => ({ name, size, family: '', capabilities, remote })
@@ -36,7 +39,7 @@ describe('scelta dei modelli', () => {
   })
 })
 
-describe('cleanCompletion', () => {
+describe('pulizia del suggerimento (postProcess)', () => {
   it('toglie i recinti di codice e la ripetizione del testo dopo il cursore', () => {
     expect(cleanCompletion('```ts\nreturn a + b\n```', '')).toBe('return a + b')
     expect(cleanCompletion('return a + b\n}\nconsole.log(somma(1, 2))', '\n}\nconsole.log(somma(1, 2))')).toBe('return a + b')

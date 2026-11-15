@@ -32,6 +32,10 @@ export interface AiCompleteRequest {
   suffix: string
   language: string
   maxTokens?: number
+  /** Dove fermarsi (dal livello: fine riga, riga vuota…); di serie tre righe vuote. */
+  stop?: string[]
+  /** Una riga vuota chiude il suggerimento (falso al livello Forte). */
+  blankStops?: boolean
 }
 
 export type AiRole = 'system' | 'user' | 'assistant'

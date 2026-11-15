@@ -27,4 +27,11 @@ describe('formule LaTeX nelle risposte dell’AI', () => {
     expect(mathToText('Nessuna formula qui.')).toBe('Nessuna formula qui.')
     expect(mathToText('il prezzo è $x$ euro')).toBe('il prezzo è x euro')
   })
+
+  it('frecce e confronti anche senza dollari, ma mai \\n, \\t o altri comandi', () => {
+    expect(mathToText('`EXIST` \\rightarrow `EXISTS`')).toBe('`EXIST` → `EXISTS`')
+    expect(mathToText('vale se a \\le b e b \\neq 0')).toBe('vale se a ≤ b e b ≠ 0')
+    expect(mathToText('usa \\n per andare a capo e \\t per il tab')).toBe('usa \\n per andare a capo e \\t per il tab')
+    expect(mathToText('\\leftarrows non è un simbolo')).toBe('\\leftarrows non è un simbolo')
+  })
 })

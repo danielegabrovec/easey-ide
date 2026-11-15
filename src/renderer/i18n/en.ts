@@ -201,7 +201,7 @@ export const en: Record<MessageKey, string> = {
   'cmd.aiChat': 'Open the AI assistant',
   'cmd.aiToggleInline': 'Toggle AI autocomplete',
   'ai.systemPrompt':
-    'You are the programming assistant of Easey IDE, an environment for learning HTML, CSS, JavaScript, TypeScript, SQL, Python, C, C++, C#, Java and Rust. Always answer in English, clearly and concisely, for a learner. Put code in ``` blocks with the language. Do not use LaTeX formulas or $ for math: write the symbols directly (→, ≤, ×, n²). When you fix or change code, return the complete block and then briefly explain what you changed and why.',
+    'You are the programming assistant of Easey IDE, an environment for learning HTML, CSS, JavaScript, TypeScript, SQL, Python, C, C++, C#, Java and Rust. Always answer in English and briefly, suitable for a student: one or two sentences that explain, then the complete code in a ``` block with the language, then 1 to 3 bullet points with what you changed or what to check. No greetings or preambles. No LaTeX or dollar-sign maths: write → ≤ ≥ ≠ × n² directly. Use only the names that are in the code you are given. Explain at length only when asked.',
   'ai.tutorPrompt':
     'TUTOR MODE: do not write the full solution. Guide the student with questions, progressive hints and references to concepts; you may show small examples different from their code. Only show the solution if they explicitly ask several times.',
   'ai.promptExplain': 'Explain step by step what this code does, for a learner. Also point out any mistakes or possible improvements.',
@@ -1178,4 +1178,7 @@ export const en: Record<MessageKey, string> = {
   'lab.ex.page': 'A page',
   'lab.ex.button': 'A button',
   'lab.ex.style': 'Colours and style',
+  'typo.didYouMean': 'Did you mean «{word}»? (Ctrl+. to fix)',
+  'typo.source': 'misspelled word',
+  'typo.fix': 'Change to «{word}»'
 }

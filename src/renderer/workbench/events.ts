@@ -16,6 +16,8 @@ export interface WorkbenchEvents {
   'preview:step': { id: string }
   /** La finestra sta per chiudersi: ogni modulo scrive subito ciò che ha in sospeso (bozze, timer). */
   'app:closing': void
+  /** La griglia dei pannelli è pronta (presets.ts, initLayout): da qui dockApi() c'è. */
+  'layout:ready': void
 }
 
 type Listener<T> = (payload: T) => void

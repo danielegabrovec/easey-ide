@@ -13,7 +13,8 @@ import { t } from '../../i18n'
 import { newQuick, saveQuick, selectLanguage } from './actions'
 import { registerQuickAssist } from './assist'
 import { quickEditor } from './quick-editor'
-import { flushQuickDraft, quick } from './quick-store'
+import { flushQuickDraft, quick, useQuick } from './quick-store'
+import { currentVirtualDocument, setCurrentVirtualDocument } from '../../workbench/documents'
 import { QuickCollectionPanel, QuickOutputPanel, QuickPanel } from './QuickPanel'
 import { connectRunEvents, runQuick, stopQuick } from './run'
 
@@ -34,21 +35,17 @@ const LEVEL_KEYS: Record<AssistLevel, 'quick.levelOff' | 'quick.levelLight' | 'q
   strong: 'quick.levelStrong'
 }
 
-/**
- * «Chiedi suggerimento» sul codice della Scrittura rapida: lo stesso dialogo dei file (ambiti e confronto
- * prima/dopo), ma il risultato va nell'editor della Scrittura rapida, annullabile con Ctrl+Z, e si esegue.
- * Ctrl+I «Genera» resta la barra veloce che scrive e inserisce subito.
- */
-function suggestOnQuick(): void {
+/** Il codice della Scrittura rapida come «documento» (contesto per l'AI): testo, selezione, cursore. */
+function quickContext(): EditorContext | null {
   const editor = quickEditor()
   const model = editor?.getModel()
-  if (!editor || !model) return
+  if (!editor || !model) return null
   const language = quick().language
   const selection = editor.getSelection()
   const position = editor.getPosition()
   const hasSelection = !!selection && !selection.isEmpty()
-  const context: EditorContext = {
-    path: `scrittura-rapida.${QUICK_EXTENSIONS[language]}`,
+  return {
+    path: quickDocumentPath(language),
     language: model.getLanguageId(),
     text: model.getValue(),
     selection: hasSelection
@@ -60,6 +57,54 @@ function suggestOnQuick(): void {
     cursor: { line: position?.lineNumber ?? 1, column: position?.column ?? 1 },
     problems: []
   }
+}
+
+const quickDocumentPath = (language: QuickLanguage) => `scrittura-rapida.${QUICK_EXTENSIONS[language]}`
+
+/** La Scrittura rapida è l'ultimo documento usato: la chat AI la vede come il file aperto (workbench/documents). */
+function announceQuickDocument(): void {
+  const language = quick().language
+  setCurrentVirtualDocument({
+    path: quickDocumentPath(language),
+    label: `${t('quick.brand')} · ${QUICK_LANGUAGE_INFO[language].short}`,
+    language,
+    context: quickContext,
+    editor: quickEditor
+  })
+}
+
+/** Segue quale documento si usa: la Scrittura rapida o un file (l'editor). */
+function trackQuickDocument(): void {
+  let watching = false
+  const watch = () => {
+    const api = dockApi()
+    if (!api || watching) return
+    watching = true
+    api.onDidActivePanelChange((panel) => {
+      if (panel?.id === QUICK_PANEL) announceQuickDocument()
+      else if (panel?.id.startsWith('editor:')) setCurrentVirtualDocument(null)
+    })
+    api.onDidRemovePanel((panel) => {
+      if (panel.id === QUICK_PANEL && currentVirtualDocument()?.path.startsWith('scrittura-rapida.')) setCurrentVirtualDocument(null)
+    })
+    if (api.activePanel?.id === QUICK_PANEL) announceQuickDocument()
+  }
+  // La griglia nasce dopo l'attivazione dei moduli: si comincia a seguirla appena c'è un pannello.
+  on('layout:ready', watch)
+  useQuick.subscribe((state, previous) => {
+    if (state.language !== previous.language && currentVirtualDocument()?.path.startsWith('scrittura-rapida.')) announceQuickDocument()
+  })
+}
+
+/**
+ * «Chiedi suggerimento» sul codice della Scrittura rapida: lo stesso dialogo dei file (ambiti e confronto
+ * prima/dopo), ma il risultato va nell'editor della Scrittura rapida, annullabile con Ctrl+Z, e si esegue.
+ * Ctrl+I «Genera» resta la barra veloce che scrive e inserisce subito.
+ */
+function suggestOnQuick(): void {
+  const context = quickContext()
+  if (!context) return
+  const language = quick().language
   void executeCommand('ai.suggestFor', {
     context,
     // Per l'SQL lo schema del database in memoria della Scrittura rapida (come «Genera»).
@@ -114,6 +159,7 @@ export function activateQuickCode(): void {
   connectRunEvents()
   registerSettingsSection({ id: 'quick', title: t('quick.brand'), render: QuickSettingsSection })
   on('app:closing', flushQuickDraft)
+  trackQuickDocument()
 
   const category = t('quick.brand')
   const isOpen = () => dockApi()?.getPanel(QUICK_PANEL) !== undefined

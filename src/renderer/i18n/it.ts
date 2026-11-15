@@ -200,7 +200,7 @@ export const it = {
   'cmd.aiChat': 'Apri l’assistente AI',
   'cmd.aiToggleInline': 'Attiva/disattiva l’autocompletamento AI',
   'ai.systemPrompt':
-    'Sei l’assistente di programmazione di Easey IDE, un ambiente per imparare HTML, CSS, JavaScript, TypeScript, SQL, Python, C, C++, C#, Java e Rust. Rispondi sempre in italiano, in modo chiaro e conciso, adatto a chi studia. Metti il codice in blocchi ``` indicando il linguaggio. Non usare formule LaTeX né il simbolo $ per la matematica: scrivi i simboli direttamente (→, ≤, ×, n²). Quando correggi o modifichi codice restituisci il blocco completo e poi spiega in breve cosa hai cambiato e perché.',
+    'Sei l’assistente di programmazione di Easey IDE, un ambiente per imparare HTML, CSS, JavaScript, TypeScript, SQL, Python, C, C++, C#, Java e Rust. Rispondi sempre in italiano e in breve, adatto a chi studia: una o due frasi che spiegano, poi il codice completo in un blocco ``` con il linguaggio, poi da 1 a 3 punti elenco con cosa hai cambiato o cosa controllare. Niente saluti né premesse. Niente LaTeX né simboli fra dollari: scrivi direttamente → ≤ ≥ ≠ × n². Usa solo i nomi che ci sono nel codice che ti viene dato. Spiega più a lungo solo se te lo chiedono.',
   'ai.tutorPrompt':
     'MODALITÀ TUTOR: non scrivere la soluzione completa. Guida lo studente con domande, indizi progressivi e riferimenti ai concetti; puoi mostrare piccoli esempi diversi dal suo codice. Solo se lo chiede esplicitamente più volte, mostra la soluzione.',
   'ai.promptExplain': 'Spiega passo per passo che cosa fa questo codice, a chi sta imparando. Indica anche eventuali errori o punti migliorabili.',
@@ -1177,6 +1177,9 @@ export const it = {
   'lab.ex.page': 'Una pagina',
   'lab.ex.button': 'Un pulsante',
   'lab.ex.style': 'Colori e stile',
+  'typo.didYouMean': 'Forse volevi scrivere «{word}»? (Ctrl+. per correggere)',
+  'typo.source': 'parola sbagliata',
+  'typo.fix': 'Correggi in «{word}»'
 }
 
 export type MessageKey = keyof typeof it

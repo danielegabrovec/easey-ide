@@ -1,4 +1,7 @@
 // Conversazione con l'assistente: messaggi, risposta in corso, documento fotografato all'invio (per «Applica»).
+import { chatSystemPrompt } from '@shared/ai/chat-prompt'
+import { languageOf } from '@shared/paths'
+import { currentVirtualDocument } from '../../workbench/documents'
 import { create } from 'zustand'
 import type { AiChatMessage } from '@shared/contracts/ai'
 import type { EditorRange } from '@shared/contracts/editor'
@@ -39,9 +42,11 @@ interface ChatState {
 
 let nextId = 1
 
+/** Istruzioni di sistema: risposte brevi, modalità tutor e le regole del linguaggio del documento aperto. */
 export function systemPrompt(): string {
-  const ai = workbench().settings.ai
-  return ai.tutorMode ? `${t('ai.systemPrompt')}\n\n${t('ai.tutorPrompt')}` : t('ai.systemPrompt')
+  const { ai, language } = workbench().settings
+  const path = currentVirtualDocument()?.path ?? workbench().activeFile
+  return chatSystemPrompt(t('ai.systemPrompt'), path ? languageOf(path) : null, { tutor: ai.tutorMode ? t('ai.tutorPrompt') : undefined, lang: language === 'en' ? 'en' : 'it' })
 }
 
 export const useChat = create<ChatState>((set, get) => ({

@@ -136,5 +136,8 @@ export function mathToText(text: string): string {
   out = out.replace(/(^|[^\\$\w])\$([^$\n]+?)\$(?!\$)(.?)/g, (whole, before: string, inner: string, after: string) =>
     looksLikeMath(inner, after) ? `${before}${latexToText(inner)}${after}` : whole
   )
+  // Frecce e confronti scritti senza dollari («a \rightarrow b», «x \le 3», come in Easey DB): solo i simboli
+  // che non si confondono con altro (mai \n, \t, \frac…).
+  out = out.replace(/\\(rightarrow|leftarrow|Rightarrow|Leftarrow|leftrightarrow|longrightarrow|implies|leq|geq|le|ge|neq|approx|times|cdot|infty)(?![A-Za-z])/g, (_m, name: string) => SYMBOLS[name] ?? name)
   return out
 }

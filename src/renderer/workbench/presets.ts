@@ -8,6 +8,7 @@
 import type { DockviewApi, IDockviewPanel } from 'dockview'
 import { createElement } from 'react'
 import { registerCommand } from './commands'
+import { emit } from './events'
 import { areaGroup, buildDefaultLayout, dockApi, forgetSideAreas, layoutPreset, registerPanel, rememberArea, setDockApi, setLayoutPreset, type LayoutPreset } from './layout'
 import { sidePanelRegistration, useSidePanel } from './side-panel'
 import { t } from '../i18n'
@@ -180,6 +181,7 @@ export function initLayout(api: DockviewApi): void {
     // ✕ sulla scheda dell'assistente nel Laboratorio = assistente chiuso (Ctrl+Alt+B lo riapre).
     if (panel.id === AI_PANEL && !switching && layoutPreset() === 'lab' && useSidePanel.getState().open) useSidePanel.setState({ open: false })
   })
+  emit('layout:ready')
 }
 
 // Nel Laboratorio «aperto» e il pannello vanno insieme: Ctrl+Alt+B, «Chiedi all'AI», ✕ dell'intestazione.

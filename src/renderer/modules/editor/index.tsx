@@ -1,4 +1,6 @@
 // Modulo Editor: apertura file, salvataggio, problemi, cronologia locale.
+import { currentVirtualDocument, virtualDocumentAt } from '../../workbench/documents'
+import { installTypoFix } from '../../services/typo-fix'
 import type * as Monaco from 'monaco-editor'
 import type { EditorContext, ReplaceRangeArgs } from '@shared/contracts/editor'
 import { basenameOf, isTextFile } from '@shared/paths'
@@ -51,6 +53,8 @@ function closeEditorsUnder(prefix: string): string[] {
 
 export function activateEditor(): void {
   setupMonaco()
+  // Parole sbagliate (pritn, consle, FORM…) con la correzione rapida: file e Scrittura rapida.
+  installTypoFix()
   trackProblemCounts()
   registerPanel('editor', EditorPanel)
   registerPanel('problems', ProblemsPanel)
@@ -133,6 +137,9 @@ export function activateEditor(): void {
     title: 'editor.getContext',
     palette: false,
     run: (): EditorContext | null => {
+      // L'ultimo documento usato è senza file (la Scrittura rapida): il contesto è il suo (workbench/documents).
+      const virtual = currentVirtualDocument()
+      if (virtual) return virtual.context()
       const editor = activeEditor()
       const model = editor?.getModel()
       const path = workbench().activeFile
@@ -169,10 +176,18 @@ export function activateEditor(): void {
     palette: false,
     run: async (args) => {
       if (!args) return
-      await openEditor(args.path)
-      const model = await ensureModel(args.path)
       const { startLine, startColumn, endLine, endColumn } = args.range
       const range = new monaco.Range(startLine, startColumn, endLine, endColumn)
+      const virtual = virtualDocumentAt(args.path)?.editor()
+      if (virtual) {
+        virtual.pushUndoStop()
+        virtual.executeEdits('laboratorio', [{ range, text: args.text, forceMoveMarkers: true }])
+        virtual.pushUndoStop()
+        virtual.focus()
+        return
+      }
+      await openEditor(args.path)
+      const model = await ensureModel(args.path)
       const editor = await editorFor(args.path)
       if (editor) {
         editor.pushUndoStop()
@@ -188,7 +203,7 @@ export function activateEditor(): void {
     id: 'editor.ensureModel',
     title: 'editor.ensureModel',
     palette: false,
-    run: (args) => (args ? ensureModel(args.path) : null)
+    run: (args) => (args ? (virtualDocumentAt(args.path)?.editor()?.getModel() ?? ensureModel(args.path)) : null)
   })
   // Grafica → codice (vista affiancata): seleziona l'intervallo, lo porta al centro e lo evidenzia con
   // uno sfondo che sfuma, SENZA prendere il fuoco. Niente cicli: l'editor segnala il cursore
@@ -235,7 +250,7 @@ export function activateEditor(): void {
     title: 'editor.insertText',
     palette: false,
     run: (args) => {
-      const editor = activeEditor()
+      const editor = currentVirtualDocument()?.editor() ?? activeEditor()
       const selection = editor?.getSelection()
       if (!args || !editor || !selection) return false
       editor.pushUndoStop()
