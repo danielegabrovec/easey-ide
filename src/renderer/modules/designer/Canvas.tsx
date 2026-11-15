@@ -3,14 +3,14 @@
 // ridimensionano a mano libera con guide magnetiche (stile Canva); altrove si riordinano a flusso (stile Wix).
 // Le regole su dove finisce un elemento rilasciato stanno in @shared/designer/drop (pure e testate).
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { FREE_CANVAS_CLASS, hasClass, isFreeElement, type ElementInfo } from '@shared/designer/html-model'
-import { clampBox, decideDrop, elementLabel, flowAxis, targetParent, type Axis, type DropTarget } from '@shared/designer/drop'
+import { FREE_CANVAS_CLASS, FREE_ELEMENT_CLASS, hasClass, isFreeElement, type ElementInfo } from '@shared/designer/html-model'
+import { clampBox, decideDrop, elementLabel, flowAxis, targetParent, type Axis, type DropTarget, freeContainerAt, appendTarget } from '@shared/designer/drop'
 import { fitScale, STAGE_PAD, stageX, wheelZoom, zoomAround } from '@shared/designer/zoom'
 import { blockById } from '@shared/designer/blocks'
 import { showContextMenu } from '../../ui/ContextMenu'
 import { t } from '../../i18n'
 import { notify } from '../../workbench/notifications'
-import { copyStyle, duplicateSelected, insertBlock, moveNode, moveOutOfFreeCanvas, pasteStyle, placePage, removeSelected, setElementText, setFreeBox, setStyles } from './actions'
+import { backToFlow, copyStyle, duplicateSelected, insertBlock, makeFreeInPlace, moveNode, moveOutOfFreeCanvas, pasteStyle, placePage, removeSelected, setElementText, setFreeBox, setStyles } from './actions'
 import { redo, undo } from './document'
 import { keyOf, resolveSelection, useDesigner } from './designer-store'
 import { registerFrame } from './frame-access'
@@ -22,7 +22,8 @@ interface Rect {
   height: number
 }
 
-type FreeTarget = { freeIn: number; x: number; y: number }
+/** `make`: «Sposta liberamente» fuori da una tavola (l'elemento diventa libero in quel contenitore). */
+type FreeTarget = { freeIn: number; x: number; y: number; make?: boolean }
 type FlowTarget = DropTarget | FreeTarget
 
 interface FlowDrag {
@@ -341,7 +342,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   }
 
   /** Dove andrebbe un elemento lasciato qui: tavola libera (posizione) o flusso (prima/dopo/dentro). */
-  const dropPlacement = (x: number, y: number, options: { exclude?: number; alt?: boolean; grab?: { x: number; y: number }; size?: { width: number; height: number } } = {}): { indicator: Indicator; target: FlowTarget } | null => {
+  const dropPlacement = (x: number, y: number, options: { exclude?: number; alt?: boolean; grab?: { x: number; y: number }; size?: { width: number; height: number }; free?: boolean } = {}): { indicator: Indicator; target: FlowTarget } | null => {
     const { exclude } = options
     const id = idAt(x, y, exclude)
     if (id === null || !page) return null
@@ -354,6 +355,19 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       const height = options.size?.height ?? 0
       const box = clampBox(x - rect.left - grab.x, y - rect.top - grab.y, width, height, node?.clientWidth ?? rect.width, node?.clientHeight ?? rect.height)
       return { indicator: { parent: rect, line: null, free: true, label: `${t('designer.dropInto', { parent: elementLabel(page.elements[tavola]!) })} › ${t('designer.dropFree')}` }, target: { freeIn: tavola, x: box.left, y: box.top } }
+    }
+    // «Sposta liberamente»: resta dove lo si lascia, nel contenitore sotto il puntatore (Alt = in fila, come prima).
+    if (options.free && !options.alt) {
+      const container = freeContainerAt(page, id, exclude)
+      const node = container !== null ? elementNode(container) : null
+      const rect = node ? rectOf(node) : null
+      if (container !== null && node && rect) {
+        const grab = options.grab ?? { x: 0, y: 0 }
+        const width = options.size ? Math.min(options.size.width, node.clientWidth || rect.width) : 0
+        // In alto e a sinistra mai fuori dal contenitore; in basso può allungarlo (la sua altezza minima cresce).
+        const box = clampBox(x - rect.left - node.clientLeft - grab.x, y - rect.top - node.clientTop - grab.y, width, 0, node.clientWidth || rect.width, Number.MAX_SAFE_INTEGER)
+        return { indicator: { parent: rect, line: null, free: true, label: `${t('designer.dropInto', { parent: elementLabel(page.elements[container]!) })} › ${t('designer.dropFree')}` }, target: { freeIn: container, x: box.left, y: box.top, make: true } }
+      }
     }
     const target = decideDrop({ model: page, hit: id, x, y, rectOf: (n) => rectOf(elementNode(n)), axisOf, edge: Math.min(EDGE / scale, EDGE_MAX), outside: options.alt, exclude })
     if (!target) return null
@@ -436,7 +450,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     if (!current || current.kind !== 'flow' || !last) return
     const { x, y } = toDoc(last)
     moveGhost(x, y, current.grab)
-    const placement = dropPlacement(x, y, { exclude: current.id, alt: last.alt, grab: current.grab, size: current.size })
+    const placement = dropPlacement(x, y, { exclude: current.id, alt: last.alt, grab: current.grab, size: current.size, free: useDesigner.getState().freeMove })
     current.target = placement?.target ?? null
     setIndicator(placement?.indicator ?? null)
   }
@@ -669,7 +683,14 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     } else if (current.kind === 'flow' && current.target) {
       // Si sposta l'elemento trascinato (non la selezione, che nel frattempo può essere cambiata).
       const target = current.target
-      if ('freeIn' in target) void moveNode(current.id, target.freeIn, 'inside-end', { left: target.x, top: target.y, width: current.size.width })
+      if ('freeIn' in target) {
+        const container = elementNode(target.freeIn)
+        // Con «Sposta liberamente» il contenitore non deve accorciarsi né tagliare l'elemento: altezza minima fino al suo fondo.
+        const containerHeight = Math.max(container?.offsetHeight ?? 0, target.y + current.size.height + 8)
+        // In fondo al contenitore, ma prima degli script finali (come ogni inserimento del designer).
+        const at = target.make ? appendTarget(page!, target.freeIn, current.id) : { id: target.freeIn, where: 'inside-end' as const }
+        void moveNode(current.id, at.id, at.where, { left: target.x, top: target.y, width: current.size.width }, target.make ? { container: target.freeIn, containerHeight } : undefined)
+      }
       else void moveNode(current.id, target.id, target.where)
     }
   }
@@ -747,6 +768,16 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     }
   }
 
+  /** «Mettilo dove vuoi»: libero dov'è adesso (misure prese nel canvas, rispetto al contenitore). */
+  const makeFreeHere = (id: number) => {
+    const node = elementNode(id)
+    const parent = node?.parentElement
+    if (!node || !parent) return
+    const r = node.getBoundingClientRect()
+    const p = parent.getBoundingClientRect()
+    void makeFreeInPlace(id, { left: r.left - p.left - parent.clientLeft, top: r.top - p.top - parent.clientTop, width: r.width }, parent.offsetHeight)
+  }
+
   const onContextMenu = (event: React.MouseEvent) => {
     const { x, y } = toDoc(event)
     const id = idAt(x, y)
@@ -766,9 +797,13 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
         ? [
             { label: t('designer.bringFront'), run: () => void setStyles({ 'z-index': '10' }) },
             { label: t('designer.sendBack'), run: () => void setStyles({ 'z-index': '0' }) },
-            { label: t('designer.moveOutOfCanvas'), run: () => void moveOutOfFreeCanvas(element.id) }
+            hasClass(element, FREE_ELEMENT_CLASS)
+              ? { label: t('designer.backToFlow'), run: () => void backToFlow(element.id), testId: 'designer-back-to-flow' }
+              : { label: t('designer.moveOutOfCanvas'), run: () => void moveOutOfFreeCanvas(element.id) }
           ]
-        : []),
+        : element.tag !== 'body' && parent
+          ? [{ label: t('designer.makeFree'), run: () => makeFreeHere(element.id), testId: 'designer-make-free' }]
+          : []),
       'separator' as const,
       { label: t('designer.delete'), danger: true, run: () => void removeSelected() }
     ])

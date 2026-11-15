@@ -168,7 +168,7 @@ try {
   // Livelli: trascino il titolo prima del pulsante
   await page.getByTestId('designer-layers-tab').click()
   await page.locator('[data-layer="titolo"]').dragTo(page.locator('[data-layer="pulsante"]'), { targetPosition: { x: 30, y: 2 } })
-  check('livelli: il titolo trascinato torna prima del pulsante', !!(await until(() => html().indexOf('<h1 id="titolo">') < html().indexOf('<button id="pulsante"'), 8000)))
+  check('livelli: il titolo trascinato torna prima del pulsante', !!(await until(() => html().indexOf('<h1 id="titolo">') < html().indexOf('<button id="pulsante"'), 8000)), (html().match(/<h1[^>]*>|<button[^>]*>/g) ?? []).join(' '))
   await run.shot('08-livelli')
   await page.locator('.designer-left .insp-tabs button').first().click()
 

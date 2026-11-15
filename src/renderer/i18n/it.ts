@@ -487,7 +487,7 @@ export const it = {
   'designer.targetClass': 'Classe',
   'designer.targetInline': 'In linea',
   'designer.idWillBeAdded': 'verrà aggiunto un id',
-  'designer.position': 'Posizione (tavola libera)',
+  'designer.position': 'Posizione libera',
   'designer.width': 'Larghezza',
   'designer.height': 'Altezza',
   'designer.rotation': 'Rotazione °',
@@ -1218,7 +1218,12 @@ export const it = {
   'tour.lab.manual.title': 'Guida e Manuale',
   'tour.lab.manual.text': '«Guida» spiega come si usa Easey IDE; «Manuale» insegna il linguaggio con lezioni ed esercizi.',
   'tour.lab.done.title': 'Pronto per esercitarti',
-  'tour.lab.done.text': 'Scrivi, esegui, riprova: la cronologia tiene tutto. Le parole sbagliate sono sottolineate e Ctrl+. le corregge.'
+  'tour.lab.done.text': 'Scrivi, esegui, riprova: la cronologia tiene tutto. Le parole sbagliate sono sottolineate e Ctrl+. le corregge.',
+  'designer.freeMove': 'Sposta liberamente',
+  'designer.freeMoveHint': 'Sposta liberamente: trascini un elemento e resta esattamente dove lo lasci (spento: si mette in fila prima o dopo gli altri)',
+  'designer.freeMoveOnHint': 'Sposta liberamente è acceso: ogni elemento resta dove lo lasci. Con Alt premuto lo metti in fila. Clic per spegnere',
+  'designer.makeFree': 'Mettilo dove vuoi (posizione libera)',
+  'designer.backToFlow': 'Rimetti in fila (nel flusso della pagina)'
 }
 
 export type MessageKey = keyof typeof it

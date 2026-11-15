@@ -187,7 +187,8 @@ export function landsInFreeCanvas(model: HtmlModel, target: DropTarget): boolean
   return parent !== null && hasClass(model.elements[parent]!, FREE_CANVAS_CLASS)
 }
 
-export const FREE_PROPS = ['position', 'left', 'top', 'width', 'height', 'z-index'] as const
+/** Proprietà di un elemento libero (il margine a zero: left e top sono proprio il suo angolo, come si vede). */
+export const FREE_PROPS = ['position', 'left', 'top', 'width', 'height', 'z-index', 'margin'] as const
 
 /**
  * Dichiarazioni da scrivere quando un elemento entra in una tavola (diventa libero) o ne esce
@@ -196,11 +197,43 @@ export const FREE_PROPS = ['position', 'left', 'top', 'width', 'height', 'z-inde
 export function freeStyleChange(wasFree: boolean, nowFree: boolean, box?: { left: number; top: number; width?: number }): Record<string, string | null> | null {
   if (wasFree === nowFree) return null
   if (nowFree) {
-    const out: Record<string, string | null> = { position: 'absolute', left: `${Math.round(box?.left ?? 24)}px`, top: `${Math.round(box?.top ?? 24)}px` }
+    const out: Record<string, string | null> = { position: 'absolute', left: `${Math.round(box?.left ?? 24)}px`, top: `${Math.round(box?.top ?? 24)}px`, margin: '0' }
     if (box?.width) out['width'] = `${Math.round(box.width)}px`
     return out
   }
   return Object.fromEntries(FREE_PROPS.map((p) => [p, null]))
+}
+
+/**
+ * «Sposta liberamente» (1.6): il contenitore in cui un elemento lasciato qui resta libero — il primo, partendo da
+ * quello sotto il puntatore, che può avere figli (sezione, div, main… o il body), mai l'elemento trascinato o un suo
+ * figlio. null se non ce n'è.
+ */
+export function freeContainerAt(model: HtmlModel, hit: number, exclude?: number): number | null {
+  let current: number | null = hit
+  const excluded = (id: number) => {
+    let walk: number | null = id
+    while (walk !== null) {
+      if (walk === exclude) return true
+      walk = model.elements[walk]?.parent ?? null
+    }
+    return false
+  }
+  while (current !== null) {
+    const element: ElementInfo | undefined = model.elements[current]
+    if (!element) return null
+    if (!excluded(current) && (canContain(element) || element.tag === 'body')) return current
+    current = element.parent
+  }
+  return model.body
+}
+
+/**
+ * Regole per il contenitore di un elemento libero: fa da riferimento (position: relative) e non si accorcia quando
+ * l'elemento esce dal flusso (altezza minima = quella di adesso; il body almeno quanto la finestra).
+ */
+export function freeContainerStyle(tag: string, currentHeight: number): Record<string, string> {
+  return { position: 'relative', 'min-height': tag === 'body' ? '100vh' : `${Math.max(40, Math.round(currentHeight))}px` }
 }
 
 /** Quanto di un elemento più grande della tavola deve restare comunque visibile (px). */

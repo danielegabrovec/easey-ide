@@ -1,7 +1,8 @@
 // Dove finisce un elemento rilasciato nel designer (P0-1, P1-2, P1-3 della revisione) e la selezione
 // dopo uno spostamento (P1-1).
 import { describe, expect, it } from 'vitest'
-import { appendTarget, clampBox, decideDrop, defaultInsertTarget, flowAxis, sectionAnchor, freeStyleChange, gridColumns, landsInFreeCanvas, targetParent, type Axis, type Box } from '@shared/designer/drop'
+import { appendTarget, clampBox, decideDrop, defaultInsertTarget, flowAxis, freeContainerAt, freeContainerStyle, sectionAnchor, freeStyleChange, gridColumns, landsInFreeCanvas, targetParent, type Axis, type Box } from '@shared/designer/drop'
+import { isFreeElement as isFreeElementModel, withClass } from '@shared/designer/html-model'
 import { applyEdits, moveElementAt } from '@shared/designer/html-edit'
 import { findByAttrId, parseHtml, type HtmlModel } from '@shared/designer/html-model'
 
@@ -148,8 +149,8 @@ describe('tavole libere (P0-3, P1-3)', () => {
     expect(landsInFreeCanvas(model, { id: tavola, where: 'inside-end' })).toBe(true)
     expect(landsInFreeCanvas(model, { id: id(model, 'libero'), where: 'after' })).toBe(true)
     expect(landsInFreeCanvas(model, { id: id(model, 's'), where: 'inside-end' })).toBe(false)
-    expect(freeStyleChange(false, true, { left: 10.4, top: 20, width: 300 })).toEqual({ position: 'absolute', left: '10px', top: '20px', width: '300px' })
-    expect(freeStyleChange(true, false)).toEqual({ position: null, left: null, top: null, width: null, height: null, 'z-index': null })
+    expect(freeStyleChange(false, true, { left: 10.4, top: 20, width: 300 })).toEqual({ position: 'absolute', left: '10px', top: '20px', margin: '0', width: '300px' })
+    expect(freeStyleChange(true, false)).toEqual({ position: null, left: null, top: null, width: null, height: null, 'z-index': null, margin: null })
     expect(freeStyleChange(true, true)).toBeNull()
   })
 
@@ -208,5 +209,34 @@ describe('defaultInsertTarget: clic nella palette senza selezione', () => {
     expect(page.elements[sectionAnchor(page, byTag(page, 'header').id)]!.tag).toBe('header')
     const plain = parseHtml('<html><body><main><p>a</p></main></body></html>')
     expect(page.elements.length && plain.elements[sectionAnchor(plain, byTag(plain, 'p').id)]!.tag).toBe('p')
+  })
+})
+
+describe('Sposta liberamente (1.6)', () => {
+  const page = parseHtml('<html><body><main class="card"><h1>Titolo</h1><p>Testo</p></main><h2 class="libero x">Fuori</h2></body></html>')
+  const byTag = (tag: string) => page.elements.findIndex((e) => e.tag === tag)
+
+  it('il contenitore è il primo che può avere figli, mai l’elemento trascinato', () => {
+    expect(freeContainerAt(page, byTag('h1'))).toBe(byTag('main'))
+    expect(freeContainerAt(page, byTag('main'))).toBe(byTag('main'))
+    expect(freeContainerAt(page, byTag('h1'), byTag('main'))).toBe(byTag('body'))
+  })
+
+  it('il contenitore fa da riferimento e non si accorcia; il body almeno quanto la finestra', () => {
+    expect(freeContainerStyle('section', 212.6)).toEqual({ position: 'relative', 'min-height': '213px' })
+    expect(freeContainerStyle('section', 3)).toEqual({ position: 'relative', 'min-height': '40px' })
+    expect(freeContainerStyle('body', 900)).toEqual({ position: 'relative', 'min-height': '100vh' })
+  })
+
+  it('la classe «libero» rende libero un elemento anche fuori dalle tavole', () => {
+    expect(isFreeElementModel(page, byTag('h2'))).toBe(true)
+    expect(isFreeElementModel(page, byTag('h1'))).toBe(false)
+  })
+
+  it('classi aggiunte e tolte senza toccare le altre', () => {
+    expect(withClass('card big', 'libero', true)).toBe('card big libero')
+    expect(withClass('libero x', 'libero', false)).toBe('x')
+    expect(withClass('libero', 'libero', false)).toBeNull()
+    expect(withClass(undefined, 'libero', true)).toBe('libero')
   })
 })

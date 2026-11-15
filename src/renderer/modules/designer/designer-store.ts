@@ -27,6 +27,9 @@ interface DesignerState {
   /** «Ritocchi consigliati» della pagina (null = non ancora controllata). */
   quality: LintIssue[] | null
   setQuality: (issues: LintIssue[] | null) => void
+  /** «Sposta liberamente» (1.6): un elemento trascinato resta esattamente dove lo si lascia. Ricordato. */
+  freeMove: boolean
+  setFreeMove: (on: boolean) => void
   /** Ricerca nella palette (resta mentre si passa ai Livelli e si torna). */
   paletteQuery: string
   /** Quante proprietà ha lo stile copiato (0 = niente da incollare). */
@@ -67,6 +70,16 @@ export function resolveSelection(html: HtmlModel | null, key: SelectionKey | nul
   return (key.attrId ? findByAttrId(html, key.attrId) : null) ?? findByPath(html, key.path)
 }
 
+const FREE_MOVE_KEY = 'easey.designer.freeMove'
+
+function readFreeMove(): boolean {
+  try {
+    return localStorage.getItem(FREE_MOVE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export const useDesigner = create<DesignerState>((set) => ({
   path: null,
   html: null,
@@ -88,6 +101,15 @@ export const useDesigner = create<DesignerState>((set) => ({
   canvasVersion: 0,
   quality: null,
   setQuality: (quality) => set({ quality }),
+  freeMove: readFreeMove(),
+  setFreeMove: (freeMove) => {
+    set({ freeMove })
+    try {
+      localStorage.setItem(FREE_MOVE_KEY, freeMove ? '1' : '0')
+    } catch {
+      /* archiviazione non disponibile: vale per questa sessione */
+    }
+  },
   canvasLoaded: () => set((state) => ({ canvasVersion: state.canvasVersion + 1 })),
   setZoom: (zoom) => set({ zoom }),
   setViewScale: (viewScale, viewFit) => set({ viewScale, viewFit }),

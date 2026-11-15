@@ -488,7 +488,7 @@ export const en: Record<MessageKey, string> = {
   'designer.targetClass': 'Class',
   'designer.targetInline': 'Inline',
   'designer.idWillBeAdded': 'an id will be added',
-  'designer.position': 'Position (free board)',
+  'designer.position': 'Free position',
   'designer.width': 'Width',
   'designer.height': 'Height',
   'designer.rotation': 'Rotation °',
@@ -1219,5 +1219,10 @@ export const en: Record<MessageKey, string> = {
   'tour.lab.manual.title': 'Guide and Manual',
   'tour.lab.manual.text': '«Guide» explains how to use Easey IDE; «Manual» teaches the language with lessons and exercises.',
   'tour.lab.done.title': 'Ready to practise',
-  'tour.lab.done.text': 'Write, run, try again: the history keeps everything. Misspelled words are underlined and Ctrl+. fixes them.'
+  'tour.lab.done.text': 'Write, run, try again: the history keeps everything. Misspelled words are underlined and Ctrl+. fixes them.',
+  'designer.freeMove': 'Move freely',
+  'designer.freeMoveHint': 'Move freely: drag an element and it stays exactly where you drop it (off: it lines up before or after the others)',
+  'designer.freeMoveOnHint': 'Move freely is on: every element stays where you drop it. Hold Alt to line it up. Click to switch off',
+  'designer.makeFree': 'Put it where you want (free position)',
+  'designer.backToFlow': 'Line it up again (page flow)'
 }

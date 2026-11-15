@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type * as Monaco from 'monaco-editor'
 import type { IDockviewPanelProps } from 'dockview'
-import { Columns2, FilePlus2, Globe, Laptop, ListChecks, Monitor, Redo2, Smartphone, Tablet, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Columns2, FilePlus2, Globe, Laptop, ListChecks, Monitor, Move, Redo2, Smartphone, Tablet, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import { buildCanvasDocument, resolveRelative } from '@shared/designer/canvas-document'
 import type { Breakpoint } from '@shared/designer/css-edit'
 import { linkedStylesheets } from '@shared/designer/html-edit'
@@ -174,6 +174,16 @@ function PagePicker({ path }: { path: string }) {
   )
 }
 
+/** «Sposta liberamente» (1.6): acceso, un elemento trascinato resta esattamente dove lo si lascia. */
+function FreeMoveToggle() {
+  const on = useDesigner((s) => s.freeMove)
+  return (
+    <button className={`btn ghost${on ? ' active' : ''}`} onClick={() => useDesigner.getState().setFreeMove(!on)} title={on ? t('designer.freeMoveOnHint') : t('designer.freeMoveHint')} aria-pressed={on} data-testid="designer-free-move">
+      <Move size={14} /> <span className="btn-label">{t('designer.freeMove')}</span>
+    </button>
+  )
+}
+
 export function DesignerPanel({ params }: IDockviewPanelProps<{ path: string }>) {
   const path = params.path
   const breakpoint = useDesigner((s) => s.breakpoint)
@@ -234,6 +244,7 @@ export function DesignerPanel({ params }: IDockviewPanelProps<{ path: string }>)
           ))}
         </div>
         <ZoomControl />
+        <FreeMoveToggle />
         <span style={{ flex: 1 }} />
         <QualityButton />
         <button className="icon-btn" title={`${t('designer.undo')} (Ctrl+Z)`} onClick={() => undo()}>

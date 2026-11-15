@@ -28,8 +28,8 @@ import {
   type InsertPosition,
   type TextEdit
 } from '@shared/designer/html-edit'
-import { findByAttrId, isFreeElement, type ElementInfo, type HtmlModel } from '@shared/designer/html-model'
-import { appendTarget, freeStyleChange, landsInFreeCanvas } from '@shared/designer/drop'
+import { FREE_ELEMENT_CLASS, findByAttrId, hasClass, isFreeElement, withClass, type ElementInfo, type HtmlModel } from '@shared/designer/html-model'
+import { FREE_PROPS, appendTarget, freeContainerStyle, freeStyleChange, landsInFreeCanvas } from '@shared/designer/drop'
 import { notifyError } from '../../workbench/notifications'
 import { modelFor, parse, stylesheetFor, Transaction } from './document'
 import { keyOf, selectedElement, useDesigner } from './designer-store'
@@ -184,11 +184,20 @@ export function moveSelectedTo(targetId: number, where: InsertPosition): Promise
   return moveNode(element.id, targetId, where)
 }
 
+/** «Sposta liberamente»: l'elemento diventa libero nel contenitore (che fa da riferimento e non si accorcia). */
+export interface MakeFree {
+  /** Il contenitore (che fa da riferimento): `targetId` può essere un suo figlio (es. prima degli script finali). */
+  container: number
+  /** Altezza attuale del contenitore (px), per la sua altezza minima. */
+  containerHeight: number
+}
+
 /**
  * Sposta un elemento qualunque (trascinato nel canvas o nei Livelli) e lo riseleziona dove è finito.
- * Se entra in una tavola libera diventa libero (posizione assoluta); se ne esce torna nel flusso.
+ * Se entra in una tavola libera diventa libero (posizione assoluta); se ne esce torna nel flusso. Con `makeFree`
+ * («Sposta liberamente», 1.6) resta libero anche fuori dalle tavole, esattamente dove lo si è lasciato.
  */
-export function moveNode(id: number, targetId: number, where: InsertPosition, free?: { left: number; top: number; width?: number }): Promise<void> {
+export function moveNode(id: number, targetId: number, where: InsertPosition, free?: { left: number; top: number; width?: number }, makeFree?: MakeFree): Promise<void> {
   const page = useDesigner.getState().html
   const element = page?.elements[id]
   if (!page || !element || id === targetId || ['html', 'head', 'body'].includes(element.tag)) return Promise.resolve()
@@ -200,7 +209,8 @@ export function moveNode(id: number, targetId: number, where: InsertPosition, fr
   if ((where === 'before' && siblings[index + 1] === targetId) || (where === 'after' && siblings[index - 1] === targetId)) return Promise.resolve()
   return withPage(async ({ html, editHtml, editCss }) => {
     const wasFree = isFreeElement(html, id)
-    const nowFree = landsInFreeCanvas(html, { id: targetId, where })
+    const inCanvas = landsInFreeCanvas(html, { id: targetId, where })
+    const nowFree = inCanvas || (!!makeFree && !!free)
     // Da una tavola a un'altra (o con una posizione nuova) si riscrive comunque la posizione.
     const change = free && nowFree ? freeStyleChange(false, true, free) : freeStyleChange(wasFree, nowFree, free)
     let key = html.elements[id]!.attrs['id'] ?? null
@@ -210,6 +220,24 @@ export function moveNode(id: number, targetId: number, where: InsertPosition, fr
       key = ensured.id
       editHtml(() => ensured.edits)
     }
+    // Libero fuori da una tavola: la classe «libero» sull'elemento, il contenitore fa da riferimento.
+    // (Prima dello spostamento: i numeri degli elementi cambiano solo spostando.)
+    const libero = nowFree && !inCanvas
+    let container: string | null = null
+    if (libero || hasClass(html.elements[id]!, FREE_ELEMENT_CLASS) !== libero) {
+      const current = html.elements[id]!
+      if (hasClass(current, FREE_ELEMENT_CLASS) !== libero) editHtml((h) => setAttribute(h, id, 'class', withClass(current.attrs['class'], FREE_ELEMENT_CLASS, libero)))
+    }
+    const containerId = makeFree?.container ?? targetId
+    if (libero && makeFree) {
+      const target = html.elements[containerId]!
+      if (target.tag !== 'body') {
+        // Sul testo già ritoccato (classe, id dell'elemento): le posizioni nel file sono cambiate.
+        const updated = editHtml((h) => ensureId(h, containerId).edits)
+        container = `#${ensureId(updated, containerId).id}`
+      } else container = 'body'
+    }
+    const containerTag = html.elements[containerId]!.tag
     let start = -1
     const after = editHtml((h) => {
       const result = moveElementAt(h, id, targetId, where)
@@ -220,8 +248,51 @@ export function moveNode(id: number, targetId: number, where: InsertPosition, fr
       const selector = `#${key}`
       await editCss((css) => setDeclarations(css, selector, change))
     }
+    if (container && makeFree) {
+      const rule = container
+      await editCss((css) => setDeclarations(css, rule, freeContainerStyle(containerTag, makeFree.containerHeight)))
+    }
     const moved = after.elements.find((e) => e.start === start) ?? (key ? findByAttrId(after, key) : null)
     useDesigner.getState().select(moved ? keyOf(moved) : null)
+  })
+}
+
+/**
+ * «Mettilo dove vuoi» (tasto destro): l'elemento diventa libero dov'è adesso (posizione e larghezza misurate nel
+ * canvas, rispetto al contenitore), poi lo si trascina dove si vuole.
+ */
+export function makeFreeInPlace(id: number, box: { left: number; top: number; width: number }, containerHeight: number): Promise<void> {
+  const page = useDesigner.getState().html
+  const element = page?.elements[id]
+  if (!page || !element || element.parent === null || isFreeElement(page, id) || ['html', 'head', 'body'].includes(element.tag)) return Promise.resolve()
+  const parentId = element.parent
+  return withPage(async ({ html, editHtml, editCss }) => {
+    const ensured = ensureId(html, id)
+    if (ensured.edits.length) editHtml(() => ensured.edits)
+    editHtml((h) => setAttribute(h, id, 'class', withClass(h.elements[id]!.attrs['class'], FREE_ELEMENT_CLASS, true)))
+    const parent = html.elements[parentId]!
+    let container = 'body'
+    if (parent.tag !== 'body') {
+      const updated = editHtml((h) => ensureId(h, parentId).edits)
+      container = `#${ensureId(updated, parentId).id}`
+    }
+    const position = freeStyleChange(false, true, box)!
+    await editCss((css) => setDeclarations(setDeclarations(css, `#${ensured.id}`, position), container, freeContainerStyle(parent.tag, containerHeight)))
+    const after = editHtml(() => [])
+    const moved = findByAttrId(after, ensured.id)
+    useDesigner.getState().select(moved ? keyOf(moved) : null)
+  })
+}
+
+/** «Rimetti in fila»: un elemento libero (fuori dalle tavole) torna nel flusso, dov'è nel codice. */
+export function backToFlow(id: number): Promise<void> {
+  const page = useDesigner.getState().html
+  const element = page?.elements[id]
+  if (!page || !element || !hasClass(element, FREE_ELEMENT_CLASS)) return Promise.resolve()
+  return withPage(async ({ html, editHtml, editCss }) => {
+    const key = html.elements[id]!.attrs['id'] ?? null
+    editHtml((h) => setAttribute(h, id, 'class', withClass(h.elements[id]!.attrs['class'], FREE_ELEMENT_CLASS, false)))
+    if (key) await editCss((css) => setDeclarations(css, `#${key}`, Object.fromEntries(FREE_PROPS.map((p) => [p, null]))))
   })
 }
 

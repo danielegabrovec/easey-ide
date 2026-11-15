@@ -144,10 +144,24 @@ export function hasClass(element: ElementInfo, name: string): boolean {
   return (element.attrs['class'] ?? '').split(/\s+/).includes(name)
 }
 
-/** Elemento dentro una "tavola libera" (posizionamento assoluto stile Canva). */
+/**
+ * Elemento libero (posizione assoluta, si sposta dove lo si lascia): dentro una "tavola libera" (stile Canva)
+ * oppure messo libero ovunque con «Sposta liberamente» (classe `libero`, 1.6).
+ */
 export function isFreeElement(model: HtmlModel, id: number): boolean {
-  const parent = model.elements[id]?.parent
+  const element = model.elements[id]
+  const parent = element?.parent
+  if (element && hasClass(element, FREE_ELEMENT_CLASS)) return true
   return parent !== null && parent !== undefined && hasClass(model.elements[parent]!, FREE_CANVAS_CLASS)
 }
 
 export const FREE_CANVAS_CLASS = 'tavola'
+/** Classe di un elemento messo libero fuori da una tavola: il suo contenitore fa da riferimento (position: relative). */
+export const FREE_ELEMENT_CLASS = 'libero'
+
+/** L'attributo class con `name` aggiunto o tolto (null = attributo da togliere perché vuoto). */
+export function withClass(current: string | undefined, name: string, on: boolean): string | null {
+  const list = (current ?? '').split(/\s+/).filter(Boolean).filter((c) => c !== name)
+  if (on) list.push(name)
+  return list.length ? list.join(' ') : null
+}
