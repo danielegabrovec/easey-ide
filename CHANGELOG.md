@@ -32,6 +32,11 @@ da tastiera con Maiusc+F10 o il tasto Menu, frecce, → per i sottomenu.
 - Chat: risposte brevi con le regole del linguaggio aperto; conosce il codice della Scrittura rapida (niente più
   «nessun file aperto»); frecce e confronti LaTeX diventano simboli anche senza dollari.
 
+**Aprire un file o una cartella da fuori** (per «Apri in Easey IDE» di Easey DB): `Easey IDE.exe <percorso>` apre
+una cartella come progetto, un file del progetto nell'editor, un file .py/.js/.sql… fuori dal progetto nella
+Scrittura rapida; con l'app già aperta il percorso arriva alla finestra che c'è. Le opzioni di Electron e Chromium
+si ignorano.
+
 **Guida e Manuale separati**: la **Guida** (pulsante nella barra) spiega come si usa Easey IDE e lo dice in cima; il
 **Manuale** (pulsante suo, Ctrl+Alt+L) è per imparare un linguaggio: corsi e manuali della Collana.
 

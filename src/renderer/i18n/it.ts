@@ -1225,7 +1225,8 @@ export const it = {
   'designer.makeFree': 'Mettilo dove vuoi (posizione libera)',
   'designer.backToFlow': 'Rimetti in fila (nel flusso della pagina)',
   'designer.multiCount': '{n} scelti',
-  'designer.multiNote': '{n} elementi scelti: gli stili che cambi qui valgono per tutti. Canc li toglie tutti; quelli liberi si spostano insieme (trascinandoli o con le frecce). Esc = resta solo il primo.'
+  'designer.multiNote': '{n} elementi scelti: gli stili che cambi qui valgono per tutti. Canc li toglie tutti; quelli liberi si spostano insieme (trascinandoli o con le frecce). Esc = resta solo il primo.',
+  'launch.openedQuick': '«{name}» aperto nella Scrittura rapida (non fa parte del progetto aperto). Salvalo con Ctrl+S nella tua raccolta.'
 }
 
 export type MessageKey = keyof typeof it

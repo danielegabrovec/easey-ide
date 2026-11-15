@@ -13,6 +13,7 @@ import { registerWorkbenchCommands } from './workbench/workbench-commands'
 import { useWorkbench } from './workbench/store'
 import { Workbench } from './workbench/Workbench'
 import { ErrorBoundary } from './workbench/ErrorBoundary'
+import { startWithLaunchTarget } from './workbench/launch'
 
 // Monaco annulla operazioni interne (diff, suggerimenti) rifiutando con un errore "Canceled":
 // è un annullamento voluto, non un problema, e non deve risultare come errore non gestito.
@@ -40,7 +41,8 @@ async function start(): Promise<void> {
     </ErrorBoundary>
   )
   // Il layout dockview si costruisce al primo render: si riapre il progetto subito dopo.
-  requestAnimationFrame(() => void restoreLastProject())
+  // Un file o una cartella passati sulla riga di comando (Easey DB: «Apri in Easey IDE») vincono sull'ultimo progetto.
+  requestAnimationFrame(() => void startWithLaunchTarget(restoreLastProject))
 }
 
 void start()

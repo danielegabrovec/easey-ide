@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+export { electronExe, packagedExe }
 export const repo = resolve(fileURLToPath(new URL('../..', import.meta.url)))
 const electronExe = join(repo, 'node_modules', 'electron', 'dist', 'electron.exe')
 // LAB_IDE_EXE=<percorso dell'exe pacchettizzato> collauda l'app installata invece di out/.
@@ -53,10 +54,11 @@ export function createRun(name) {
       console.log(`${ok ? 'OK ' : 'KO '} ${label}${detail ? ` — ${detail}` : ''}`)
       if (!ok) failures.push(label)
     },
-    async launch(extraEnv = {}) {
+    /** `extraArgs`: argomenti della riga di comando (es. il file da aprire, come fa Easey DB). */
+    async launch(extraEnv = {}, extraArgs = []) {
       run.app = await electron.launch({
         executablePath: packagedExe ?? electronExe,
-        args: packagedExe ? [] : ['.'],
+        args: packagedExe ? [...extraArgs] : ['.', ...extraArgs],
         cwd: repo,
         env: { ...process.env, LAB_IDE_USER_DATA: join(work, 'userData'), ...extraEnv }
       })

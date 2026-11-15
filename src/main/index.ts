@@ -16,7 +16,9 @@ import { exportSingleHtml, exportSite, exportZip } from './services/export/expor
 import { SAMPLE_DATABASES } from '@shared/sql/samples'
 import { kitFont } from '@shared/design-kit/fonts'
 import { DEFAULT_SETTINGS } from '@shared/contracts/settings'
-import { cpSync, existsSync } from 'node:fs'
+import { cpSync, existsSync, statSync } from 'node:fs'
+import { LAUNCH_MAX_BYTES, type LaunchTarget } from '@shared/launch-args'
+import { launchCandidates } from './launch-args'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { PreviewService, registerPreviewScheme } from './services/preview/preview-service'
 import { SettingsService } from './services/settings/settings-service'
@@ -182,6 +184,11 @@ async function openProject(root: string) {
 
 registerHandlers(
   {
+    'app:launchTarget': async () => {
+      const target = await pendingLaunch
+      pendingLaunch = Promise.resolve(null)
+      return target
+    },
     'app:info': () => ({
       name: APP_NAME,
       version: app.getVersion(),
@@ -419,10 +426,35 @@ async function createWindow(): Promise<void> {
   else await mainWindow.loadFile(rendererFile())
 }
 
-app.on('second-instance', () => {
+/**
+ * File o cartella da aprire passati sulla riga di comando (Easey DB: «Apri in Easey IDE»): il primo percorso che
+ * esiste. I file fuori da un progetto arrivano con il testo (per la Scrittura rapida).
+ */
+async function launchTargetFrom(argv: readonly string[], cwd: string): Promise<LaunchTarget | null> {
+  for (const candidate of launchCandidates(argv, app.getAppPath(), cwd)) {
+    const info = (() => {
+      try {
+        return statSync(candidate)
+      } catch {
+        return null
+      }
+    })()
+    if (!info) continue
+    if (info.isDirectory()) return { kind: 'folder', path: candidate }
+    if (info.isFile()) return { kind: 'file', path: candidate, content: info.size <= LAUNCH_MAX_BYTES ? await readFile(candidate, 'utf8') : undefined }
+  }
+  return null
+}
+
+/** Il percorso del primo avvio: il renderer lo chiede (una volta) quando la griglia è pronta. */
+let pendingLaunch: Promise<LaunchTarget | null> = launchTargetFrom(process.argv, process.cwd())
+
+app.on('second-instance', (_event, argv, workingDirectory) => {
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore()
     mainWindow.focus()
+    // L'app è già aperta: il file o la cartella arrivano qui.
+    void launchTargetFrom(argv, workingDirectory).then((target) => target && mainWindow?.webContents.send('app:openPath', target))
   }
 })
 

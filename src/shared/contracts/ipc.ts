@@ -2,6 +2,7 @@
 // Il main registra un gestore per ogni chiave di InvokeChannels (src/main/ipc/router.ts);
 // il preload espone solo i canali elencati qui (whitelist).
 
+import type { LaunchTarget } from '../launch-args'
 import type { AiChatChunk, AiChatRequest, AiCompleteRequest, AiStatus } from './ai'
 import type { TraceResult } from './trace'
 import type { GitCommit, GitStatus } from './git'
@@ -30,6 +31,8 @@ import type {
 
 export interface InvokeChannels {
   'app:info': () => AppInfo
+  /** File o cartella passati sulla riga di comando al primo avvio (una volta sola; poi null). */
+  'app:launchTarget': () => LaunchTarget | null
   'app:setTitle': (title: string) => void
   'app:openExternal': (url: string) => void
   /** Testi legali inclusi nell'app: licenza MIT, note legali, componenti di terze parti. */
@@ -153,6 +156,8 @@ export interface EventChannels {
   'quick:events': QuickRunEvent[]
   /** La finestra sta per chiudersi: il renderer salva il lavoro e risponde con `app:closeReply`. */
   'app:closeRequested': void
+  /** Un altro avvio con un percorso mentre l'app è aperta (second-instance). */
+  'app:openPath': LaunchTarget
 }
 
 export type CloseDecision = 'close' | 'wait' | 'cancel'
@@ -162,6 +167,7 @@ export type EventChannel = keyof EventChannels
 
 export const INVOKE_CHANNELS = [
   'app:info',
+  'app:launchTarget',
   'app:setTitle',
   'app:openExternal',
   'app:legal',
@@ -245,7 +251,7 @@ export const INVOKE_CHANNELS = [
   'quick:sqlReset'
 ] as const satisfies readonly InvokeChannel[]
 
-export const EVENT_CHANNELS = ['workspace:changed', 'terminal:data', 'terminal:exit', 'menu:command', 'ai:chunk', 'quick:events', 'app:closeRequested'] as const satisfies readonly EventChannel[]
+export const EVENT_CHANNELS = ['workspace:changed', 'terminal:data', 'terminal:exit', 'menu:command', 'ai:chunk', 'quick:events', 'app:closeRequested', 'app:openPath'] as const satisfies readonly EventChannel[]
 
 /** Ciò che il preload espone come `window.ide`. */
 export interface IdeBridge {

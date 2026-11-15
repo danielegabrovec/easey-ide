@@ -1226,5 +1226,6 @@ export const en: Record<MessageKey, string> = {
   'designer.makeFree': 'Put it where you want (free position)',
   'designer.backToFlow': 'Line it up again (page flow)',
   'designer.multiCount': '{n} selected',
-  'designer.multiNote': '{n} elements selected: the styles you change here apply to all. Delete removes them all; free ones move together (dragging or with the arrows). Esc = keep only the first.'
+  'designer.multiNote': '{n} elements selected: the styles you change here apply to all. Delete removes them all; free ones move together (dragging or with the arrows). Esc = keep only the first.',
+  'launch.openedQuick': '«{name}» opened in Quick code (it is not part of the open project). Save it with Ctrl+S in your collection.'
 }
