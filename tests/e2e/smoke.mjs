@@ -128,7 +128,7 @@ try {
   check('informazioni: autore e licenza', (await page.getByTestId('about-author').innerText()).includes('Daniele Gabrovec'))
   await page.getByTestId('about-third').click()
   check('informazioni: componenti di terze parti', !!(await until(async () => (await page.getByTestId('legal-text').innerText().catch(() => '')).includes('monaco-editor'), 5000)))
-  const closeTop = () => page.locator('.dialog').last().getByRole('button', { name: 'Chiudi' }).click()
+  const closeTop = () => page.locator('.dialog').last().getByRole('button', { name: 'Chiudi', exact: true }).click()
   await closeTop()
   await page.getByTestId('about-license').click()
   check('informazioni: testo della licenza MIT', (await page.getByTestId('legal-text').innerText()).includes('Copyright (c) 2026 Daniele Gabrovec'))

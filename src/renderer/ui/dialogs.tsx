@@ -153,7 +153,7 @@ export function Modal({ title, children, footer, onClose, wide, dirty }: ModalPr
           <span className="dialog-title" id={titleId}>
             {title}
           </span>
-          <button type="button" className="dialog-close" title={t('dialog.closeTitle')} aria-label={t('common.close')} onClick={() => requestClose('button')} data-testid="dialog-close">
+          <button type="button" className="dialog-close" title={t('dialog.closeTitle')} aria-label={t('dialog.closeTitle')} onClick={() => requestClose('button')} data-testid="dialog-close">
             <X size={16} />
           </button>
         </header>

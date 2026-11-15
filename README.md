@@ -12,7 +12,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="Licenza MIT" src="https://img.shields.io/badge/licenza-MIT-6366f1"></a>
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4">
-  <img alt="Versione 1.4.0" src="https://img.shields.io/badge/versione-1.4.0-a855f7">
+  <img alt="Versione 1.5.0" src="https://img.shields.io/badge/versione-1.5.0-a855f7">
   <img alt="AI locale" src="https://img.shields.io/badge/AI-locale%20(Ollama%20%2F%20LM%20Studio)-f59e0b">
 </p>
 
@@ -43,6 +43,17 @@ rapida**: JavaScript, TypeScript, Python, SQL, HTML, C, C++, C#, Java o Rust sen
 ---
 
 ## Cosa sa fare
+
+### Novità 1.5: non perdi niente e sai sempre cosa fare dopo
+- **Percorsi guidati** (Aiuto → Percorsi guidati): una nuvoletta indica dove cliccare e va avanti da sola quando fai
+  l'azione. **Cosa fare adesso** nel Benvenuto propone il passo successivo; **F1** apre l'aiuto della parte in cui
+  sei; **Glossario** della programmazione con la ricerca.
+- **Niente lavoro perso**: blocchi, nodi e diagrammi salvati anche chiudendo di colpo, il database in memoria
+  segnalato prima di uscire, ciò che elimini va nel **Cestino**, i dialoghi non si chiudono perdendo il testo.
+- **Errori che restano** finché non li chiudi, con il registro **Attività** nella barra di stato; un pannello che si
+  blocca si riapre senza rendere bianca la finestra.
+- **Assistente AI** più utile: formule leggibili (→, n²), suggerimenti presi dal file aperto, completamento in grigio
+  anche per Python, C, C++, C#, Java e Rust, che ora si aprono anche nei progetti.
 
 ### Scrivere ed eseguire codice
 - **Editor Monaco** (lo stesso motore di Visual Studio Code) con completamento intelligente per
@@ -176,7 +187,7 @@ una lezione e ogni esercizio 🧪 un compito. Come scrivere un corso: [docs/CORS
 
 ## Installazione
 
-1. Scarica `Easey-IDE-Setup-1.4.0.exe` dalla pagina
+1. Scarica `Easey-IDE-Setup-1.5.0.exe` dalla pagina
    [Releases](https://github.com/danielegabrovec/easey-ide/releases).
 2. Avvialo e scegli la cartella di installazione.
    L'installer non è firmato digitalmente: se Windows SmartScreen lo segnala, scegli

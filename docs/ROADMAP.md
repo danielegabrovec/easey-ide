@@ -17,6 +17,7 @@ Piano completo approvato il 2026-11-11. Ogni fase è un vertical slice con il su
 | 1.0 | **Easey IDE**: nuovo nome e icona, note legali e privacy, licenza MIT, elenco dei componenti di terze parti, finestra Informazioni, README con screenshot, pubblicazione su GitHub | ✅ v1.0.0 |
 | 1.1 | **Scrittura rapida** senza progetto: JavaScript, TypeScript, Python (Pyodide incluso), SQL in memoria e HTML; risultati accanto alle righe, worker con tempo massimo (cicli infiniti fermati), aiuto a quattro livelli (Spento/Leggero/Intermedio/Forte) e «Genera con AI», raccolta di file nei Documenti, bozza persistente ([ADR 0007](adr/0007-scrittura-rapida.md)) | ✅ v1.1.0 |
 | 1.2 | Scrittura rapida anche in **C, C++, C#, Java e Rust** con i compilatori installati sul PC (rilevati anche fuori dal PATH; scheda con il comando winget se mancano), errori di compilazione e crash sulla riga giusta, riquadro **Input** da tastiera (anche per `input()` di Python), parole chiave e modelli rapidi per i linguaggi senza servizio di completamento ([ADR 0008](adr/0008-scrittura-rapida-linguaggi-compilati.md)) | ✅ v1.2.0 |
+| 1.5 | **Allo stesso livello di Easey DB** ([analisi](MIGLIORAMENTI.md#confronto-con-easey-db-10--analisi-del-15112026-verso-la-150)): niente lavoro perso (salvataggi rimandati messi al sicuro alla chiusura e al cambio di progetto, database in memoria segnalato, Cestino), errori che restano con il registro delle attività, barriere dei pannelli, dialoghi che non perdono il testo, pannelli sempre al centro, formule leggibili e suggerimenti dal file aperto nella chat, un solo completamento AI per i dieci linguaggi, file Python/C/C++/C#/Java/Rust apribili nei progetti, percorsi guidati, «Cosa fare adesso», Glossario, aiuto F1 | ✅ v1.5.0 |
 | F8 | Prossimi passi (a richiesta): pacchetti Python di Pyodide (numpy, pandas…) scaricati a richiesta, altri linguaggi per la Scrittura rapida (Go, Kotlin, Lua), driver PostgreSQL/MySQL/SQL Server su server veri, aggiornamenti automatici (electron-updater + canale di pubblicazione), API pubblica per plugin sugli stessi punti di estensione, verifiche automatiche per gli esercizi importati dai manuali | da fare |
 
 ## F3 — Editor grafico stile Canva/Wix
@@ -50,3 +51,16 @@ HTML/CSS si aggiorna in tempo reale (e modificando il codice si aggiorna il dise
 **Fatto quando:** e2e — trascino un titolo e un pulsante in modalità libera e in una sezione,
 cambio colore e carattere dall'ispettore, il codice mostra solo quelle modifiche; modifico il CSS a
 mano e il disegno si aggiorna; test round-trip HTML/CSS su fixture.
+
+## Dopo la 1.5 (dall'analisi del 15/11/2026)
+
+| Voce | Cosa | Perché |
+|---|---|---|
+| E12 | **AI pronta**: se Ollama non ha modelli, «Scarica il modello consigliato» con la barra e Annulla (`ai:pull`, come Easey DB) | Oggi c'è solo «Scarica Ollama» e il comando `ollama pull` da scrivere nel terminale |
+| E13 | **Errori dei programmi spiegati** in italiano con «Cosa fare» (catalogo dei messaggi più comuni di JS/TS, Python, C/C++, C#, Java, Rust; «Spiegamelo» con l'AI) | Easey DB ne spiega 40 per i database; qui i messaggi restano grezzi e in inglese |
+| E16b | **Eseguire Python, C, C++, C#, Java e Rust dai progetti** con il motore della Scrittura rapida (compilatori del PC, Input) | Dalla 1.5 quei file si aprono e si scrivono nei progetti, ma «Esegui» vale solo per il web e per JS/TS |
+| E14 | «Modalità avanzata» (Git, terminale di sistema, strumenti per sviluppatori nascosti all'inizio) | Da decidere: in un IDE per imparare il terminale serve presto |
+| E15 | Impostazioni scritte senza mai restare a metà, con copia `.bak` | Un file rovinato oggi riparte da zero in silenzio |
+| E17 | I comandi non disponibili dicono perché (`unavailable`) | Dal menu o dalla palette «Designer» senza progetto non fa niente |
+| — | Percorsi guidati per blocchi e nodi, database e corsi; aiuto F1 e percorsi anche in inglese | Oggi tre percorsi e pagine F1 solo in italiano |
+
