@@ -22,6 +22,13 @@ export interface Settings {
   ai: AiSettings
   /** Scrittura rapida: livello di aiuto, esecuzione automatica, motore SQL, tempo massimo. */
   quick: QuickSettings
+  /** Guide: percorsi guidati completati e suggerimenti chiusi per sempre (id). */
+  guide: GuideSettings
+}
+
+export interface GuideSettings {
+  completed: string[]
+  dismissedTips: string[]
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -33,7 +40,8 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultShell: 'powershell',
   recent: [],
   ai: DEFAULT_AI_SETTINGS,
-  quick: DEFAULT_QUICK_SETTINGS
+  quick: DEFAULT_QUICK_SETTINGS,
+  guide: { completed: [], dismissedTips: [] }
 }
 
 export interface AppInfo {

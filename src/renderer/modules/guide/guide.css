@@ -1,0 +1,205 @@
+/* Fase 10 — Guide: «Prossimo passo», «Cosa fare adesso», invito al percorso, percorsi, glossario, galleria dei
+   modelli, AI pronta (scarica il modello) ed editor degli esercizi della Guida. */
+
+/* ---------------------------------------------------------------- Prossimo passo (pannello Database) */
+.next-steps-bar {
+  margin: 6px 8px 2px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  font-size: 12px;
+}
+
+.next-steps-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 0 8px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.next-steps-bar ul,
+.home-next-list {
+  list-style: none;
+  margin: 0;
+  padding: 2px 4px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.next-hint {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.next-hint-run {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  padding: 4px 6px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.next-hint-run span {
+  flex: 1;
+  min-width: 0;
+}
+
+.next-hint-run:hover {
+  background: var(--bg-hover);
+  color: var(--accent-strong);
+}
+
+/* ---------------------------------------------------------------- Home: Cosa fare adesso, invito, galleria */
+.home-next {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.home-next .home-next-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 10px);
+  background: var(--bg-elevated);
+  padding: 6px;
+  font-size: 13px;
+}
+
+.home-next > .btn {
+  align-self: flex-start;
+}
+
+.tour-offer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 22px;
+  padding: 14px 16px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg, 10px);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tour-offer-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--text);
+}
+
+.tour-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tour-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 10px);
+  background: var(--bg-elevated);
+}
+
+.tour-list li > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tour-list .tour-done {
+  color: var(--success);
+}
+
+.tour-list .tour-todo {
+  color: var(--text-faint);
+}
+
+/* ---------------------------------------------------------------- Glossario */
+.glossary {
+  display: flex;
+  flex-direction: column;
+}
+
+.glossary-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-faint);
+}
+
+.glossary-search input {
+  flex: 1;
+  min-width: 0;
+}
+
+.glossary-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 6px 12px 16px;
+}
+
+.glossary dl {
+  margin: 0;
+}
+
+.glossary-entry {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.glossary-entry.focus {
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+
+.glossary-entry dt code {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.glossary-entry dd {
+  margin: 4px 0 0;
+  line-height: 1.45;
+  font-size: 13px;
+}
+
+.glossary-example {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------------- Aiuto (F1) */
+.help-page h1 {
+  font-size: 18px;
+}
+
+.help-page h2 {
+  font-size: 14px;
+  margin-top: 16px;
+}
+
+/* ---------------------------------------------------------------- AI pronta */

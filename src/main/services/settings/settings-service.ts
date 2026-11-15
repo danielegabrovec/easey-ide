@@ -23,6 +23,9 @@ export function mergeSettings(base: Settings, patch: Partial<Settings>): Setting
   if (next.theme !== 'dark' && next.theme !== 'light') next.theme = DEFAULT_SETTINGS.theme
   if (next.language !== 'it' && next.language !== 'en') next.language = DEFAULT_SETTINGS.language
   next.recent = Array.isArray(next.recent) ? next.recent.slice(0, MAX_RECENT) : []
+  const ids = (value: unknown) => (Array.isArray(value) ? [...new Set(value.filter((item): item is string => typeof item === 'string'))].slice(0, 200) : [])
+  const guide = { ...DEFAULT_SETTINGS.guide, ...base.guide, ...patch.guide }
+  next.guide = { completed: ids(guide.completed), dismissedTips: ids(guide.dismissedTips) }
   return next
 }
 

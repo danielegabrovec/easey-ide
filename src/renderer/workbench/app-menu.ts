@@ -76,7 +76,7 @@ const SPEC: Spec[] = [
   },
   {
     label: 'menu.help',
-    items: ['workbench.welcome', 'workbench.shortcuts', 'workbench.about']
+    items: ['guide.help', 'guide.tours', 'guide.glossary', '-', 'workbench.welcome', 'workbench.shortcuts', 'workbench.activity', '-', 'workbench.about']
   }
 ]
 

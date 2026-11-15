@@ -14,12 +14,13 @@ via contratti), **consolidamento** (mai due modi di fare la stessa cosa).
 | `src/main/services/<servizio>/` | Un servizio nativo per cartella: `workspace`, `preview`, `terminal`, `settings`, `db`, `ai`, `learn`, `trace`, `git`, `export`, `quick` (Scrittura rapida: worker JS/TS e Python come entry di build a sé) | UI |
 | `src/preload/` | Ponte `window.ide` con la whitelist dei canali presa dai contratti | Logica |
 | `src/renderer/workbench/` | **Shell**: layout dockview, comandi, palette, eventi, stato condiviso, notifiche | Logica di dominio |
-| `src/renderer/services/` | Client condivisi da più moduli senza interfaccia (es. `ai-client.ts`: stato di Ollama, chat in streaming) | Componenti |
+| `src/renderer/services/` | Client condivisi da più moduli senza interfaccia (es. `ai-client.ts`: stato di Ollama, chat in streaming; `inline-ai.ts`: l'unico motore del suggerimento AI in grigio, per i file e la Scrittura rapida) | Componenti |
 | `src/renderer/ui/` | Primitive di interfaccia (dialoghi, menu contestuale, Markdown) | Stato di dominio |
-| `src/renderer/modules/<modulo>/` | Un modulo per cartella: `explorer`, `editor`, `run-web`, `run-terminal`, `ai-assist`, `sql-lab`, `designer`, `visual-code`, `diagrams`, `learn`, `step-run`, `git`, `quick-code` | Import di altri moduli |
+| `src/renderer/modules/<modulo>/` | Un modulo per cartella: `explorer`, `editor`, `run-web`, `run-terminal`, `ai-assist`, `sql-lab`, `designer`, `visual-code`, `diagrams`, `learn`, `step-run`, `git`, `quick-code`, `guide` (percorsi guidati, «Cosa fare adesso», Glossario, F1) | Import di altri moduli |
 | `src/renderer/modules/index.ts` | **Unico** punto in cui i moduli vengono attivati | — |
 | `src/renderer/i18n/` | Testi: `it.ts` (fonte), `en.ts` (stesse chiavi, verificato da TypeScript) | Testi sparsi nei componenti |
 | `resources/courses/` | Corsi inclusi nell'app, nel formato pacchetto ([CORSI.md](CORSI.md)) | Codice |
+| `resources/help/` | Pagine dell'aiuto F1, una per area (`src/shared/guide/help.ts` dice quale), incluse nel renderer alla build | Codice |
 | `tests/unit/` | Vitest su codice puro e servizi senza Electron | — |
 | `tests/e2e/` | Collaudo Playwright sull'app Electron vera | — |
 | `docs/adr/` | Una decisione architetturale = un file | — |
@@ -52,7 +53,20 @@ via contratti), **consolidamento** (mai due modi di fare la stessa cosa).
 - `setStatusItem` per una voce nella barra di stato (es. `✦ modello AI`).
 - `registerSettingsSection` per una sezione nel dialogo Impostazioni.
 - Evento `app:closing` del workbench: la finestra sta per chiudersi, il modulo scrive subito ciò che ha in sospeso
-  (bozze, timer). Il guscio poi salva i file (`workbench/close-guard.tsx`) e risponde al main (`app:closeReply`).
+  (bozze). Il guscio poi salva i file (`workbench/close-guard.tsx`) e risponde al main (`app:closeReply`).
+- **Lavoro non salvato** (`workbench/unsaved.ts`): `registerUnsavedWork(fornitore)` dice cosa si perderebbe chiudendo o
+  cambiando progetto (es. il database in memoria con tabelle); `useDeferredSave(etichetta, ms)` è l'unico modo per un
+  salvataggio rimandato (blocchi, nodi, diagrammi): parte subito alla chiusura, al cambio di progetto e alla chiusura
+  del pannello. Mai più `setTimeout` di salvataggio a mano.
+- **Errori**: `notifyError` lascia l'avviso finché non si chiude e lo scrive nel registro delle attività
+  (`workbench/activity.ts`, pulsante «Attività»). Ogni pannello registrato ha la sua barriera (`ErrorBoundary.tsx`).
+- **Pannelli del centro**: `showPanel({ area: 'center' })` non finisce mai in una colonna laterale, anche se è il gruppo
+  attivo (regola pura in `src/shared/layout-areas.ts`).
+- **Dialoghi**: `Modal` con `dirty` chiede «Vuoi scartare le modifiche?»; il clic fuori non chiude mai un dialogo in cui
+  si è scritto; ✕ nell'intestazione.
+- **Guide**: `onCommandExecuted` / `onCommandStarted` (`commands.ts`) e `onAnyEvent` (`events.ts`) per chi osserva senza
+  importare; `registerSlot` / `<Slot>` (`workbench/slots.tsx`) per mettere un pezzo d'interfaccia nel Benvenuto; i
+  percorsi guidati puntano a `data-testid` esistenti (`modules/guide/tours.ts`).
 - `Modal` (`ui/dialogs.tsx`) gestisce da sé fuoco iniziale, Tab dentro il dialogo, Esc sul dialogo in cima e fuoco
   restituito alla chiusura: i dialoghi nuovi lo usano invece di riscriverlo.
 

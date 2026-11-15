@@ -48,11 +48,52 @@ export async function executeCommand<A>(id: string, args?: A): Promise<unknown> 
     return undefined
   }
   if (command.when && !command.when()) return undefined
+  for (const listener of startedListeners) {
+    try {
+      listener(id, args)
+    } catch (error) {
+      console.error(`Errore in chi ascolta il comando ${id}`, error)
+    }
+  }
   try {
-    return await command.run(args)
+    const result = await command.run(args)
+    announceExecuted(id, args, result)
+    return result
   } catch (error) {
     notifyError(error)
     return undefined
+  }
+}
+
+const executedListeners = new Set<(id: string, args: unknown, result: unknown) => void>()
+const startedListeners = new Set<(id: string, args: unknown) => void>()
+
+/** Ascolta i comandi appena partiti (es. «Esegui», che può durare finché il programma gira). */
+export function onCommandStarted(listener: (id: string, args: unknown) => void): () => void {
+  startedListeners.add(listener)
+  return () => {
+    startedListeners.delete(listener)
+  }
+}
+
+/**
+ * Ascolta i comandi eseguiti (dopo che hanno finito, con il risultato): i percorsi guidati avanzano quando
+ * l'utente fa davvero l'azione, da qualunque pulsante, menu o scorciatoia arrivi.
+ */
+export function onCommandExecuted(listener: (id: string, args: unknown, result: unknown) => void): () => void {
+  executedListeners.add(listener)
+  return () => {
+    executedListeners.delete(listener)
+  }
+}
+
+function announceExecuted(id: string, args: unknown, result: unknown): void {
+  for (const listener of executedListeners) {
+    try {
+      listener(id, args, result)
+    } catch (error) {
+      console.error(`Errore in chi ascolta il comando ${id}`, error)
+    }
   }
 }
 

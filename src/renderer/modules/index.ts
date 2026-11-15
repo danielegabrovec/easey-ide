@@ -5,6 +5,7 @@ import { activateDiagrams } from './diagrams'
 import { activateEditor } from './editor'
 import { activateExplorer } from './explorer'
 import { activateGit } from './git'
+import { activateGuide } from './guide'
 import { activateQuickCode } from './quick-code'
 import { activateLearn } from './learn'
 import { activateRunTerminal } from './run-terminal'
@@ -27,6 +28,8 @@ export function activateModules(): void {
   activateStepRun()
   activateGit()
   activateQuickCode()
+  // Per ultimo: i percorsi e «Cosa fare adesso» usano i comandi degli altri moduli.
+  activateGuide()
 }
 
 export { restoreLastProject } from './explorer'

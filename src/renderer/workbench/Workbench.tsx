@@ -11,6 +11,8 @@ import { CommandPalette } from './CommandPalette'
 import { SidePanelHost } from './SidePanel'
 import { DialogHost } from '../ui/dialogs'
 import { ContextMenuHost } from '../ui/ContextMenu'
+import { TourHost } from '../ui/Tour'
+import { Slot } from './slots'
 import { useToasts, type Toast } from './notifications'
 import { useActivity } from './activity'
 import { ErrorBoundary } from './ErrorBoundary'
@@ -232,6 +234,8 @@ export function Workbench() {
       <CommandPalette />
       <DialogHost />
       <ContextMenuHost />
+      <Slot name="workbench.overlay" />
+      <TourHost />
     </div>
   )
 }

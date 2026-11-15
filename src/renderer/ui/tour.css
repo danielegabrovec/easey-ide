@@ -1,0 +1,184 @@
+/* Percorsi guidati (Fase 10): velo con il riquadro evidenziato e la nuvoletta. Il velo non prende i clic. */
+
+.tour-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1250;
+  pointer-events: none;
+}
+
+.tour-spot {
+  position: fixed;
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.38);
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+  transition: left 0.18s ease, top 0.18s ease, width 0.18s ease, height 0.18s ease;
+  animation: tour-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes tour-pulse {
+  0%,
+  100% {
+    outline-color: var(--accent);
+  }
+  50% {
+    outline-color: var(--accent-strong);
+    outline-offset: 2px;
+  }
+}
+
+.tour-veil {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.25);
+}
+
+.tour-bubble {
+  position: fixed;
+  pointer-events: auto;
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg, 10px);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  z-index: 1260;
+}
+
+.tour-bubble.docked {
+  border-color: var(--border-strong);
+}
+
+.tour-bubble header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+}
+
+.tour-bubble .tour-title {
+  flex: 1;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tour-bubble .tour-text {
+  margin: 0;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+
+.tour-bubble .tour-waiting,
+.tour-bubble .tour-missing {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.tour-bubble .tour-missing {
+  color: var(--warning);
+}
+
+.tour-bubble footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tour-bubble .tour-progress {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.tour-arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent);
+  transform: rotate(45deg);
+}
+
+.tour-arrow.bottom {
+  border-right: none;
+  border-bottom: none;
+}
+
+.tour-arrow.top {
+  border-left: none;
+  border-top: none;
+}
+
+.tour-arrow.right {
+  border-right: none;
+  border-top: none;
+}
+
+.tour-arrow.left {
+  border-left: none;
+  border-bottom: none;
+}
+
+/* «?» accanto ai termini tecnici e la sua nuvoletta (glossario). */
+.help-tip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0 2px;
+  margin: 0 2px;
+  color: var(--text-faint);
+  cursor: help;
+  vertical-align: middle;
+  border-radius: 50%;
+}
+
+.help-tip:hover,
+.help-tip[aria-expanded='true'] {
+  color: var(--accent);
+}
+
+.help-pop {
+  position: fixed;
+  z-index: 1300;
+  width: 300px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg, 10px);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.help-pop p {
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+
+.help-pop .help-pop-term {
+  font-family: var(--font-code);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.help-pop .help-pop-example {
+  color: var(--text-muted);
+}
+
+.help-pop .btn {
+  align-self: flex-start;
+  margin-top: 4px;
+}

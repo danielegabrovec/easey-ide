@@ -2,6 +2,7 @@
 import { FolderOpen, Plus, Clock, GraduationCap, X, Zap, PenTool, Puzzle, Workflow, Database } from 'lucide-react'
 import { executeCommand } from '../../workbench/commands'
 import { useWorkbench } from '../../workbench/store'
+import { Slot } from '../../workbench/slots'
 import { t } from '../../i18n'
 import { forgetRecent, openRecent } from './project'
 import logo from '../../assets/logo.svg'
@@ -17,6 +18,7 @@ export function WelcomePanel() {
           Easey IDE
         </h1>
         <p className="lead">{t('welcome.lead')}</p>
+        <Slot name="welcome.top" />
         <div className="welcome-actions">
           <button className="btn primary" onClick={() => executeCommand('workspace.newProject')} data-testid="welcome-new-project">
             <Plus size={15} /> {t('welcome.newProject')}
@@ -51,6 +53,7 @@ export function WelcomePanel() {
             </div>
           </section>
         )}
+        <Slot name="welcome.column" />
         {recent.length > 0 && (
           <section>
             <h2>

@@ -21,6 +21,15 @@ export interface WorkbenchEvents {
 type Listener<T> = (payload: T) => void
 
 const listeners = new Map<keyof WorkbenchEvents, Set<Listener<never>>>()
+const anyListeners = new Set<(event: keyof WorkbenchEvents, payload: unknown) => void>()
+
+/** Ascolta tutti gli eventi (percorsi guidati e «Prossimo passo»). */
+export function onAnyEvent(listener: (event: keyof WorkbenchEvents, payload: unknown) => void): () => void {
+  anyListeners.add(listener)
+  return () => {
+    anyListeners.delete(listener)
+  }
+}
 
 export function on<K extends keyof WorkbenchEvents>(event: K, listener: Listener<WorkbenchEvents[K]>): () => void {
   let set = listeners.get(event)
@@ -36,6 +45,13 @@ export function emit<K extends keyof WorkbenchEvents>(event: K, ...payload: Work
   for (const listener of listeners.get(event) ?? []) {
     try {
       ;(listener as Listener<WorkbenchEvents[K] | undefined>)(payload[0])
+    } catch (error) {
+      console.error(`Errore nel gestore di ${event}`, error)
+    }
+  }
+  for (const listener of anyListeners) {
+    try {
+      listener(event, payload[0])
     } catch (error) {
       console.error(`Errore nel gestore di ${event}`, error)
     }
