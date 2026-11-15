@@ -1,6 +1,8 @@
 // Markdown essenziale (risposte dell'AI, lezioni dei corsi), costruito come elementi React (mai HTML grezzo).
-// Supporta: titoli, paragrafi, elenchi, codice, citazioni/riquadri dei manuali (> 💡 …), tabelle, link.
+// Supporta: titoli, paragrafi, elenchi, codice, citazioni/riquadri dei manuali (> 💡 …), tabelle, link e formule
+// LaTeX trasformate in simboli (una freccia scritta in LaTeX diventa «→», vedi src/shared/ai/math-text.ts).
 import { Fragment, type ReactNode } from 'react'
+import { mathToText } from '@shared/ai/math-text'
 
 export interface CodeBlockProps {
   language: string
@@ -45,7 +47,16 @@ export function calloutKind(firstLine: string): string | null {
   return CALLOUTS.find(([emoji]) => text.startsWith(emoji))?.[1] ?? null
 }
 
-function inline(text: string, keyBase: string): ReactNode[] {
+/** Formule LaTeX in testo leggibile, ma mai dentro gli span di codice (`$x` in uno script resta com'è). */
+function withReadableMath(text: string): string {
+  return text
+    .split(/(`[^`]+`)/)
+    .map((part) => (part.startsWith('`') && part.endsWith('`') && part.length > 1 ? part : mathToText(part)))
+    .join('')
+}
+
+function inline(source: string, keyBase: string): ReactNode[] {
+  const text = withReadableMath(source)
   const parts: ReactNode[] = []
   const pattern = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*\s][^*]*\*|!?\[[^\]]*\]\([^)\s]+\))/g
   let last = 0

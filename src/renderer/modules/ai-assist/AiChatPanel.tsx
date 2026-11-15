@@ -8,6 +8,7 @@ import { pickChatModel } from '@shared/contracts/ai'
 import type { EditorContext } from '@shared/contracts/editor'
 import { keepTrailingNewline, resolveApplyTarget, selectionLineSpan, type ChatContextSnapshot } from '@shared/ai/chat-context'
 import { parseSlash, slashSuggestions } from '@shared/ai/slash'
+import { planStarters, splitStarters } from '@shared/ai/starters'
 import { basenameOf } from '@shared/paths'
 import { executeCommand } from '../../workbench/commands'
 import { notify } from '../../workbench/notifications'
@@ -241,6 +242,17 @@ function ContextChips({
   )
 }
 
+/** Suggerimenti d'avvio presi dal file aperto, dagli errori e dalla selezione (src/shared/ai/starters.ts). */
+function starters(file: string | null, errors: number, selection: boolean): string[] {
+  const plan = planStarters({ file, errors, selection })
+  const list = splitStarters(t(`ai.starters.${plan.topic}`))
+  const context = plan.context
+  if (context?.kind === 'errors') list.unshift(t('ai.starterErrors', { count: context.count ?? 0, file: context.file ?? '' }))
+  else if (context?.kind === 'selection') list.unshift(t('ai.starterSelection'))
+  else if (context?.kind === 'file') list.unshift(t('ai.starterFile', { file: context.file ?? '' }))
+  return list.slice(0, 4)
+}
+
 function ChatBody() {
   const status = useAi((s) => s.status)
   const checking = useAi((s) => s.checking)
@@ -248,6 +260,8 @@ function ChatBody() {
   const ai = useWorkbench((s) => s.settings.ai)
   const language = useWorkbench((s) => s.settings.language)
   const activeFile = useWorkbench((s) => s.activeFile)
+  const errors = useWorkbench((s) => s.problems.errors)
+  const hasSelection = useWorkbench((s) => s.selection !== null)
   const messages = useChat((s) => s.messages)
   const streaming = useChat((s) => s.stream !== null)
   const send = useChat((s) => s.send)
@@ -380,8 +394,8 @@ function ChatBody() {
             <p>{ai.tutorMode ? t('ai.introTutor') : t('ai.intro')}</p>
             <p className="hint">{t('ai.introSlash')}</p>
             <div className="ai-suggestions">
-              {[t('ai.suggest1'), t('ai.suggest2'), t('ai.suggest3')].map((s) => (
-                <button key={s} className="btn" onClick={() => changeInput(s)}>
+              {starters(activeFile, errors, hasSelection).map((s) => (
+                <button key={s} className="btn" onClick={() => changeInput(s)} data-testid="ai-starter">
                   {s}
                 </button>
               ))}

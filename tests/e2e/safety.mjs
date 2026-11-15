@@ -4,7 +4,7 @@
 //  3. un errore resta finché non lo si chiude e finisce nel registro delle attività
 //  4. dialoghi: il clic fuori non perde il testo scritto, Esc chiede «Vuoi scartare le modifiche?», ✕ c'è
 //  5. database in memoria con tabelle: la chiusura lo elenca fra il lavoro che si perderebbe
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createRun, ensureBuilt, until, wait } from './helpers.mjs'
 
@@ -39,6 +39,7 @@ try {
   check('chiusura: la finestra si chiude subito dopo una modifica al diagramma', await exited)
   check('chiusura: l’ultima modifica del diagramma è su disco', readFileSync(join(root, 'chiusura.diagramma.json'), 'utf8').includes('i ≤ 7'))
 
+  writeFileSync(join(root, 'esercizio.py'), 'nome = input("Come ti chiami? ")\nprint("Ciao", nome)\n')
   page = await run.launch()
   await page.waitForSelector('[data-path="main.js"]', { timeout: 20000 })
   await closeSidePanel(page)
@@ -62,6 +63,11 @@ try {
   check('disposizione: il file aperto dall’Esplora si vede', !!opened)
   check('disposizione: il file va al centro, non nella colonna dell’Esplora', !placement.same && placement.editorLeft >= placement.treeRight - 2, JSON.stringify(placement))
   await run.shot('01-centro')
+
+  // 2b. I file dei linguaggi della Scrittura rapida si aprono anche nei progetti (prima: «non è un file di testo»).
+  await page.locator('[data-path="esercizio.py"]').click()
+  const python = await until(() => page.locator('[data-editor-path="esercizio.py"] .view-lines').isVisible(), 8000)
+  check('linguaggi: un file .py del progetto si apre nell’editor', !!python && (await page.locator('[data-editor-path="esercizio.py"] .view-lines').innerText()).includes('print'))
 
   // 3. Errore che resta: rinomina su un nome che esiste già.
   await page.locator('[data-path="main.js"]').focus()
@@ -119,10 +125,16 @@ try {
   const others = page.getByTestId('close-others')
   const listed = await until(() => others.isVisible(), 8000)
   check('chiusura: il database in memoria con tabelle è nell’elenco del lavoro da perdere', !!listed && /memoria/.test(await others.innerText()), listed ? '' : hasEditor ? 'dialogo assente' : 'editor SQL non trovato')
-  if (listed) await page.getByTestId('close-cancel').click()
   // L'errore voluto del punto 3 (rinomina su un nome esistente) finisce anche nella console: non conta.
   const issues = run.issues.filter((issue) => !issue.includes('Esiste già: easey.json'))
   check('nessun errore nella console', issues.length === 0, issues.join(' | '))
+  // «Chiudi senza salvare» chiude davvero (e il collaudo non resta appeso sul dialogo alla fine).
+  if (listed) {
+    const closed = run.app.waitForEvent('close', { timeout: 15000 }).then(() => true, () => false)
+    await page.getByTestId('close-discard').click()
+    check('chiusura: «Chiudi senza salvare» chiude l’app', await closed)
+    run.app = null
+  }
 } catch (error) {
   run.fail(error)
 } finally {

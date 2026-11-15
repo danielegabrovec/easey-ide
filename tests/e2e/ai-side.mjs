@@ -32,7 +32,7 @@ const fake = createServer(async (req, res) => {
     const last = data.messages[data.messages.length - 1].content
     requests.push(last)
     const code = /```[\w-]*\n([\s\S]*?)\n```/.exec(last)?.[1]
-    const answer = code ? `Ecco la versione corretta:\n\n\`\`\`javascript\n${code.replace(/n \* 3/g, 'n * 2')}\n\`\`\`\n\nHo cambiato il 3 in 2.` : 'PRONTO'
+    const answer = last.includes('FORMULA') ? 'La freccia $\\rightarrow$ indica il risultato; il costo è $O(n^2)$ e \\(a \\leq b\\).' : code ? `Ecco la versione corretta:\n\n\`\`\`javascript\n${code.replace(/n \* 3/g, 'n * 2')}\n\`\`\`\n\nHo cambiato il 3 in 2.` : 'PRONTO'
     for (const piece of answer.match(/[\s\S]{1,12}/g)) res.write(JSON.stringify({ message: { role: 'assistant', content: piece }, done: false }) + '\n')
     res.end(JSON.stringify({ done: true }) + '\n')
   } else if (req.url === '/api/generate') {
@@ -130,6 +130,10 @@ try {
   await page.keyboard.press('Escape')
   check('Esc nella casella torna all’editor', !!(await until(() => focusInEditor(page), 3000)))
 
+  // 3b. Suggerimenti d'avvio presi dal file aperto (non più sempre «let e const», «Promise»…)
+  const firstStarter = await until(async () => (await page.getByTestId('ai-starter').first().innerText().catch(() => '')) || null, 5000)
+  check('suggerimenti d’avvio: il primo parla del file aperto (main.js)', !!firstStarter && firstStarter.includes('main.js'), String(firstStarter))
+
   // 4. Chip del documento
   await until(async () => (await page.locator('[data-path="doppio.js"]').count()) > 0, 8000)
   await page.locator('[data-path="doppio.js"]').click()
@@ -200,6 +204,12 @@ try {
   await page.locator('[data-path="rotto.js"]').click()
   check('chip «Problemi» quando il file ne ha', !!(await until(async () => (await page.getByTestId('ai-chip-problems').count()) === 1, 10000)))
   await run.shot('04-problemi')
+
+  // 6b. Formule LaTeX nella risposta mostrate come simboli
+  await page.getByTestId('ai-input').fill('FORMULA per favore')
+  await page.getByTestId('ai-send').click()
+  const formula = await lastAnswerDone(page)
+  check('formule: frecce, potenze e ≤ scritti in LaTeX diventano →, n² e ≤', !!formula && formula.includes('→') && formula.includes('O(n²)') && formula.includes('a ≤ b') && !formula.includes('\\'), String(formula))
 
   // 7. Stato ricordato dopo il riavvio
   check('nessun errore JavaScript nella finestra', run.issues.length === 0, run.issues.join(' | '))

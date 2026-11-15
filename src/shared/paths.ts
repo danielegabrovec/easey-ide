@@ -57,7 +57,26 @@ const LANGUAGE_BY_EXTENSION: Record<string, string> = {
   svg: 'xml',
   xml: 'xml',
   yml: 'yaml',
-  yaml: 'yaml'
+  yaml: 'yaml',
+  // I linguaggi della Scrittura rapida anche nei progetti: si aprono, si colorano e hanno i suggerimenti.
+  py: 'python',
+  c: 'c',
+  h: 'c',
+  cpp: 'cpp',
+  cc: 'cpp',
+  cxx: 'cpp',
+  hpp: 'cpp',
+  cs: 'csharp',
+  java: 'java',
+  rs: 'rust',
+  go: 'go',
+  php: 'php',
+  sh: 'shell',
+  ps1: 'powershell',
+  bat: 'bat',
+  ini: 'ini',
+  toml: 'ini',
+  csv: 'plaintext'
 }
 
 export function languageOf(path: string): string {
