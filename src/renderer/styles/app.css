@@ -1014,3 +1014,18 @@ kbd {
 .shortcuts-table td {
   padding: 4px 8px 4px 0;
 }
+
+/* Pulsante che sembra un collegamento (dentro una frase). */
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

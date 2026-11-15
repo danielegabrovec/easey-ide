@@ -16,7 +16,7 @@ export function activateLab(): void {
   registerSlot('quick.top', 'lab-strip', LabStrip)
   installHistoryRecorder()
   const category = t('category.view')
-  // «Guida» = come si usa l'app (aiuto della Scrittura rapida); «Manuale» = imparare il linguaggio (corsi).
-  registerCommand({ id: 'lab.guide', title: t('lab.guide'), category, palette: false, run: () => executeCommand('guide.help', { page: 'scrittura-rapida' }) })
+  // «Guida» = come si usa l'app (pannello Guida); «Manuale» = imparare il linguaggio (corsi). Un secondo clic chiude.
+  registerCommand({ id: 'lab.guide', title: t('lab.guide'), category, palette: false, run: () => toggleLabPanel('guide-home', () => executeCommand('guide.show')) })
   registerCommand({ id: 'lab.manual', title: t('lab.manual'), category, palette: false, run: () => toggleLabPanel('learn', () => executeCommand('learn.show')) })
 }

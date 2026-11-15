@@ -78,6 +78,22 @@ try {
   await page.getByTestId('tour-exit').click()
   check('✕ esce dal percorso', !!(await until(async () => (await page.getByTestId('tour').count()) === 0, 3000)))
 
+  // 6. Guida e Manuale separati (1.6): ognuno col suo pulsante e la differenza detta in cima.
+  await page.getByTestId('open-guide').click()
+  const difference = page.getByTestId('guide-home-difference')
+  check('«Guida»: il pannello dice che è come si usa l’app e rimanda al Manuale', !!(await until(() => difference.isVisible(), 5000)) && (await difference.innerText()).includes('Manuale'))
+  check('la Guida elenca i percorsi (anche «Il laboratorio») e le pagine d’aiuto', (await page.getByTestId('guide-home-tours').count()) === 1 && (await page.getByTestId('guide-home-page-corsi').innerText()).includes('Manuale'))
+  await page.getByTestId('guide-home-manual').click()
+  const intro = page.getByTestId('learn-intro')
+  check('dal link si apre il Manuale, che dice a cosa serve', !!(await until(() => intro.isVisible(), 5000)) && (await intro.innerText()).includes('imparare un linguaggio'))
+  check('il pannello si chiama «Manuale»', (await page.locator('.dv-tab', { hasText: 'Manuale' }).count()) === 1)
+  await page.getByTestId('learn-open-guide').click()
+  check('dal Manuale si torna alla Guida', !!(await until(async () => (await page.locator('.dv-tab.dv-active-tab', { hasText: 'Guida' }).count()) === 1, 3000)))
+  await page.getByTestId('guide-home-tours').click()
+  check('fra i percorsi c’è «Il laboratorio»', !!(await until(async () => (await page.getByTestId('tour-start-laboratorio').count()) === 1, 3000)))
+  await page.keyboard.press('Escape')
+  await until(async () => (await page.locator('.dialog').count()) === 0, 3000)
+
   check('nessun errore nella console', run.issues.length === 0, run.issues.join(' | '))
 
   // Riavvio: l'invito non torna

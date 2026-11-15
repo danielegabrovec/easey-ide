@@ -203,3 +203,68 @@
 }
 
 /* ---------------------------------------------------------------- AI pronta */
+
+/* ---------------------------------------------------------------- Pannello Guida (1.6) */
+.guide-home-scroll {
+  height: 100%;
+  overflow-y: auto;
+  padding: 18px 22px;
+  max-width: 860px;
+}
+
+.guide-home-scroll h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.guide-home-scroll h3 {
+  margin: 20px 0 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.guide-home-difference {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  line-height: 1.5;
+}
+
+.guide-home-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.guide-home-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  cursor: pointer;
+  color: var(--text);
+}
+
+.guide-home-card:hover {
+  border-color: var(--accent);
+}
+
+.guide-home-icon {
+  color: var(--accent);
+}
+
+.guide-home-pages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 2px 12px;
+}
+

@@ -74,8 +74,29 @@ function designer(): TourDefinition {
   }
 }
 
+/** «Il laboratorio» (1.6, come «Il laboratorio SQL» di Easey DB): la disposizione didattica, un esempio eseguito. */
+function laboratorio(): TourDefinition {
+  const s = (id: string, rest?: Rest) => step('lab', id, rest)
+  return {
+    id: 'laboratorio',
+    title: t('tour.lab.title'),
+    description: t('tour.lab.description'),
+    minutes: 3,
+    steps: [
+      s('intro'),
+      s('toggle', { target: '[data-testid="lab-toggle"]', wait: { kind: 'element', selector: '[data-testid="lab-strip"]' } }),
+      s('example', { target: '[data-testid="lab-strip"] .lab-chip-run', open: { command: 'layout.lab' }, wait: { kind: 'command', command: 'quick.insertCode' } }),
+      s('output', { target: '[data-testid="quick-output-panel"]', open: { command: 'layout.lab' }, dock: true }),
+      s('history', { target: '[data-testid="lab-history"]', open: { command: 'layout.lab' }, dock: true }),
+      s('assistant', { target: '[data-testid="ai-docked"]', open: { command: 'layout.lab' }, dock: true }),
+      s('manual', { target: '[data-testid="lab-manual"]', open: { command: 'layout.lab' } }),
+      s('done')
+    ]
+  }
+}
+
 export function allTours(): TourDefinition[] {
-  return [primaPagina(), primoProgramma(), designer()]
+  return [primaPagina(), primoProgramma(), laboratorio(), designer()]
 }
 
 export function tourById(id: string): TourDefinition | undefined {

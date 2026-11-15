@@ -10,3 +10,9 @@ Per provare un'idea in pochi secondi, **senza progetto**: JavaScript, TypeScript
 
 C, C++, C#, Java e Rust usano i compilatori installati sul PC: se mancano, una scheda spiega come installarli.
 I tuoi esperimenti si salvano nei Documenti, cartella *Easey IDE/Scrittura rapida*.
+
+## Laboratorio
+
+Il pulsante **Laboratorio** dispone tutto per esercitarsi: la Scrittura rapida al centro con sopra gli **esempi da provare** (clic = lo scrive, ▶ = lo scrive e lo esegue), sotto **Output**, Console e Terminale, a sinistra la **Raccolta** e i file, a destra le **Esecuzioni** (clic = il codice torna nell'editor, doppio clic = di nuovo eseguito) sopra l'**Assistente AI**. Di nuovo **Laboratorio** per tornare alla disposizione Standard.
+
+Le parole scritte male (`pritn`, `consle`, `Sytem`…) sono sottolineate: **Ctrl+.** le corregge.

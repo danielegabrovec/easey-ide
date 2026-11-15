@@ -3,7 +3,7 @@
 // Non contiene logica di dominio: tutte le azioni passano dai comandi registrati dai moduli.
 import { useCallback, useEffect, useState } from 'react'
 import { DockviewReact, themeDark, themeLight, type DockviewReadyEvent } from 'dockview'
-import { AlertCircle, AlertTriangle, Copy, History, X, Command as CommandIcon, Moon, Play, Settings2, Sun, SquareTerminal, TerminalSquare, Globe, PenTool, Database, Zap, FlaskConical, PanelLeftClose, PanelLeftOpen, PanelBottomClose, PanelBottomOpen } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Copy, History, X, Command as CommandIcon, Moon, Play, Settings2, Sun, SquareTerminal, TerminalSquare, Globe, PenTool, Database, Zap, FlaskConical, Compass, BookOpen, PanelLeftClose, PanelLeftOpen, PanelBottomClose, PanelBottomOpen } from 'lucide-react'
 import { executeCommand } from './commands'
 import { panelComponents, setDockApi, useLayout } from './layout'
 import { initLayout } from './presets'
@@ -86,6 +86,15 @@ function Toolbar() {
         {t('toolbar.quick')}
       </button>
       <LabToggle />
+      {/* Guida = come si usa l'app; Manuale = imparare un linguaggio (1.6, separati come in Easey DB). */}
+      <button className="btn ghost" title={t('toolbar.guideHint')} onClick={() => executeCommand('guide.show')} data-testid="open-guide">
+        <Compass size={15} />
+        {t('toolbar.guide')}
+      </button>
+      <button className="btn ghost" title={`${t('toolbar.manualHint')} (Ctrl+Alt+L)`} onClick={() => executeCommand('learn.show')} data-testid="open-manual">
+        <BookOpen size={15} />
+        {t('toolbar.manual')}
+      </button>
       <div className="divider" />
       <button className="icon-btn" title={`${t('toolbar.newTerminal')} (Ctrl+Shift+\`)`} onClick={() => executeCommand('terminal.new')}>
         <SquareTerminal size={16} />

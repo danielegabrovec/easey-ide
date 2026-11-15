@@ -62,7 +62,6 @@ const SPEC: Spec[] = [
       'run.showConsole',
       'editor.showProblems',
       'git.show',
-      'learn.show',
       'ai.toggleChat',
       '-',
       'layout.standard',
@@ -79,7 +78,7 @@ const SPEC: Spec[] = [
   },
   {
     label: 'menu.help',
-    items: ['guide.help', 'guide.tours', 'guide.glossary', '-', 'workbench.welcome', 'workbench.shortcuts', 'workbench.activity', '-', 'workbench.about']
+    items: ['guide.show', 'learn.show', '-', 'guide.help', 'guide.tours', 'guide.glossary', '-', 'workbench.welcome', 'workbench.shortcuts', 'workbench.activity', '-', 'workbench.about']
   }
 ]
 

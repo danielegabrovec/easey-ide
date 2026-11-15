@@ -114,7 +114,7 @@ try {
   await run.app.close()
   page = await run.launch({ LAB_IDE_PICK_DIR: manual })
   await page.waitForSelector('.toolbar', { timeout: 20000 })
-  await run.palette('Apri lezioni ed esercizi')
+  await run.palette('Apri il Manuale')
   panel = page.getByTestId('learn-panel')
   check('dopo il riavvio i progressi restano (4 di 4)', !!(await until(async () => (await panel.locator('[data-course="primi-passi"]').innerText().catch(() => '')).includes('4 di 4'), 10000)))
 

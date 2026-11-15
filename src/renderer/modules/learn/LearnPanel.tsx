@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { ArrowLeft, BookOpen, Bot, Check, CheckCircle2, Circle, CircleDot, Eye, FolderInput, Lightbulb, Play, RotateCcw, ShieldCheck, Trash2, Upload, XCircle } from 'lucide-react'
 import type { CodeBlockProps } from '../../ui/Markdown'
 import { Markdown } from '../../ui/Markdown'
+import { executeCommand } from '../../workbench/commands'
 import type { Exercise, ExerciseState } from '@shared/contracts/learn'
 import { useWorkbench } from '../../workbench/store'
 import { confirm } from '../../ui/dialogs'
@@ -48,6 +49,14 @@ function Catalog() {
           <BookOpen size={16} /> {t('learn.courses')}
         </h2>
       </div>
+      {/* 1.6: il Manuale è per imparare un linguaggio; come si usa l'app lo dice la Guida. */}
+      <p className="learn-intro" data-testid="learn-intro">
+        {t('learn.manualIntro')}{' '}
+        <button className="link-btn" onClick={() => void executeCommand('guide.show')} data-testid="learn-open-guide">
+          {t('learn.openGuide')}
+        </button>
+        .
+      </p>
       <div className="learn-actions">
         <button className="btn" onClick={() => importCourse('manuale')} data-testid="learn-import-manual" title={t('cmd.learnImportManual')}>
           <FolderInput size={14} /> {t('learn.importManual')}
