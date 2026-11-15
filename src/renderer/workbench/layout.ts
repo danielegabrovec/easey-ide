@@ -5,6 +5,7 @@ import type { DockviewApi, IDockviewPanel, IDockviewPanelProps } from 'dockview'
 import { create } from 'zustand'
 import { t } from '../i18n'
 import { withPanelBoundary } from './ErrorBoundary'
+import { chooseCenterGroup, isSideGroup, newCenterPosition, type SideGroups } from '@shared/layout-areas'
 
 /**
  * Cosa si vede intorno all'area centrale: l'Esplora a sinistra (Ctrl+B) e i pannelli di servizio
@@ -209,13 +210,21 @@ export function showPanel(options: ShowPanelOptions): IDockviewPanel | null {
     renderer: options.renderer,
     inactive: options.inactive
   }
-  const group = liveGroup(options.area)
+  const group = options.area === 'center' ? undefined : liveGroup(options.area)
   let panel: IDockviewPanel
   if (group) {
     panel = api.addPanel({ ...base, position: { referenceGroup: group } })
   } else if (options.area === 'center') {
-    const fallback = api.activeGroup ?? api.groups[0]
-    panel = fallback ? api.addPanel({ ...base, position: { referenceGroup: fallback } }) : api.addPanel(base)
+    // Mai nella colonna da cui si è cliccato (Esplora, Git, Database…): il centro, o un centro nuovo.
+    const sides = sideGroups()
+    const center = chooseCenterGroup(
+      api.groups.map((g) => g.id),
+      sides,
+      areaGroups.center,
+      api.activeGroup?.id
+    )
+    const place = newCenterPosition(sides)
+    panel = center ? api.addPanel({ ...base, position: { referenceGroup: center } }) : place ? api.addPanel({ ...base, position: place }) : api.addPanel(base)
   } else {
     const direction = options.area === 'left' ? 'left' : options.area === 'right' ? 'right' : 'below'
     panel = api.addPanel({ ...base, position: { direction } })
@@ -233,9 +242,15 @@ export function findPanels(prefix: string): IDockviewPanel[] {
   return api ? api.panels.filter((panel) => panel.id.startsWith(prefix)) : []
 }
 
-/** Ricorda in quale gruppo stanno gli editor: i file nuovi si aprono lì. */
+/** Ricorda in quale gruppo stanno gli editor: i file nuovi si aprono lì (mai in una colonna laterale). */
 export function rememberArea(area: Area, groupId: string): void {
+  if (area === 'center' && isSideGroup(groupId, sideGroups())) return
   areaGroups[area] = groupId
+}
+
+/** I gruppi laterali che esistono ancora. */
+function sideGroups(): SideGroups {
+  return { left: liveGroup('left')?.id, right: liveGroup('right')?.id, bottom: liveGroup('bottom')?.id }
 }
 
 export function buildDefaultLayout(): void {
