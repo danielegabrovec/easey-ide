@@ -52,6 +52,13 @@ HTML/CSS si aggiorna in tempo reale (e modificando il codice si aggiorna il dise
 cambio colore e carattere dall'ispettore, il codice mostra solo quelle modifiche; modifico il CSS a
 mano e il disegno si aggiorna; test round-trip HTML/CSS su fixture.
 
+## 1.6 — Come Easey DB 1.1, più il designer libero ✅ v1.6.0
+
+Tasto destro completo con sottomenu nell'albero; Laboratorio (esempi, output sotto, esecuzioni e AI a destra);
+suggerimento AI col riempimento al centro, parole sbagliate con correzione rapida, risposte brevi; Guida e Manuale
+separati; nel designer «Sposta liberamente», rettangolo di selezione e selezione multipla (richieste del titolare).
+Dettagli in [MIGLIORAMENTI.md](MIGLIORAMENTI.md#secondo-confronto-con-easey-db-11--15112026-verso-la-160).
+
 ## Dopo la 1.5 (dall'analisi del 15/11/2026)
 
 | Voce | Cosa | Perché |

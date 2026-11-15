@@ -12,7 +12,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="Licenza MIT" src="https://img.shields.io/badge/licenza-MIT-6366f1"></a>
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4">
-  <img alt="Versione 1.5.0" src="https://img.shields.io/badge/versione-1.5.0-a855f7">
+  <img alt="Versione 1.6.0" src="https://img.shields.io/badge/versione-1.6.0-a855f7">
   <img alt="AI locale" src="https://img.shields.io/badge/AI-locale%20(Ollama%20%2F%20LM%20Studio)-f59e0b">
 </p>
 
@@ -43,6 +43,14 @@ rapida**: JavaScript, TypeScript, Python, SQL, HTML, C, C++, C#, Java o Rust sen
 ---
 
 ## Cosa sa fare
+
+### Novità 1.6: metti le cose dove vuoi, e un laboratorio per esercitarti
+- **Designer**: «Sposta liberamente» (l'elemento resta dove lo lasci), rettangolo di selezione e selezione multipla
+  (Maiusc/Ctrl + clic), stili e spostamenti su tutti gli scelti.
+- **Laboratorio**: esempi da provare nei dieci linguaggi, output sotto, esecuzioni e assistente AI a destra.
+- **Tasto destro completo** nell'albero dei file, con sottomenu e tastiera.
+- **AI**: suggerimento in grigio col formato dei modelli da codice, parole sbagliate corrette con Ctrl+., risposte brevi.
+- **Guida** (come si usa l'app) e **Manuale** (imparare un linguaggio) separati, ognuno col suo pulsante.
 
 ### Novità 1.5: non perdi niente e sai sempre cosa fare dopo
 - **Percorsi guidati** (Aiuto → Percorsi guidati): una nuvoletta indica dove cliccare e va avanti da sola quando fai
@@ -187,7 +195,7 @@ una lezione e ogni esercizio 🧪 un compito. Come scrivere un corso: [docs/CORS
 
 ## Installazione
 
-1. Scarica `Easey-IDE-Setup-1.5.0.exe` dalla pagina
+1. Scarica `Easey-IDE-Setup-1.6.0.exe` dalla pagina
    [Releases](https://github.com/danielegabrovec/easey-ide/releases).
 2. Avvialo e scegli la cartella di installazione.
    L'installer non è firmato digitalmente: se Windows SmartScreen lo segnala, scegli

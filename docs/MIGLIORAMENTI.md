@@ -1,5 +1,24 @@
 # Miglioramenti — Easey IDE
 
+
+## Secondo confronto con Easey DB 1.1 — 15/11/2026 (verso la 1.6.0)
+
+Easey DB 1.1 (Laboratorio SQL, completamento e AI migliori) e le richieste del titolare sul designer. Fatto tutto
+nella 1.6.0, una fetta per commit.
+
+| # | Cosa mancava | Dove (prima) | Come ora | Stato |
+|---|---|---|---|---|
+| F1 | Tasto destro dell'albero piatto, senza gruppi, sottomenu né tastiera | `src/renderer/modules/explorer/ExplorerPanel.tsx` (onContext), `src/renderer/ui/ContextMenu.tsx` | `ContextMenu` con sottomenu `{ label, items }` come Easey DB (`src/shared/menu-position.ts`), menu da `src/shared/explorer-menu.ts`; Duplica (`workspace:copy`), terminale nella cartella | ✅ |
+| F2 | Nessuna disposizione didattica | `src/renderer/workbench/layout.ts` (una sola disposizione) | `src/renderer/workbench/presets.ts` (Standard / Laboratorio), modulo `lab` (esempi `src/shared/quick/lab-examples.ts`, cronologia `src/shared/quick/run-history.ts`), assistente come pannello della griglia | ✅ |
+| F3 | Suggerimento AI senza formato FIM, senza finestra né pulizia comune | `src/renderer/services/inline-ai.ts`, `src/main/services/ai/ollama-provider.ts` (cleanCompletion) | `src/shared/ai/inline.ts` (planInline, fimStyle, postProcess, typedThrough) | ✅ |
+| F4 | Parole sbagliate non segnalate (JS senza controllo semantico, Python/C/Java senza servizio) | — | `src/shared/editor/typos.ts` + `src/renderer/services/typo-fix.ts` (Ctrl+.) | ✅ |
+| F5 | Chat lunga e senza regole del linguaggio; «nessun file aperto» con la Scrittura rapida | `src/renderer/modules/ai-assist/chat-store.ts`, `AiChatPanel.tsx` | `src/shared/ai/chat-prompt.ts`, documenti senza file `src/renderer/workbench/documents.ts` | ✅ |
+| F6 | Guida e corsi confusi («Corsi», «Lezioni») | `src/renderer/modules/learn`, `modules/guide` | pannello Guida (`GuideHome.tsx`), il pannello dei corsi si chiama Manuale e ha il suo pulsante | ✅ |
+| F7 | Nel designer non si mette un elemento in un punto preciso (solo dentro una «tavola libera») | `src/renderer/modules/designer/Canvas.tsx` (dropPlacement), `src/shared/designer/html-model.ts` (isFreeElement) | «Sposta liberamente»: classe `libero`, contenitore di riferimento (`freeContainerAt`, `freeContainerStyle`), margine zero | ✅ |
+| F8 | Nessuna selezione multipla né rettangolo di selezione | `designer-store.ts` (una sola selezione) | `others` nello stato, `src/shared/designer/selection.ts` (marqueeHits), stili/Canc/spostamento su tutti | ✅ |
+
+Collaudi nuovi: `tree-menu.mjs`, `lab.mjs`, `typos.mjs`, `designer-free.mjs`, `designer-multi.mjs`; `guide.mjs` esteso.
+
 ## Confronto con Easey DB 1.0 — analisi del 15/11/2026 (verso la 1.5.0)
 
 Easey DB nasce da una copia di Easey IDE ed è stato rifatto in 12 fasi (0.5 → 1.0). Questa analisi confronta

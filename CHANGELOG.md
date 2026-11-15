@@ -1,5 +1,40 @@
 # Novità di Easey IDE
 
+## 1.6.0 — 2026-11-15
+
+Ciò che Easey DB ha fatto nella 1.1 serve anche qui, più le richieste del titolare sul designer.
+
+**Designer: metti le cose dove vuoi**
+- **Sposta liberamente** (pulsante nella barra del designer, ricordato): trascini un elemento e resta esattamente dove
+  lo lasci, nel contenitore sotto il puntatore, che fa da riferimento e non si accorcia. Poi lo sposti trascinandolo
+  (guide magnetiche), con le frecce (Maiusc = 10 px), con X/Y nel pannello «Posizione libera». Alt = in fila come prima.
+- Tasto destro: **Mettilo dove vuoi** (libero dov'è) e **Rimetti in fila**.
+- **Rettangolo di selezione**: trascinando sullo sfondo prendi tutti gli elementi che ci stanno dentro; **Maiusc o
+  Ctrl + clic** aggiunge e toglie. Gli stili cambiati valgono per tutti gli scelti, Canc li toglie tutti, quelli liberi
+  si spostano insieme.
+
+**Laboratorio** (pulsante nella barra, menu Visualizza): la disposizione per esercitarsi, come il Laboratorio SQL di
+Easey DB. Al centro la Scrittura rapida con sopra gli **esempi da provare** nei dieci linguaggi (clic = lo scrive, ▶ =
+lo scrive e lo esegue), sotto **Output**, Console, Terminale e Problemi, a sinistra Raccolta e File, a destra le
+**Esecuzioni** (clic = di nuovo nell'editor, doppio clic = di nuovo eseguito) sopra l'**Assistente AI**. Tornando
+alla Standard i documenti aperti restano. Percorso guidato «Il laboratorio».
+
+**Tasto destro completo nell'albero dei file**: gruppi e sottomenu (Apri con, Esegui, Chiedi all'AI, Nuovo, Copia
+percorso/percorso completo/nome), Duplica, Apri il terminale qui, Espandi/Comprimi; le voci spente dicono perché;
+da tastiera con Maiusc+F10 o il tasto Menu, frecce, → per i sottomenu.
+
+**Completamento e AI**
+- Il suggerimento in grigio usa il formato giusto per i modelli da codice (riempimento al centro) e una finestra
+  attorno al cursore; mai nei commenti né a metà parola; su una riga vuota solo dentro un blocco o sotto un commento
+  che dice cosa vuoi.
+- **Parole sbagliate** (pritn, consle, Sytem, retrun, FORM…) sottolineate con «Forse volevi scrivere…»: **Ctrl+.** le
+  corregge, in Python, JavaScript, C, C++, C#, Java, Rust e SQL, nei file e nella Scrittura rapida.
+- Chat: risposte brevi con le regole del linguaggio aperto; conosce il codice della Scrittura rapida (niente più
+  «nessun file aperto»); frecce e confronti LaTeX diventano simboli anche senza dollari.
+
+**Guida e Manuale separati**: la **Guida** (pulsante nella barra) spiega come si usa Easey IDE e lo dice in cima; il
+**Manuale** (pulsante suo, Ctrl+Alt+L) è per imparare un linguaggio: corsi e manuali della Collana.
+
 ## 1.5.0 — 2026-11-15
 
 Easey IDE allo stesso livello di Easey DB ([analisi](docs/MIGLIORAMENTI.md)): niente lavoro perso, errori che si

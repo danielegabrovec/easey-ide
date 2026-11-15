@@ -78,6 +78,25 @@ via contratti), **consolidamento** (mai due modi di fare la stessa cosa).
    e comandi; aggiungerlo in `src/renderer/modules/index.ts`.
 4. Testi in `i18n`, scenario "Fatto quando" in `tests/e2e/`.
 
+## Punti d'estensione della 1.6
+
+- **Menu contestuali con sottomenu**: `MenuItem` di `ui/ContextMenu.tsx` accetta `{ label, items }` (stessa forma di
+  Easey DB), titoli `{ heading }`, voci spente con `title` che dice perché; `showContextMenuAt` per la tastiera
+  (`isContextMenuKey`: Maiusc+F10, tasto Menu). Il menu dell'albero è puro in `shared/explorer-menu.ts`.
+- **Disposizioni pronte**: `workbench/presets.ts` (Standard / Laboratorio, `layout.lab`, `layout.standard`); cambiare
+  disposizione chiude solo i pannelli laterali (elenco `SIDE_PANELS`), mai i documenti. L'evento `layout:ready` dice
+  che la griglia esiste. L'assistente AI diventa un pannello della griglia con `useSidePanel.mode = 'panel'`.
+- **Documenti senza file** (`workbench/documents.ts`): un modulo annuncia il suo editor (es. la Scrittura rapida) e
+  l'editor e la chat lo trattano come il file aperto (`editor.getContext`, `editor.replaceRange`, `editor.insertText`).
+- **Spazio `quick.top`** sopra l'editor della Scrittura rapida (la striscia del Laboratorio).
+- **AI**: quando suggerire, cosa mandare e come pulire la risposta solo in `shared/ai/inline.ts` (renderer e main);
+  istruzioni della chat in `shared/ai/chat-prompt.ts`; parole sbagliate in `shared/editor/typos.ts` (marcatori con
+  `source` «parola sbagliata» e la parola giusta in `code`).
+- **Designer**: un elemento libero fuori dalle tavole ha la classe `libero` (`isFreeElement`), posizione e margine zero
+  nella regola `#id`, il contenitore `position: relative` e un'altezza minima. Selezione multipla: `others` nello
+  stato del designer; `select()` la conserva (dopo una modifica), `selectElement()` (clic) la svuota; `setStyles`
+  vale per tutti gli scelti, `setFreeBox` solo per il principale.
+
 ## Trappole note
 
 - Il main è ESM: niente `__dirname` (si ricava da `import.meta.url`).
