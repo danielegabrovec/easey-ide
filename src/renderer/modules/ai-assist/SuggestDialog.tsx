@@ -106,6 +106,7 @@ export function SuggestDialog({ context, close, apply, loadContext }: SuggestReq
     <Modal
       title={t('suggest.title', { path: context.path })}
       onClose={close}
+      dirty={request.trim() !== '' || code !== null}
       wide
       footer={
         <>

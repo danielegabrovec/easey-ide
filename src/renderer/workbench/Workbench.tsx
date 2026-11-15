@@ -1,9 +1,9 @@
 // Il guscio dell'IDE: barra superiore, area a pannelli con il pannello laterale destro (chat AI),
 // barra di stato e host di dialoghi/menu/avvisi.
 // Non contiene logica di dominio: tutte le azioni passano dai comandi registrati dai moduli.
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { DockviewReact, themeDark, themeLight, type DockviewReadyEvent } from 'dockview'
-import { AlertCircle, AlertTriangle, Command as CommandIcon, Moon, Play, Settings2, Sun, SquareTerminal, TerminalSquare, Globe, PenTool, Database, Zap, PanelLeftClose, PanelLeftOpen, PanelBottomClose, PanelBottomOpen } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Copy, History, X, Command as CommandIcon, Moon, Play, Settings2, Sun, SquareTerminal, TerminalSquare, Globe, PenTool, Database, Zap, PanelLeftClose, PanelLeftOpen, PanelBottomClose, PanelBottomOpen } from 'lucide-react'
 import { executeCommand } from './commands'
 import { buildDefaultLayout, panelComponents, setDockApi, useLayout } from './layout'
 import { useWorkbench } from './store'
@@ -11,7 +11,9 @@ import { CommandPalette } from './CommandPalette'
 import { SidePanelHost } from './SidePanel'
 import { DialogHost } from '../ui/dialogs'
 import { ContextMenuHost } from '../ui/ContextMenu'
-import { useToasts } from './notifications'
+import { useToasts, type Toast } from './notifications'
+import { useActivity } from './activity'
+import { ErrorBoundary } from './ErrorBoundary'
 import { t } from '../i18n'
 import logo from '../assets/logo.svg'
 
@@ -133,6 +135,7 @@ function StatusBar() {
           </span>
         )
       )}
+      <ActivityButton />
       {dirtyCount > 0 && <span className="item">{t('status.unsaved', { count: dirtyCount })}</span>}
       <span className="item">{autoSave ? t('status.autoSaveOn') : t('status.autoSaveOff')}</span>
       {cursor && <span className="item">{t('status.cursor', { line: cursor.line, column: cursor.column })}</span>}
@@ -140,17 +143,62 @@ function StatusBar() {
   )
 }
 
+function ToastView({ toast }: { toast: Toast }) {
+  const dismiss = useToasts((s) => s.dismiss)
+  const [open, setOpen] = useState(false)
+  // Gli errori restano finché non si chiudono con ✕: un clic per selezionare il testo non li fa sparire.
+  const sticky = toast.kind === 'error'
+  const text = [toast.title, toast.message, toast.details && toast.details !== toast.message ? toast.details : null].filter(Boolean).join('\n\n')
+  return (
+    <div
+      className={`toast ${toast.kind}${open ? ' open' : ''}`}
+      role={toast.kind === 'error' ? 'alert' : 'status'}
+      onClick={sticky ? undefined : () => dismiss(toast.id)}
+      data-testid="toast"
+      data-kind={toast.kind}
+    >
+      <div className="toast-body">
+        {toast.title && <strong className="toast-title">{toast.title}</strong>}
+        <span className="toast-message">{toast.message}</span>
+        {open && <pre className="toast-details">{toast.details ?? toast.message}</pre>}
+      </div>
+      {sticky && (
+        <div className="toast-actions">
+          <button className="btn ghost" onClick={() => void navigator.clipboard?.writeText(text).catch(() => undefined)} data-testid="toast-copy">
+            <Copy size={12} /> {t('toast.copy')}
+          </button>
+          <button className="btn ghost" aria-expanded={open} onClick={() => setOpen(!open)} data-testid="toast-details">
+            {open ? t('toast.hideDetails') : t('toast.details')}
+          </button>
+          <span style={{ flex: 1 }} />
+          <button className="icon-btn" title={t('toast.dismiss')} aria-label={t('toast.dismiss')} onClick={() => dismiss(toast.id)} data-testid="toast-dismiss">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Toasts() {
   const toasts = useToasts((s) => s.toasts)
-  const dismiss = useToasts((s) => s.dismiss)
   return (
     <div className="toasts" aria-live="polite">
       {toasts.map((toast) => (
-        <div key={toast.id} className={`toast ${toast.kind}`} onClick={() => dismiss(toast.id)} role={toast.kind === 'error' ? 'alert' : 'status'}>
-          {toast.message}
-        </div>
+        <ToastView key={toast.id} toast={toast} />
       ))}
     </div>
+  )
+}
+
+/** Registro delle attività: ogni avviso ed errore della sessione, con il pallino degli errori non visti. */
+function ActivityButton() {
+  const unseen = useActivity((s) => s.unseenErrors)
+  return (
+    <button className={`item${unseen ? ' tone-error' : ''}`} onClick={() => executeCommand('workbench.activity')} title={t('activity.statusTitle')} data-testid="status-activity">
+      <History size={13} /> {t('activity.status')}
+      {unseen > 0 && <span className="activity-badge">{unseen}</span>}
+    </button>
   )
 }
 
@@ -174,14 +222,16 @@ export function Workbench() {
       <div className="workbench-main">
         <div className="dock-host">
           <DockviewReact components={panelComponents()} onReady={onReady} theme={theme === 'dark' ? themeDark : themeLight} />
+          <Toasts />
         </div>
-        <SidePanelHost />
+        <ErrorBoundary name={t('activity.sidePanel')}>
+          <SidePanelHost />
+        </ErrorBoundary>
       </div>
       <StatusBar />
       <CommandPalette />
       <DialogHost />
       <ContextMenuHost />
-      <Toasts />
     </div>
   )
 }

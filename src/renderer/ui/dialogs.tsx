@@ -1,6 +1,7 @@
 // Dialoghi modali: prompt, conferma e dialoghi personalizzati, aperti con una promessa.
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { create } from 'zustand'
+import { X } from 'lucide-react'
 import { t } from '../i18n'
 
 type Render = (close: () => void) => ReactNode
@@ -49,11 +50,47 @@ function focusables(root: HTMLElement): HTMLElement[] {
   return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null || el === document.activeElement)
 }
 
-export function Modal({ title, children, footer, onClose, wide }: { title: string; children: ReactNode; footer?: ReactNode; onClose: () => void; wide?: boolean }) {
+export interface ModalProps {
+  title: string
+  children: ReactNode
+  footer?: ReactNode
+  onClose: () => void
+  wide?: boolean
+  /**
+   * Modifiche non salvate: con ✕ o Esc si chiede «Vuoi scartare le modifiche?» e il clic fuori non chiude.
+   * Anche senza `dirty`, il clic fuori non chiude se nel dialogo è stato scritto o cambiato qualcosa.
+   */
+  dirty?: boolean
+}
+
+export function Modal({ title, children, footer, onClose, wide, dirty }: ModalProps) {
   const dialog = useRef<HTMLDivElement>(null)
   const titleId = useId()
-  const closeRef = useRef(onClose)
-  closeRef.current = onClose
+  const edited = useRef(false)
+  const asking = useRef(false)
+  const latest = useRef({ onClose, dirty })
+  latest.current = { onClose, dirty }
+
+  const requestClose = (how: 'escape' | 'button' | 'backdrop') => {
+    const { onClose: close, dirty: isDirty } = latest.current
+    if (how === 'backdrop') {
+      // Un clic fuori per sbaglio non deve mai far perdere quello che si è scritto.
+      if (!isDirty && !edited.current) close()
+      return
+    }
+    if (!isDirty) {
+      close()
+      return
+    }
+    if (asking.current) return
+    asking.current = true
+    void confirm({ title: t('dialog.discardTitle'), message: t('dialog.discardText'), confirmLabel: t('dialog.discard'), cancelLabel: t('dialog.keepEditing'), danger: true }).then((discard) => {
+      asking.current = false
+      if (discard) latest.current.onClose()
+    })
+  }
+  const closeRef = useRef(requestClose)
+  closeRef.current = requestClose
 
   // Accessibilità: il fuoco entra nel dialogo, Tab gira al suo interno, alla chiusura torna dov'era.
   useEffect(() => {
@@ -69,8 +106,10 @@ export function Modal({ title, children, footer, onClose, wide }: { title: strin
     const onKey = (event: KeyboardEvent) => {
       if (modalStack[modalStack.length - 1] !== id || !root) return
       if (event.key === 'Escape') {
+        if (event.isComposing) return
         event.stopPropagation()
-        closeRef.current()
+        event.preventDefault()
+        closeRef.current('escape')
       } else if (event.key === 'Tab') {
         const items = focusables(root)
         if (items.length === 0) return
@@ -98,9 +137,26 @@ export function Modal({ title, children, footer, onClose, wide }: { title: strin
   }, [])
 
   return (
-    <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={dialog} className={`dialog${wide ? ' wide' : ''}`} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
-        <header id={titleId}>{title}</header>
+    <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && requestClose('backdrop')}>
+      <div
+        ref={dialog}
+        className={`dialog${wide ? ' wide' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        data-dirty={dirty ? 'true' : undefined}
+        onInputCapture={() => (edited.current = true)}
+        onChangeCapture={() => (edited.current = true)}
+      >
+        <header>
+          <span className="dialog-title" id={titleId}>
+            {title}
+          </span>
+          <button type="button" className="dialog-close" title={t('dialog.closeTitle')} aria-label={t('common.close')} onClick={() => requestClose('button')} data-testid="dialog-close">
+            <X size={16} />
+          </button>
+        </header>
         <div className="content">{children}</div>
         {footer && <footer>{footer}</footer>}
       </div>
@@ -138,6 +194,7 @@ function PromptDialog({ options, done }: { options: PromptOptions; done: (value:
     <Modal
       title={options.title}
       onClose={() => done(null)}
+      dirty={value !== (options.value ?? '')}
       footer={
         <>
           <button className="btn" onClick={() => done(null)}>
@@ -180,6 +237,7 @@ interface ConfirmOptions {
   title: string
   message: ReactNode
   confirmLabel?: string
+  cancelLabel?: string
   danger?: boolean
 }
 
@@ -197,7 +255,7 @@ export function confirm(options: ConfirmOptions): Promise<boolean> {
           footer={
             <>
               <button className="btn" onClick={() => done(false)}>
-                {t('common.cancel')}
+                {options.cancelLabel ?? t('common.cancel')}
               </button>
               <button className={`btn ${options.danger ? 'danger' : 'primary'}`} autoFocus onClick={() => done(true)}>
                 {options.confirmLabel ?? t('common.ok')}

@@ -4,6 +4,7 @@ import type { FunctionComponent } from 'react'
 import type { DockviewApi, IDockviewPanel, IDockviewPanelProps } from 'dockview'
 import { create } from 'zustand'
 import { t } from '../i18n'
+import { withPanelBoundary } from './ErrorBoundary'
 
 /**
  * Cosa si vede intorno all'area centrale: l'Esplora a sinistra (Ctrl+B) e i pannelli di servizio
@@ -38,8 +39,9 @@ const components: Record<string, PanelComponent> = {}
 let api: DockviewApi | null = null
 const areaGroups: Partial<Record<Area, string>> = {}
 
+/** Ogni pannello ha la sua barriera: se va in errore mostra «Il pannello si è bloccato — Riapri» e il resto funziona. */
 export function registerPanel(component: string, render: PanelComponent): void {
-  components[component] = render
+  components[component] = withPanelBoundary(component, render)
 }
 
 export function panelComponents(): Record<string, PanelComponent> {

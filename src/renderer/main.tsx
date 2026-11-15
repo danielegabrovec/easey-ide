@@ -12,6 +12,7 @@ import { publishMenu } from './workbench/app-menu'
 import { registerWorkbenchCommands } from './workbench/workbench-commands'
 import { useWorkbench } from './workbench/store'
 import { Workbench } from './workbench/Workbench'
+import { ErrorBoundary } from './workbench/ErrorBoundary'
 
 // Monaco annulla operazioni interne (diff, suggerimenti) rifiutando con un errore "Canceled":
 // è un annullamento voluto, non un problema, e non deve risultare come errore non gestito.
@@ -33,7 +34,11 @@ async function start(): Promise<void> {
   installCloseGuard()
   publishMenu()
 
-  createRoot(document.getElementById('root')!).render(<Workbench />)
+  createRoot(document.getElementById('root')!).render(
+    <ErrorBoundary name="Easey IDE" scope="app">
+      <Workbench />
+    </ErrorBoundary>
+  )
   // Il layout dockview si costruisce al primo render: si riapre il progetto subito dopo.
   requestAnimationFrame(() => void restoreLastProject())
 }

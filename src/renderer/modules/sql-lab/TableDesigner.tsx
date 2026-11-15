@@ -24,6 +24,7 @@ export function TableDesigner({ connectionId, dialect, schema, existingTable, cl
       : { name: '', columns: [{ ...emptyColumn(), name: 'id', type: 'INTEGER', primaryKey: true, autoIncrement: true }, { ...emptyColumn(), name: '', type: 'TEXT' }] }
   )
   const [error, setError] = useState<string | null>(null)
+  const [initial] = useState(() => JSON.stringify(draft))
   const types = COLUMN_TYPES[dialect]
   const references = useMemo(() => (schema?.tables ?? []).filter((t) => t.kind === 'table').flatMap((t) => t.columns.filter((c) => c.primaryKey || c.unique).map((c) => `${t.name}.${c.name}`)), [schema])
   const existing = (schema?.tables ?? []).map((t) => t.name)
@@ -56,6 +57,7 @@ export function TableDesigner({ connectionId, dialect, schema, existingTable, cl
       title={existingTable ? t('sql.addColumnsTitle', { name: existingTable }) : t('sql.newTableTitle')}
       wide
       onClose={close}
+      dirty={JSON.stringify(draft) !== initial}
       footer={
         <>
           <button className="btn" onClick={close}>

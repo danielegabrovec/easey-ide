@@ -11,6 +11,7 @@ import { buildDefaultLayout, togglePanels, toggleSidebar } from './layout'
 import { registerSplitCommand } from './split-code'
 import { settingsSections } from './settings-sections'
 import { notifyError } from './notifications'
+import { ActivityDialog } from './ActivityDialog'
 import { useWorkbench, workbench } from './store'
 
 export async function updateSettings(patch: Partial<Settings>): Promise<void> {
@@ -155,6 +156,7 @@ export function registerWorkbenchCommands(): void {
   registerCommand({ id: 'workbench.zoomOut', title: t('cmd.zoomOut'), category, keybinding: 'Ctrl+-', run: () => updateSettings({ fontSize: workbench().settings.fontSize - 1 }) })
   registerCommand<Partial<Settings>>({ id: 'workbench.updateSettings', title: 'workbench.updateSettings', palette: false, run: (patch) => patch && updateSettings(patch) })
   registerCommand<{ url: string }>({ id: 'app.openUrl', title: 'app.openUrl', palette: false, run: (args) => args && ide.invoke('app:openExternal', args.url) })
+  registerCommand({ id: 'workbench.activity', title: t('activity.command'), category, run: () => openDialog((close) => <ActivityDialog close={close} />) })
   registerCommand({ id: 'workbench.resetLayout', title: t('cmd.resetLayout'), category, run: () => buildDefaultLayout() })
   // Come in VS Code: Ctrl+B mostra/nasconde la barra laterale (Esplora), Ctrl+J i pannelli (anteprima e console).
   registerCommand({ id: 'workbench.toggleSidebar', title: t('cmd.toggleSidebar'), category, keybinding: 'Ctrl+B', run: () => toggleSidebar() })

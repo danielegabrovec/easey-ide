@@ -434,9 +434,36 @@ body.side-resizing webview {
 }
 
 .dialog header {
-  padding: 14px 18px 6px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 12px 6px 18px;
   font-size: 15px;
   font-weight: 650;
+}
+
+.dialog header .dialog-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.dialog .dialog-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-top: -3px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.dialog .dialog-close:hover {
+  background: var(--bg-hover);
+  color: var(--text);
 }
 
 .dialog .content {
@@ -527,33 +554,218 @@ body.side-resizing webview {
 
 /* ---------------------------------------------------------------- avvisi */
 .toasts {
-  position: fixed;
-  right: 16px;
-  bottom: calc(var(--status-h) + 14px);
+  position: absolute;
+  top: 84px;
+  right: 14px;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 8px;
   z-index: 1200;
+  max-height: calc(100% - 100px);
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .toast {
-  max-width: 420px;
+  pointer-events: auto;
+  width: min(400px, calc(100vw - 60px));
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
   border-left: 3px solid var(--info);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 10px 14px;
+  padding: 9px 12px;
   user-select: text;
   line-height: 1.4;
+}
+
+.toast:not(.error) {
+  cursor: pointer;
+}
+
+.toast .toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.toast .toast-message {
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.toast.open .toast-message {
+  display: block;
+}
+
+.toast .toast-title + .toast-message {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.toast .toast-details {
+  margin: 6px 0 0;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-family: var(--font-code);
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.toast .toast-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 6px -6px -4px;
+}
+
+.toast .toast-actions .btn {
+  padding: 2px 8px;
+  font-size: 12px;
 }
 
 .toast.error {
   border-left-color: var(--danger);
 }
 
+.toast.warning {
+  border-left-color: var(--warning);
+}
+
 .toast.success {
   border-left-color: var(--success);
+}
+
+/* ---------------------------------------------------------------- registro delle attività */
+.statusbar .tone-error {
+  color: var(--danger);
+}
+
+.activity-badge {
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 10.5px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.activity-entry {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--info);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  user-select: text;
+}
+
+.activity-entry.error {
+  border-left-color: var(--danger);
+}
+
+.activity-entry.warning {
+  border-left-color: var(--warning);
+}
+
+.activity-entry.success {
+  border-left-color: var(--success);
+}
+
+.activity-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.activity-time {
+  font-family: var(--font-code);
+}
+
+.activity-source {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--bg-hover);
+}
+
+.activity-title {
+  display: block;
+  margin-top: 3px;
+}
+
+.activity-message {
+  overflow-wrap: anywhere;
+  font-size: 12.5px;
+}
+
+.activity-details {
+  margin: 6px 0 0;
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-family: var(--font-code);
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------------- pannello bloccato */
+.boundary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px;
+  height: 100%;
+  overflow: auto;
+  user-select: text;
+}
+
+.boundary p {
+  margin: 0;
+  color: var(--text-muted);
+  max-width: 560px;
+}
+
+.boundary pre {
+  margin: 0;
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-code);
+  font-size: 12px;
+  color: var(--danger);
+  background: var(--danger-soft);
+  padding: 8px 10px;
+  border-radius: var(--radius);
+}
+
+.boundary-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.boundary-app {
+  height: 100vh;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: var(--bg);
 }
 
 /* ---------------------------------------------------------------- palette comandi */
