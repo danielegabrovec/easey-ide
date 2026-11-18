@@ -146,7 +146,7 @@ try {
   await page.waitForSelector('.welcome', { timeout: 20000 })
   await wait(1500)
   check('recenti: nessun avviso d’errore all’avvio se l’ultimo progetto non c’è più', (await page.locator('.toast.error').count()) === 0, await page.locator('.toast').allInnerTexts().then((t) => t.join(' | ')))
-  await page.locator('[data-recent="Sparito"] .recent-open').click()
+  await page.locator('[data-recent="Sparito"] .start-recent-open').click()
   const proposed = await until(() => page.locator('.dialog').filter({ hasText: 'Progetto non trovato' }).isVisible(), 8000)
   check('recenti: un progetto sparito propone di toglierlo dall’elenco', !!proposed)
   await run.shot('02-recente-sparito')

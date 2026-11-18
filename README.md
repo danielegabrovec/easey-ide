@@ -44,6 +44,12 @@ rapida**: JavaScript, TypeScript, Python, SQL, HTML, C, C++, C#, Java o Rust sen
 
 ## Cosa sa fare
 
+### Novità: una schermata iniziale vera
+![La schermata iniziale: cosa costruiamo oggi?](docs/screenshots/01-benvenuto.png)
+
+A tutta finestra quando non c'è un progetto: tre strade (nuovo progetto, apri cartella, corsi), i progetti recenti con
+la data in parole, il Manuale con l'avanzamento, i modelli. Il logo in alto la riporta in qualunque momento.
+
 ### Novità 1.6: metti le cose dove vuoi, e un laboratorio per esercitarti
 - **Designer**: «Sposta liberamente» (l'elemento resta dove lo lasci), rettangolo di selezione e selezione multipla
   (Maiusc/Ctrl + clic), stili e spostamenti su tutti gli scelti.

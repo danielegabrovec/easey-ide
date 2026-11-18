@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { dragSideWidth, effectiveSideWidth, keySideWidth, maxSideWidth, SIDE_MIN_WIDTH } from '@shared/ai/side-panel'
 import { sidePanelRegistration, useSidePanel } from './side-panel'
+import { useStart, useStartVisible } from './start'
 import { t } from '../i18n'
 
 function useWindowWidth(): number {
@@ -19,6 +20,8 @@ export function SidePanelHost() {
   const registration = sidePanelRegistration()
   const open = useSidePanel((s) => s.open)
   const mode = useSidePanel((s) => s.mode)
+  const overStart = useStartVisible()
+  const assistantOverStart = useStart((s) => s.assistant)
   const chosenWidth = useSidePanel((s) => s.width)
   const expanded = useSidePanel((s) => s.expanded)
   const state = { open, width: chosenWidth, expanded }
@@ -31,6 +34,8 @@ export function SidePanelHost() {
 
   // Nel Laboratorio l'assistente è un pannello della griglia (presets.ts): qui niente colonna né pulsante.
   if (!registration || mode === 'panel') return null
+  // Schermata iniziale a tutta finestra: l'assistente non si vede (si apre col pulsante «AI» nella barra).
+  if (overStart && !assistantOverStart) return null
   if (!state.open) {
     return (
       <button className="side-reopen" onClick={() => setOpen(true, true)} title={registration.reopenTitle} aria-label={registration.reopenTitle} data-testid="side-reopen">

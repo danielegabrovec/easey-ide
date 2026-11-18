@@ -47,37 +47,40 @@
   text-overflow: ellipsis;
 }
 
-/* ---------------------------------------------------------------- benvenuto */
-.welcome {
+/* ---------------------------------------------------------------- «Inizio» (progetto aperto, nessun file) */
+.project-home {
   overflow: auto;
 }
 
-.welcome-inner {
+.project-home-inner {
   max-width: 640px;
   margin: 0 auto;
   padding: 48px 32px;
 }
 
-.welcome h1 {
-  font-size: 28px;
-  margin: 0 0 8px;
-  background: linear-gradient(90deg, var(--accent-strong), #b26dff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+.project-home h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 6px;
 }
 
-.welcome .lead {
-  color: var(--text-muted);
-  font-size: 15px;
-  margin: 0 0 22px;
+.project-home h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 8px 0 10px;
+}
+
+.project-home kbd {
+  font: 11px var(--font-code);
+  opacity: 0.75;
+  margin-left: 4px;
 }
 
 .welcome-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 30px;
+  margin: 14px 0 22px;
 }
 
 .welcome-actions .btn {
@@ -85,75 +88,8 @@
   padding: 0 16px;
 }
 
-.welcome h2 {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--text-muted);
-  margin: 0 0 8px;
-}
-
-.welcome section {
-  margin-bottom: 26px;
-}
-
-.recent-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.recent-list li {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.recent-list .recent-forget {
-  flex: none;
-  opacity: 0;
-}
-
-.recent-list li:hover .recent-forget,
-.recent-list .recent-forget:focus-visible {
-  opacity: 1;
-}
-
-.recent-list .recent-open {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-  border: 0;
-  background: transparent;
-  text-align: left;
-  padding: 7px 10px;
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-
-.recent-list .recent-open .hint {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.recent-list .recent-open:hover:not(:disabled) {
-  background: var(--bg-hover);
-}
-
-.recent-list .recent-open:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.shortcut-table td {
-  padding: 4px 16px 4px 0;
-  color: var(--text-muted);
+.project-home-start {
+  font-size: 13px;
 }
 
 /* ---------------------------------------------------------------- nuovo progetto */

@@ -8,6 +8,7 @@
 import type { DockviewApi, IDockviewPanel } from 'dockview'
 import { createElement } from 'react'
 import { registerCommand } from './commands'
+import { hideStart } from './start'
 import { emit } from './events'
 import { areaGroup, buildDefaultLayout, dockApi, forgetSideAreas, layoutPreset, registerPanel, rememberArea, setDockApi, setLayoutPreset, type LayoutPreset } from './layout'
 import { sidePanelRegistration, useSidePanel } from './side-panel'
@@ -137,6 +138,7 @@ function standardSideOpen(): boolean {
 export function applyPreset(preset: LayoutPreset): void {
   const api = dockApi()
   if (!api) return
+  hideStart()
   const from = layoutPreset()
   switching = true
   try {

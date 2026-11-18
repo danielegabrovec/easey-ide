@@ -102,7 +102,8 @@ via contratti), **consolidamento** (mai due modi di fare la stessa cosa).
 - **Una sola fonte, qui**: `src/shared/design-kit/`, `src/shared/canvas-kit/` (geometria della tavola: aggancio con
   più guide e distanze uguali, misure, allinea/distribuisci/livelli, righelli, strumenti di disegno, zoom, «da
   libero a layout») e `src/shared/scene3d/` (documento `*.scene3d.json`, comandi con annulla a istantanee, scene
-  pronte, sincronizzazione con Three.js, codice generato, ripiego 2D senza WebGL). IDE Next ne ha copie identiche.
+  pronte, sincronizzazione con Three.js, codice generato, ripiego 2D senza WebGL) e `src/shared/start-kit/` (schermata
+  iniziale comune alle tre app: le date dei recenti in parole). IDE Next ne ha copie identiche.
 - Codice puro: niente React, Electron, Node, `document.`/`window.`, niente import fuori dal kit (lo controllano
   `tests/unit/shared-kits-lock.test.ts` e `design-kit-lock.test.ts`). `scene3d` può importare `three`.
 - Cambiare un kit: si modifica **solo qui**, `node scripts/shared-kits-lock.mjs` (o `design-kit-lock.mjs`), e si

@@ -2,7 +2,7 @@
 // aiuto contestuale (F1) e pannello del Glossario.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { IDockviewPanelProps } from 'dockview'
-import { ArrowRight, BookA, CheckCircle2, Circle, Compass, Lightbulb, Play, Search, X } from 'lucide-react'
+import { BookA, CheckCircle2, Circle, Lightbulb, Play, Search, X } from 'lucide-react'
 import type { Hint } from '@shared/guide/hints'
 import { isHelpPage, type HelpPage } from '@shared/guide/help'
 import { searchGlossary } from '@shared/guide/glossary'
@@ -30,34 +30,51 @@ export function helpText(page: HelpPage): string {
 }
 
 /** Invito al primo percorso (Benvenuto, primo avvio): «Inizia» o «Più tardi». */
-export function TourOffer() {
+/**
+ * Scheda «Impara» della schermata iniziale: al primo avvio l'invito al primo percorso (al posto del riquadro
+ * colorato di prima), poi i percorsi guidati con quanti ne hai fatti.
+ */
+export function StartToursCard() {
   const visible = useGuide((s) => s.offerVisible)
-  if (!visible) return null
-  const close = () => {
-    useGuide.setState({ offerVisible: false })
-    void dismissTip(OFFER_TIP)
-  }
-  return (
-    <div className="tour-offer" data-testid="guide-offer" role="region" aria-label={t('guide.offerTitle')}>
-      <Compass size={22} />
-      <div className="tour-offer-text">
+  const completed = useWorkbench((s) => s.settings.guide.completed)
+  if (visible) {
+    const close = () => {
+      useGuide.setState({ offerVisible: false })
+      void dismissTip(OFFER_TIP)
+    }
+    return (
+      <div className="start-card book" data-testid="guide-offer" role="region" aria-label={t('guide.offerTitle')}>
         <strong>{t('guide.offerTitle')}</strong>
-        <span className="hint">{t('guide.offerText')}</span>
+        <span>{t('guide.offerText')}</span>
+        <div className="start-card-actions">
+          <button
+            className="btn primary"
+            onClick={() => {
+              close()
+              void executeCommand('guide.start', { id: 'prima-pagina' })
+            }}
+            data-testid="guide-offer-start"
+          >
+            <Play size={13} /> {t('guide.offerStart')}
+          </button>
+          <button className="btn ghost" onClick={close} data-testid="guide-offer-later">
+            {t('guide.offerLater')}
+          </button>
+        </div>
       </div>
-      <button
-        className="btn primary"
-        onClick={() => {
-          close()
-          void executeCommand('guide.start', { id: 'prima-pagina' })
-        }}
-        data-testid="guide-offer-start"
-      >
-        <Play size={13} /> {t('guide.offerStart')}
-      </button>
-      <button className="btn ghost" onClick={close} data-testid="guide-offer-later">
-        {t('guide.offerLater')}
-      </button>
-    </div>
+    )
+  }
+  const tours = allTours()
+  const done = tours.filter((tour) => completed.includes(tour.id)).length
+  return (
+    <button className="start-card" onClick={() => void executeCommand('guide.tours')} data-testid="start-tours">
+      <strong>{t('start.toursTitle')}</strong>
+      <span>{t('start.toursText')}</span>
+      <div className="start-bar">
+        <i style={{ width: `${tours.length ? Math.round((done / tours.length) * 100) : 0}%` }} />
+      </div>
+      <span className="meta">{t('start.toursDone', { done, total: tours.length })}</span>
+    </button>
   )
 }
 
@@ -80,7 +97,6 @@ export function WelcomeNextSteps() {
             <li key={hint.id} className="next-hint" data-hint={hint.kind}>
               <button className="next-hint-run" onClick={() => void executeCommand(hint.command, hint.args)} title={t('guide.hintRun')} data-testid={`next-hint-${hint.kind}`}>
                 <span>{hintText(hint)}</span>
-                <ArrowRight size={12} />
               </button>
               <button className="icon-btn" title={t('guide.hintDismiss')} aria-label={t('guide.hintDismiss')} onClick={() => void dismissTip(hint.id)} data-testid={`next-hint-dismiss-${hint.kind}`}>
                 <X size={12} />
@@ -91,14 +107,6 @@ export function WelcomeNextSteps() {
       ) : (
         <p className="hint">{t('guide.homeNothing')}</p>
       )}
-      <div className="welcome-actions">
-        <button className="btn ghost" onClick={() => void executeCommand('guide.tours')} data-testid="welcome-tours">
-          <Compass size={13} /> {t('guide.toursOpen')}
-        </button>
-        <button className="btn ghost" onClick={() => void executeCommand('guide.glossary')} data-testid="welcome-glossary">
-          <BookA size={13} /> {t('glossary.title')}
-        </button>
-      </div>
     </section>
   )
 }

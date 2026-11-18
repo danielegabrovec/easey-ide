@@ -52,6 +52,11 @@ HTML/CSS si aggiorna in tempo reale (e modificando il codice si aggiorna il dise
 cambio colore e carattere dall'ispettore, il codice mostra solo quelle modifiche; modifico il CSS a
 mano e il disegno si aggiorna; test round-trip HTML/CSS su fixture.
 
+## Schermata iniziale ✅ (ramo feat/schermata-iniziale, in attesa del rilascio 0.x)
+
+Disegno comune alle tre app (docs/SCHERMATA-INIZIALE.md di Easey DB): a tutta finestra senza progetto, tre strade,
+recenti con la data in parole, Impara con l'avanzamento, modelli, chiaro e scuro; il logo la riporta.
+
 ## 1.6 — Come Easey DB 1.1, più il designer libero ✅ v1.6.0
 
 Tasto destro completo con sottomenu nell'albero; Laboratorio (esempi, output sotto, esecuzioni e AI a destra);

@@ -58,7 +58,7 @@ try {
   await page.getByTestId('open-quick').click()
   await wait(500)
   check('Scrittura rapida: l’albero dei file resta visibile', await visible(page, '[data-path="index.html"]'))
-  await page.locator('.dv-tab', { hasText: /Benvenuto/ }).click()
+  await page.locator('.dv-tab', { hasText: /Inizio/ }).click()
   check('Benvenuto: anteprima e console di nuovo al loro posto', !!(await until(() => visible(page, '[data-testid="console-list"]'), 3000)))
   // P2-4/P2-10: gli strumenti visuali si trovano anche nel Benvenuto.
   const visualButtons = await Promise.all(['welcome-designer', 'welcome-blocks', 'welcome-nodes', 'welcome-database'].map((id) => page.getByTestId(id).isVisible()))

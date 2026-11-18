@@ -15,6 +15,9 @@ import { t } from '../../i18n'
 import { ExplorerPanel } from './ExplorerPanel'
 import { NewProjectDialog } from './NewProjectDialog'
 import { WelcomePanel } from './WelcomePanel'
+import { StartScreen } from './StartScreen'
+import { registerSlot } from '../../workbench/slots'
+import { showStart } from '../../workbench/start'
 import { closeProject, openProject, refreshTree, reloadProjectInfo, scheduleTreeRefresh, validateName } from './project'
 import { on } from '../../workbench/events'
 
@@ -23,6 +26,8 @@ const hasProject = () => workbench().project !== null
 export function activateExplorer(): void {
   registerPanel('explorer', ExplorerPanel)
   registerPanel('welcome', WelcomePanel)
+  // La schermata iniziale a tutta finestra (workbench/start.ts decide quando si vede).
+  registerSlot('workbench.start', 'start', StartScreen)
 
   const category = t('category.file')
   registerCommand<{ templateId?: string }>({
@@ -58,7 +63,7 @@ export function activateExplorer(): void {
   registerCommand({ id: 'project.exportSite', title: t('cmd.exportSite'), category, when: hasProject, run: () => exportProject('site') })
   registerCommand({ id: 'workspace.close', title: t('cmd.closeProject'), category, when: hasProject, run: () => closeProject() })
   registerCommand({ id: 'explorer.show', title: t('cmd.showExplorer'), category: t('category.view'), keybinding: 'Ctrl+Shift+E', run: () => showPanel({ id: 'explorer', component: 'explorer', title: t('panel.explorer'), area: 'left' }) })
-  registerCommand({ id: 'workbench.welcome', title: t('cmd.welcome'), category: t('category.help'), run: () => showPanel({ id: 'welcome', component: 'welcome', title: t('panel.welcome'), area: 'center' }) })
+  registerCommand({ id: 'workbench.welcome', title: t('cmd.welcome'), category: t('category.help'), run: () => showStart() })
 
   registerCommand<{ dir?: string }>({
     id: 'explorer.newFile',
