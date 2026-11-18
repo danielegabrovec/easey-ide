@@ -1,4 +1,4 @@
-// Scena 3D (1.7): il documento di un file `*.scene3d.json`, una sola fonte per Easey IDE e IDE Next.
+// Scena 3D: il documento di un file `*.scene3d.json`, una sola fonte per Easey IDE e IDE Next.
 // Oggetti ad albero (campo `parent`), trasformazioni in unità del mondo e gradi, geometrie con parametri,
 // luci, materiali PBR, camera, sfondo e animazioni semplici. Puro: niente Three, niente DOM.
 

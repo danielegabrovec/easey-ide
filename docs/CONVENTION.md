@@ -97,7 +97,7 @@ via contratti), **consolidamento** (mai due modi di fare la stessa cosa).
   stato del designer; `select()` la conserva (dopo una modifica), `selectElement()` (clic) la svuota; `setStyles`
   vale per tutti gli scelti, `setFreeBox` solo per il principale.
 
-## Kit condivisi con IDE Next (1.7)
+## Kit condivisi con IDE Next
 
 - **Una sola fonte, qui**: `src/shared/design-kit/`, `src/shared/canvas-kit/` (geometria della tavola: aggancio con
   più guide e distanze uguali, misure, allinea/distribuisci/livelli, righelli, strumenti di disegno, zoom, «da
