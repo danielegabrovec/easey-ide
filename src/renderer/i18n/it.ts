@@ -1376,7 +1376,7 @@ export const it = {
   'designer.sceneLabel': 'Scena 3D: {name}',
   'designer.sceneSearch': 'Cerca una scena per nome o cartella',
   'designer.sceneNone': 'Nessuna scena con questo nome',
-  'designer.sceneInserted': 'Scena 3D inserita: Three è stato copiato nel progetto (vendor/three), il codice si rigenera quando salvi la scena'
+  'designer.sceneInserted': 'Scena 3D inserita: Three è stato copiato nel progetto (vendor/three), il codice si rigenera quando salvi la scena',
   'start.title': 'Cosa costruiamo oggi?',
   'start.lead': 'Scrivi il codice a sinistra e la pagina funziona subito a destra: HTML, CSS, JavaScript e altri sette linguaggi, con l’AI sul tuo PC che ti aiuta.',
   'start.version': 'versione {version}',

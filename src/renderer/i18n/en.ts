@@ -1377,7 +1377,7 @@ export const en: Record<MessageKey, string> = {
   'designer.sceneLabel': '3D scene: {name}',
   'designer.sceneSearch': 'Search a scene by name or folder',
   'designer.sceneNone': 'No scene with this name',
-  'designer.sceneInserted': '3D scene inserted: Three was copied into the project (vendor/three), the code is regenerated when you save the scene'
+  'designer.sceneInserted': '3D scene inserted: Three was copied into the project (vendor/three), the code is regenerated when you save the scene',
   'start.title': 'What shall we build today?',
   'start.lead': 'Write the code on the left and the page works right away on the right: HTML, CSS, JavaScript and seven more languages, with the AI on your PC helping you.',
   'start.version': 'version {version}',
