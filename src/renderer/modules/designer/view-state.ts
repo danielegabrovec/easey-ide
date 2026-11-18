@@ -3,8 +3,10 @@
 // e bloccati (lucchetto) nei Livelli. Guide, nascosti e bloccati si ricordano per file (localStorage).
 import { create } from 'zustand'
 import type { DrawTool } from '@shared/canvas-kit/draw'
-import type { ElementInfo } from '@shared/designer/html-model'
+import type { ElementInfo, HtmlModel } from '@shared/designer/html-model'
+import { elementForViewKey, migrateViewKeys, viewKey } from '@shared/designer/view-keys'
 import { workbench } from '../../workbench/store'
+import { useDesigner } from './designer-store'
 
 export interface UserGuides {
   /** Guide verticali (x) e orizzontali (y), in px della pagina dall'angolo in alto a sinistra del documento. */
@@ -25,16 +27,18 @@ interface ViewState {
   /** Carica lo stato del file aperto nel designer (null = nessuno). */
   load: (file: string | null) => void
   setGuides: (guides: UserGuides) => void
-  toggleHidden: (key: string) => void
-  toggleLocked: (key: string) => void
+  /** Occhio / lucchetto di un elemento (si confronta l'elemento, non il testo della chiave). */
+  toggleHidden: (element: ElementInfo, model: HtmlModel) => void
+  toggleLocked: (element: ElementInfo, model: HtmlModel) => void
+  /** Il modello della pagina è cambiato: le chiavi `@percorso` degli elementi che ora hanno un id diventano `#id`. */
+  migrate: (model: HtmlModel) => void
 }
 
 const RULERS_KEY = 'easey.designer.rulers'
 const NO_GUIDES: UserGuides = { xs: [], ys: [] }
 const NONE: string[] = []
 
-/** Chiave stabile di un elemento per lo stato dell'editor: l'id se c'è, altrimenti il percorso. */
-export const viewKey = (element: Pick<ElementInfo, 'attrs' | 'path'>): string => (element.attrs['id'] ? `#${element.attrs['id']}` : `@${element.path.join('.')}`)
+export { viewKey }
 
 function storageKey(file: string): string {
   return `easey.designer.view:${workbench().project?.root ?? ''}|${file}`
@@ -71,7 +75,10 @@ export const useCanvasView = create<ViewState>((set, get) => {
     const { file, guides, hidden, locked } = get()
     if (file) write(storageKey(file), { guides, hidden, locked } satisfies Saved)
   }
-  const toggle = (list: string[], key: string) => (list.includes(key) ? list.filter((k) => k !== key) : [...list, key])
+  const toggle = (list: string[], element: ElementInfo, model: HtmlModel) => {
+    const kept = list.filter((key) => elementForViewKey(model, key)?.id !== element.id)
+    return kept.length !== list.length ? kept : [...list, viewKey(element)]
+  }
   return {
     tool: 'select',
     rulers: read(RULERS_KEY, true),
@@ -102,13 +109,26 @@ export const useCanvasView = create<ViewState>((set, get) => {
       set({ guides })
       persist()
     },
-    toggleHidden: (key) => {
-      set({ hidden: toggle(get().hidden, key) })
+    toggleHidden: (element, model) => {
+      set({ hidden: toggle(get().hidden, element, model) })
       persist()
     },
-    toggleLocked: (key) => {
-      set({ locked: toggle(get().locked, key) })
+    toggleLocked: (element, model) => {
+      set({ locked: toggle(get().locked, element, model) })
+      persist()
+    },
+    migrate: (model) => {
+      const { hidden, locked } = get()
+      const nextHidden = migrateViewKeys(hidden, model) as string[]
+      const nextLocked = migrateViewKeys(locked, model) as string[]
+      if (nextHidden === hidden && nextLocked === locked) return
+      set({ hidden: nextHidden, locked: nextLocked })
       persist()
     }
   }
+})
+
+// Ogni pagina rianalizzata (dopo una modifica del designer o del codice): le chiavi seguono gli id nuovi.
+useDesigner.subscribe((state, previous) => {
+  if (state.html && state.html !== previous.html && state.path === useCanvasView.getState().file) useCanvasView.getState().migrate(state.html)
 })

@@ -122,6 +122,11 @@ try {
   await wait(200)
   const label = await page.getByTestId('designer-selection').innerText().catch(() => '')
   check('lucchetto: un clic sopra non lo sceglie', !label.includes(ids[1]), label)
+  // Neanche il rettangolo di selezione lo prende (prima entrava e si poteva cancellare o spostare).
+  await drag({ x: lb.x - 4, y: lb.y - 4 }, { x: lb.x + lb.width + 4, y: lb.y + lb.height + 4 })
+  await wait(200)
+  const afterMarquee = await page.getByTestId('designer-selection').innerText().catch(() => '')
+  check('lucchetto: il rettangolo di selezione non lo prende', !afterMarquee.includes(ids[1]) && (await page.getByTestId('designer-multi').count()) === 0, afterMarquee)
   check('occhio e lucchetto non cambiano il file', html() === before)
   await row.getByTestId('layer-lock').click()
   await page.locator('.designer-left .insp-tabs button').first().click()

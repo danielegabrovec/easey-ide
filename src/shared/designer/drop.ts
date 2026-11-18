@@ -232,8 +232,10 @@ export function freeContainerAt(model: HtmlModel, hit: number, exclude?: number)
  * Regole per il contenitore di un elemento libero: fa da riferimento (position: relative) e non si accorcia quando
  * l'elemento esce dal flusso (altezza minima = quella di adesso; il body almeno quanto la finestra).
  */
-export function freeContainerStyle(tag: string, currentHeight: number): Record<string, string> {
-  return { position: 'relative', 'min-height': tag === 'body' ? '100vh' : `${Math.max(40, Math.round(currentHeight))}px` }
+export function freeContainerStyle(tag: string, currentHeight: number, positioned = false): Record<string, string> {
+  const minHeight = tag === 'body' ? '100vh' : `${Math.max(40, Math.round(currentHeight))}px`
+  // Un contenitore già libero (position: absolute) fa già da riferimento: «relative» lo rimetterebbe nel flusso.
+  return positioned ? { 'min-height': minHeight } : { position: 'relative', 'min-height': minHeight }
 }
 
 /** Quanto di un elemento più grande della tavola deve restare comunque visibile (px). */

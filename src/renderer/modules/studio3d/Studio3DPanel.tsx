@@ -426,7 +426,9 @@ export function Studio3DPanel({ params }: IDockviewPanelProps<{ path: string }>)
   const canvas = useRef<HTMLCanvasElement>(null)
   const viewport = useRef<SceneViewport | null>(null)
   const lastEdit = useRef<{ key: string; time: number } | null>(null)
-  const loadedDoc = useRef<Scene3DDocument | null>(null)
+  /** Il documento che c'è su disco adesso (caricato o scritto per ultimo). */
+  const savedDoc = useRef<Scene3DDocument | null>(null)
+  const latestDoc = useRef<Scene3DDocument | null>(null)
   const { schedule } = useDeferredSave(t('unsaved.scene3d', { name }), 400)
   const doc = history?.present ?? null
 
@@ -438,7 +440,7 @@ export function Studio3DPanel({ params }: IDockviewPanelProps<{ path: string }>)
         if (!alive) return
         const parsed = parseScene3D(text)
         if (!parsed.ok) return setError(parsed.error)
-        loadedDoc.current = parsed.doc
+        savedDoc.current = parsed.doc
         setHistory(createHistory(parsed.doc))
       },
       (e) => alive && setError((e as Error).message)
@@ -456,12 +458,28 @@ export function Studio3DPanel({ params }: IDockviewPanelProps<{ path: string }>)
     setHistory((h) => (h ? commit(h, change(h.present), coalesce) : h))
   }, [])
 
-  // Salvataggio automatico (e modulo/immagine se la scena è usata in una pagina).
+  /**
+   * Annulla / ripeti. Dopo un passo indietro la modifica seguente è un passo NUOVO: unirla a quella annullata
+   * (stesso campo entro 1,2 s) sostituirebbe lo stato di partenza senza poter più annullare.
+   */
+  const step = useCallback((move: (h: History) => History) => {
+    lastEdit.current = null
+    setHistory((h) => (h ? move(h) : h))
+  }, [])
+
+  // Salvataggio automatico (e modulo/immagine se la scena è usata in una pagina). Si confronta con l'ULTIMO
+  // documento scritto su disco, non con quello caricato: annullando fino all'inizio il file torna com'era.
+  // Il lavoro in coda scrive il documento di adesso (ref), non quello di quando è stato messo in coda:
+  // modifica + annulla entro il ritardo non lascia su disco la versione modificata.
+  latestDoc.current = doc
   useEffect(() => {
-    if (!doc || doc === loadedDoc.current) return
+    if (!doc || doc === savedDoc.current) return
     schedule(async () => {
-      await ide.invoke('workspace:writeFile', path, serializeScene3D(doc))
-      if (hasSceneModule(path)) await writeSceneOutputs(path, doc)
+      const current = latestDoc.current
+      if (!current || current === savedDoc.current) return
+      await ide.invoke('workspace:writeFile', path, serializeScene3D(current))
+      savedDoc.current = current
+      if (hasSceneModule(path)) await writeSceneOutputs(path, current)
     })
   }, [doc, path, schedule])
 
@@ -567,10 +585,10 @@ export function Studio3DPanel({ params }: IDockviewPanelProps<{ path: string }>)
     const key = event.key.toLowerCase()
     if (ctrl && key === 'z') {
       event.preventDefault()
-      setHistory((h) => (h ? (event.shiftKey ? redo(h) : undo(h)) : h))
+      step(event.shiftKey ? redo : undo)
     } else if (ctrl && key === 'y') {
       event.preventDefault()
-      setHistory((h) => (h ? redo(h) : h))
+      step(redo)
     } else if (ctrl && key === 'd') {
       event.preventDefault()
       duplicate()
@@ -614,10 +632,10 @@ export function Studio3DPanel({ params }: IDockviewPanelProps<{ path: string }>)
         <button className="icon-btn" onClick={remove} disabled={!selected.length} title={`${t('studio3d.delete')} (Canc)`} data-testid="s3-delete">
           <Trash2 size={14} />
         </button>
-        <button className="icon-btn" onClick={() => setHistory((h) => (h ? undo(h) : h))} disabled={!history?.past.length} title={`${t('designer.undo')} (Ctrl+Z)`} data-testid="s3-undo">
+        <button className="icon-btn" onClick={() => step(undo)} disabled={!history?.past.length} title={`${t('designer.undo')} (Ctrl+Z)`} data-testid="s3-undo">
           <Undo2 size={14} />
         </button>
-        <button className="icon-btn" onClick={() => setHistory((h) => (h ? redo(h) : h))} disabled={!history?.future.length} title={`${t('designer.redo')} (Ctrl+Y)`} data-testid="s3-redo">
+        <button className="icon-btn" onClick={() => step(redo)} disabled={!history?.future.length} title={`${t('designer.redo')} (Ctrl+Y)`} data-testid="s3-redo">
           <Redo2 size={14} />
         </button>
         <button className={`btn ghost${showCode ? ' active' : ''}`} onClick={() => setShowCode(!showCode)} aria-pressed={showCode} data-testid="s3-show-code">

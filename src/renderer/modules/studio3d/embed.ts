@@ -4,7 +4,7 @@
 // cioè se il modulo esiste); il blocco «Scena 3D» del designer li chiede con il comando `studio3d.prepareEmbed`.
 import { generateScene3DModule } from '@shared/scene3d/codegen'
 import { parseScene3D, type Scene3DDocument } from '@shared/scene3d/model'
-import { sceneImagePath, sceneImageSvg, sceneModulePath, THREE_FILES, THREE_VENDOR_DIR, threeImportFor } from '@shared/designer/scene-embed'
+import { isAlreadyExistsError, sceneImagePath, sceneImageSvg, sceneModulePath, THREE_FILES, THREE_VENDOR_DIR, threeImportFor } from '@shared/designer/scene-embed'
 import { filePaths } from '@shared/paths'
 import { ide } from '../../ipc'
 import { workbench } from '../../workbench/store'
@@ -24,8 +24,9 @@ export async function ensureThreeVendor(): Promise<void> {
     if (existing.has(path)) continue
     try {
       await ide.invoke('workspace:createFile', path, await threeSource(file))
-    } catch {
-      /* c'è già (albero non ancora aggiornato) */
+    } catch (error) {
+      // C'è già (albero non ancora aggiornato): va bene. Ogni altro errore ferma l'inserimento della scena.
+      if (!isAlreadyExistsError(error)) throw error
     }
   }
 }

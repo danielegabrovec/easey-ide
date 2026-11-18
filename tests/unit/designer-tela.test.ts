@@ -6,6 +6,9 @@ import { inferLayout } from '@shared/canvas-kit/layout-infer'
 import { applyEdits } from '@shared/designer/html-edit'
 import { findByAttrId, isFreeElement, parseHtml } from '@shared/designer/html-model'
 import { buildCanvasDocument } from '@shared/designer/canvas-document'
+import { elementForViewKey, keyMatches, migrateViewKeys, viewKey } from '@shared/designer/view-keys'
+import { freeContainerStyle } from '@shared/designer/drop'
+import { isAlreadyExistsError, sceneChoices } from '@shared/designer/scene-embed'
 import { designerSceneStyle, hasSceneLoader, SCENE_LOADER_SOURCE, sceneCanvasHtml, sceneImagePath, sceneImageSvg, sceneLoaderTag, sceneModulePath, threeImportFor } from '@shared/designer/scene-embed'
 
 describe('forme disegnate', () => {
@@ -105,6 +108,30 @@ describe('da libero a layout', () => {
   })
 })
 
+describe('contenitore di un elemento reso libero', () => {
+  it('in fila diventa riferimento (relative); già libero non perde la sua posizione assoluta', () => {
+    expect(freeContainerStyle('section', 120)).toEqual({ position: 'relative', 'min-height': '120px' })
+    expect(freeContainerStyle('div', 120, true)).toEqual({ 'min-height': '120px' })
+  })
+})
+
+describe('occhio e lucchetto: chiavi che seguono gli id', () => {
+  const before = parseHtml('<html><body><section><p>A</p></section><h2>B</h2></body></html>')
+  const section = before.elements.find((e) => e.tag === 'section')!
+  it('senza id la chiave è il percorso; ritrova l’elemento', () => {
+    expect(viewKey(section)).toBe(`@${section.path.join('.')}`)
+    expect(elementForViewKey(before, viewKey(section))?.id).toBe(section.id)
+  })
+  it('appena l’elemento riceve un id la chiave diventa #id (senza doppioni), il resto non cambia', () => {
+    const after = parseHtml('<html><body><section id="sezione-1"><p>A</p></section><h2>B</h2></body></html>')
+    const keys = [viewKey(section), '#sezione-1', '#altro']
+    expect(migrateViewKeys(keys, after)).toEqual(['#sezione-1', '#altro'])
+    const same = ['#sezione-1']
+    expect(migrateViewKeys(same, after)).toBe(same)
+    expect(keyMatches(after, [viewKey(section)], after.elements.find((e) => e.tag === 'section')!)).toBe(true)
+  })
+})
+
 describe('scena 3D nella pagina', () => {
   it('modulo e immagine accanto alla scena; Three importato dalla radice del progetto', () => {
     expect(sceneModulePath('scene/cubo.scene3d.json')).toBe('scene/cubo.scene3d.js')
@@ -115,6 +142,22 @@ describe('scena 3D nella pagina', () => {
     expect(threeImportFor('scene/cubo.scene3d.json')).toBe('../vendor/three/three.module.js')
     expect(threeImportFor('cubo.scene3d.json')).toBe('./vendor/three/three.module.js')
     expect(threeImportFor('sito/scene/x.scene3d.json')).toBe('../../vendor/three/three.module.js')
+  })
+
+  it('scelta della scena: tutte (anche oltre la sesta), in ordine, con la ricerca', () => {
+    const many = Array.from({ length: 9 }, (_, i) => `scene/s${9 - i}.scene3d.json`).concat(['index.html', 'altro/Città.scene3d.json'])
+    const all = sceneChoices(many)
+    expect(all).toHaveLength(10)
+    expect(all[0]).toBe('altro/Città.scene3d.json')
+    expect(all).toContain('scene/s1.scene3d.json')
+    expect(sceneChoices(many, 'citta')).toEqual(['altro/Città.scene3d.json'])
+    expect(sceneChoices(many, 'scene s7')).toEqual(['scene/s7.scene3d.json'])
+  })
+
+  it('solo «esiste già» è un errore da ignorare; gli altri fermano l’inserimento', () => {
+    expect(isAlreadyExistsError(new Error("Error invoking remote method 'workspace:createFile': Error: Esiste già: vendor/three/three.module.js"))).toBe(true)
+    expect(isAlreadyExistsError(new Error('ENOSPC: no space left on device'))).toBe(false)
+    expect(isAlreadyExistsError(new Error('EPERM: operation not permitted'))).toBe(false)
   })
 
   it('canvas con attributi protetti, script del caricatore riconosciuto', () => {

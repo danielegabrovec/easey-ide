@@ -1387,5 +1387,7 @@ export const en: Record<MessageKey, string> = {
   'tour.studio3d.done.text': 'In the designer, the «3D scene» block of the palette puts the scene into the page: in the Preview it really runs.',
   'designer.sceneNew': 'New scene',
   'designer.sceneLabel': '3D scene: {name}',
+  'designer.sceneSearch': 'Search a scene by name or folder',
+  'designer.sceneNone': 'No scene with this name',
   'designer.sceneInserted': '3D scene inserted: Three was copied into the project (vendor/three), the code is regenerated when you save the scene'
 }

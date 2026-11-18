@@ -1386,6 +1386,8 @@ export const it = {
   'tour.studio3d.done.text': 'Nel designer, il blocco «Scena 3D» della palette mette la scena nella pagina: nell’Anteprima gira davvero.',
   'designer.sceneNew': 'Nuova scena',
   'designer.sceneLabel': 'Scena 3D: {name}',
+  'designer.sceneSearch': 'Cerca una scena per nome o cartella',
+  'designer.sceneNone': 'Nessuna scena con questo nome',
   'designer.sceneInserted': 'Scena 3D inserita: Three è stato copiato nel progetto (vendor/three), il codice si rigenera quando salvi la scena'
 }
 

@@ -23,10 +23,10 @@ const contains = (outer: Box, inner: Box) =>
  * Gli elementi presi dal rettangolo, in ordine di pagina: quelli tutti dentro, che si vedono (niente html, head, body,
  * script…), tenendo solo i più esterni.
  */
-export function marqueeHits(model: HtmlModel, marquee: Box, rectOf: (id: number) => Box | null): number[] {
+export function marqueeHits(model: HtmlModel, marquee: Box, rectOf: (id: number) => Box | null, skip: ReadonlySet<number> = new Set()): number[] {
   const inside = new Set<number>()
   for (const element of model.elements) {
-    if (['html', 'head', 'body'].includes(element.tag) || NON_VISUAL_TAGS.has(element.tag)) continue
+    if (['html', 'head', 'body'].includes(element.tag) || NON_VISUAL_TAGS.has(element.tag) || skip.has(element.id)) continue
     const rect = rectOf(element.id)
     if (rect && contains(marquee, rect)) inside.add(element.id)
   }
@@ -39,6 +39,22 @@ export function marqueeHits(model: HtmlModel, marquee: Box, rectOf: (id: number)
     return false
   }
   return [...inside].filter((id) => !hasPickedAncestor(id)).sort((a, b) => a - b)
+}
+
+/**
+ * Gli elementi dati e tutti i loro discendenti: bloccati o nascosti nei Livelli non si scelgono sulla tela
+ * (né con il clic né con il rettangolo di selezione), e con loro ciò che contengono.
+ */
+export function withDescendants(model: HtmlModel, ids: Iterable<number>): Set<number> {
+  const out = new Set<number>()
+  const stack = [...ids]
+  while (stack.length) {
+    const id = stack.pop()!
+    if (out.has(id) || !model.elements[id]) continue
+    out.add(id)
+    stack.push(...model.elements[id]!.children)
+  }
+  return out
 }
 
 /** Elementi da togliere o spostare insieme: senza quelli già dentro un altro della selezione, dal fondo della pagina. */

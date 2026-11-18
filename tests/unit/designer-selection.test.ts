@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseHtml } from '@shared/designer/html-model'
-import { boxBetween, marqueeHits, outermostLastFirst, type Box } from '@shared/designer/selection'
+import { boxBetween, marqueeHits, outermostLastFirst, withDescendants, type Box } from '@shared/designer/selection'
 
 const page = parseHtml('<html><body><main><h1>Titolo</h1><p>Testo</p></main><h2>Fuori</h2><script src="a.js"></script></body></html>')
 const id = (tag: string) => page.elements.findIndex((e) => e.tag === tag)
@@ -28,6 +28,13 @@ describe('rettangolo di selezione', () => {
 
   it('un contenitore preso intero vale per i suoi figli; mai body né script', () => {
     expect(marqueeHits(page, { left: -5, top: -5, width: 500, height: 400 }, rectOf)).toEqual([id('main'), id('h2')])
+  })
+
+  it('bloccati e nascosti (con quello che contengono) non entrano nel rettangolo', () => {
+    const skip = withDescendants(page, [id('main')])
+    expect([...skip].sort()).toEqual([id('main'), id('h1'), id('p')].sort())
+    expect(marqueeHits(page, { left: -5, top: -5, width: 500, height: 400 }, rectOf, skip)).toEqual([id('h2')])
+    expect(marqueeHits(page, { left: 0, top: 0, width: 220, height: 100 }, rectOf, withDescendants(page, [id('h1')]))).toEqual([id('p')])
   })
 
   it('Canc su più elementi: senza i figli degli altri scelti, dal fondo della pagina', () => {

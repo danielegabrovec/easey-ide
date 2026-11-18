@@ -17,6 +17,25 @@ export const SCENE_FOLDER = 'scene'
 
 const stem = (scenePath: string) => scenePath.slice(0, scenePath.length - SCENE3D_EXTENSION.length)
 
+/**
+ * Le scene del progetto da proporre nel dialogo «Quale scena 3D?»: tutte (nessun limite), in ordine alfabetico,
+ * filtrate per nome o cartella con la ricerca (maiuscole e accenti non contano).
+ */
+export function sceneChoices(scenePaths: readonly string[], query = ''): string[] {
+  const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const words = fold(query).split(/\s+/).filter(Boolean)
+  return scenePaths
+    .filter((p) => p.toLowerCase().endsWith(SCENE3D_EXTENSION))
+    .filter((p) => words.every((w) => fold(p).includes(w)))
+    .sort((a, b) => a.localeCompare(b, 'it'))
+}
+
+/**
+ * L'errore di `workspace:createFile` dice solo che il file c'è già (allora va bene: non si sovrascrive)?
+ * Ogni altro errore (disco pieno, permessi…) va mostrato e l'inserimento della scena si ferma.
+ */
+export const isAlreadyExistsError = (error: unknown): boolean => /Esiste già:/.test(error instanceof Error ? error.message : String(error))
+
 /** Il modulo generato di una scena: `scene/x.scene3d.json` → `scene/x.scene3d.js`. */
 export const sceneModulePath = (scenePath: string): string => `${stem(scenePath)}.scene3d.js`
 /** L'immagine della scena per il designer: `scene/x.scene3d.json` → `scene/x.scene3d.svg`. */

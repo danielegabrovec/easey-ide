@@ -3,7 +3,8 @@
 // degli editor visuali); le frecce spostano fra i fratelli.
 import { useState } from 'react'
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Eye, EyeOff, Lock, LockOpen, Trash2 } from 'lucide-react'
-import { useCanvasView, viewKey } from './view-state'
+import { keyMatches } from '@shared/designer/view-keys'
+import { useCanvasView } from './view-state'
 import { VOID_TAGS, type ElementInfo } from '@shared/designer/html-model'
 import type { InsertPosition } from '@shared/designer/html-edit'
 import { t } from '../../i18n'
@@ -88,10 +89,12 @@ export function Layers() {
     const children = element.children.filter((c) => !HIDDEN.has(page.elements[c]!.tag))
     const isClosed = closed.has(branchKey(element))
     const marker = drop?.id === id ? ` drop-${drop.where}` : ''
+    const isHidden = keyMatches(page, hidden, element)
+    const isLocked = keyMatches(page, locked, element)
     return (
       <div key={id}>
         <div
-          className={`tree-row layer-row${selected?.id === id ? ' active' : chosen.has(id) ? ' chosen' : ''}${marker}${hidden.includes(viewKey(element)) ? ' is-hidden' : ''}`}
+          className={`tree-row layer-row${selected?.id === id ? ' active' : chosen.has(id) ? ' chosen' : ''}${marker}${isHidden ? ' is-hidden' : ''}`}
           style={{ paddingLeft: 4 + depth * 12 }}
           draggable={element.tag !== 'body'}
           onClick={(event) => pick(element, event)}
@@ -137,30 +140,30 @@ export function Layers() {
           {element.tag !== 'body' && (
             <span className="layer-flags">
               <button
-                className={`layer-flag${hidden.includes(viewKey(element)) ? ' on' : ''}`}
+                className={`layer-flag${isHidden ? ' on' : ''}`}
                 onClick={(event) => {
                   event.stopPropagation()
-                  useCanvasView.getState().toggleHidden(viewKey(element))
+                  useCanvasView.getState().toggleHidden(element, page)
                 }}
-                title={hidden.includes(viewKey(element)) ? t('designer.layerShow') : t('designer.layerHide')}
-                aria-label={hidden.includes(viewKey(element)) ? t('designer.layerShow') : t('designer.layerHide')}
-                aria-pressed={hidden.includes(viewKey(element))}
+                title={isHidden ? t('designer.layerShow') : t('designer.layerHide')}
+                aria-label={isHidden ? t('designer.layerShow') : t('designer.layerHide')}
+                aria-pressed={isHidden}
                 data-testid="layer-eye"
               >
-                {hidden.includes(viewKey(element)) ? <EyeOff size={12} /> : <Eye size={12} />}
+                {isHidden ? <EyeOff size={12} /> : <Eye size={12} />}
               </button>
               <button
-                className={`layer-flag${locked.includes(viewKey(element)) ? ' on' : ''}`}
+                className={`layer-flag${isLocked ? ' on' : ''}`}
                 onClick={(event) => {
                   event.stopPropagation()
-                  useCanvasView.getState().toggleLocked(viewKey(element))
+                  useCanvasView.getState().toggleLocked(element, page)
                 }}
-                title={locked.includes(viewKey(element)) ? t('designer.layerUnlock') : t('designer.layerLock')}
-                aria-label={locked.includes(viewKey(element)) ? t('designer.layerUnlock') : t('designer.layerLock')}
-                aria-pressed={locked.includes(viewKey(element))}
+                title={isLocked ? t('designer.layerUnlock') : t('designer.layerLock')}
+                aria-label={isLocked ? t('designer.layerUnlock') : t('designer.layerLock')}
+                aria-pressed={isLocked}
                 data-testid="layer-lock"
               >
-                {locked.includes(viewKey(element)) ? <Lock size={12} /> : <LockOpen size={12} />}
+                {isLocked ? <Lock size={12} /> : <LockOpen size={12} />}
               </button>
             </span>
           )}

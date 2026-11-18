@@ -1,6 +1,7 @@
 // Azioni del designer: ognuna diventa una modifica chirurgica di HTML e/o CSS in un unico passo annullabile.
 import { blockById, PAGE_BODY_RESET, SCENE_BLOCK_ID } from '@shared/designer/blocks'
-import { hasSceneLoader, SCENE_FOLDER, SCENE_LOADER, SCENE_LOADER_SOURCE, sceneCanvasHtml, sceneLoaderTag } from '@shared/designer/scene-embed'
+import { pickScene } from './ScenePicker'
+import { hasSceneLoader, isAlreadyExistsError, SCENE_FOLDER, SCENE_LOADER, SCENE_LOADER_SOURCE, sceneCanvasHtml, sceneLoaderTag } from '@shared/designer/scene-embed'
 import { isScene3DPath, SCENE3D_EXTENSION } from '@shared/scene3d/model'
 import { executeCommand } from '../../workbench/commands'
 import { appendRulesOnce, BREAKPOINTS, getDeclarations, getVariables, setDeclarations } from '@shared/designer/css-edit'
@@ -271,7 +272,7 @@ export function moveNode(id: number, targetId: number, where: InsertPosition, fr
     }
     if (container && makeFree) {
       const rule = container
-      await editCss((css) => setDeclarations(css, rule, freeContainerStyle(containerTag, makeFree.containerHeight)))
+      await editCss((css) => setDeclarations(css, rule, freeContainerStyle(containerTag, makeFree.containerHeight, isFreeElement(html, containerId))))
     }
     const moved = after.elements.find((e) => e.start === start) ?? (key ? findByAttrId(after, key) : null)
     useDesigner.getState().select(moved ? keyOf(moved) : null)
@@ -298,7 +299,7 @@ export function makeFreeInPlace(id: number, box: { left: number; top: number; wi
       container = `#${ensureId(updated, parentId).id}`
     }
     const position = freeStyleChange(false, true, box)!
-    await editCss((css) => setDeclarations(setDeclarations(css, `#${ensured.id}`, position), container, freeContainerStyle(parent.tag, containerHeight)))
+    await editCss((css) => setDeclarations(setDeclarations(css, `#${ensured.id}`, position), container, freeContainerStyle(parent.tag, containerHeight, isFreeElement(html, parentId))))
     const after = editHtml(() => [])
     const moved = findByAttrId(after, ensured.id)
     useDesigner.getState().select(moved ? keyOf(moved) : null)
@@ -408,7 +409,7 @@ export function drawElement(tool: DrawTool, containerId: number, box: { left: nu
     await editCss((css) => {
       let next = shape.css ? appendRulesOnce(css, shape.css) : css
       next = setDeclarations(next, `#${newId}`, drawnDeclarations(tool, box))
-      if (selector) next = setDeclarations(next, selector, freeContainerStyle(container.tag, containerHeight))
+      if (selector) next = setDeclarations(next, selector, freeContainerStyle(container.tag, containerHeight, isFreeElement(html, containerId)))
       return next
     })
     const page = parse(await modelFor(useDesigner.getState().path!))
@@ -450,7 +451,7 @@ export function placeFreeBoxes(items: FreePlacement[]): Promise<void> {
         const parent = current.elements[element.parent]!
         const selector = containerSelector(current, element.parent, editHtml)
         current = editHtml(() => [])
-        rules.push([selector, freeContainerStyle(parent.tag, item.makeFree.containerHeight)])
+        rules.push([selector, freeContainerStyle(parent.tag, item.makeFree.containerHeight, isFreeElement(current, element.parent))])
       }
       rules.push([`#${ensured.id}`, declarations])
     }
@@ -579,12 +580,8 @@ export async function insertScene3D(placement: Placement): Promise<void> {
   const path = useDesigner.getState().path
   if (!path) return
   const pageDir = dirnameOf(path)
-  const scenes = filePaths(workbench().tree).filter(isScene3DPath)
-  const choice = await choose<string>({
-    title: t('designer.sceneChooseTitle'),
-    message: t('designer.sceneChooseMessage'),
-    choices: [...scenes.slice(0, 6).map((scene) => ({ value: scene, label: basenameOf(scene).replace(SCENE3D_EXTENSION, ''), testId: `scene-pick-${basenameOf(scene)}` })), { value: '', label: t('designer.sceneNew'), testId: 'scene-new' }]
-  })
+  // Tutte le scene del progetto (ricerca + elenco che scorre), non solo le prime.
+  const choice = await pickScene(filePaths(workbench().tree).filter(isScene3DPath))
   if (choice === null) return
   let scene = choice
   if (!scene) {
@@ -592,19 +589,18 @@ export async function insertScene3D(placement: Placement): Promise<void> {
     if (!created) return
     scene = created
   }
-  try {
-    await executeCommand('studio3d.prepareEmbed', { path: scene })
-    const loader = joinRelative(pageDir, SCENE_LOADER)
-    if (!filePaths(workbench().tree).includes(loader)) {
-      try {
-        await ide.invoke('workspace:createFile', loader, SCENE_LOADER_SOURCE)
-      } catch {
-        /* esiste già (albero non ancora aggiornato) */
+  // Se Three, il modulo o l'immagine non si scrivono (disco, permessi…) l'errore si vede e la scena NON si inserisce.
+  if ((await executeCommand('studio3d.prepareEmbed', { path: scene })) !== true) return
+  const loader = joinRelative(pageDir, SCENE_LOADER)
+  if (!filePaths(workbench().tree).includes(loader)) {
+    try {
+      await ide.invoke('workspace:createFile', loader, SCENE_LOADER_SOURCE)
+    } catch (error) {
+      if (!isAlreadyExistsError(error)) {
+        notifyError(error)
+        return
       }
     }
-  } catch (error) {
-    notifyError(error)
-    return
   }
   const name = basenameOf(scene).replace(SCENE3D_EXTENSION, '')
   await insertBlock(SCENE_BLOCK_ID, placement, {

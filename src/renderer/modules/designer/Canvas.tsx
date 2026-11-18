@@ -3,7 +3,7 @@
 // ridimensionano a mano libera con guide magnetiche (stile Canva); altrove si riordinano a flusso (stile Wix).
 // Le regole su dove finisce un elemento rilasciato stanno in @shared/designer/drop (pure e testate).
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { FREE_CANVAS_CLASS, FREE_ELEMENT_CLASS, findByAttrId, findByPath, hasClass, isFreeElement, type ElementInfo, type HtmlModel } from '@shared/designer/html-model'
+import { FREE_CANVAS_CLASS, FREE_ELEMENT_CLASS, hasClass, isFreeElement, type ElementInfo, type HtmlModel } from '@shared/designer/html-model'
 import { clampBox, decideDrop, elementLabel, flowAxis, targetParent, type Axis, type DropTarget, freeContainerAt, appendTarget } from '@shared/designer/drop'
 import { fitScale, STAGE_PAD, stageX, wheelZoom, zoomAround } from '@shared/canvas-kit/zoom'
 import { resizeRect, type Handle } from '@shared/canvas-kit/geometry'
@@ -20,7 +20,8 @@ import { backToFlow, copyStyle, drawElement, duplicateSelected, insertBlock, mak
 import { alignSelection, canInferLayout, distributeSelection, freeToLayout, restackSelection } from './arrange'
 import { redo, undo } from './document'
 import { keyOf, resolveSelection, selectedElements, useDesigner } from './designer-store'
-import { boxBetween, marqueeHits, type Box } from '@shared/designer/selection'
+import { boxBetween, marqueeHits, withDescendants, type Box } from '@shared/designer/selection'
+import { elementForViewKey } from '@shared/designer/view-keys'
 import { registerFrame } from './frame-access'
 import { DrawTools } from './DrawTools'
 import { Rulers } from './Rulers'
@@ -127,12 +128,6 @@ function rectOf(element: Element | null): Rect | null {
 
 const inside = (rect: Rect, x: number, y: number) => x >= rect.left && x <= rect.left + rect.width && y >= rect.top && y <= rect.top + rect.height
 
-/** L'elemento di una chiave dello stato dell'editor (`#id` o `@percorso`, vedi view-state). */
-function elementForKey(page: HtmlModel, key: string): ElementInfo | null {
-  if (key.startsWith('#')) return findByAttrId(page, key.slice(1))
-  if (key.startsWith('@')) return findByPath(page, key.slice(1) ? key.slice(1).split('.').map(Number) : [])
-  return null
-}
 
 /** Rotazione attuale (gradi) letta dalla matrice calcolata: 0 se non ruota. */
 function rotationOf(node: HTMLElement): number {
@@ -200,27 +195,21 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   const drawPreview = useRef<HTMLDivElement>(null)
   /** Guida trascinata (dal righello o già sulla tela): `out` = lasciandola qui sparisce. */
   const [guideDrag, setGuideDrag] = useState<{ axis: 'x' | 'y'; index: number; value: number; out: boolean } | null>(null)
+  const guideView = useRef({ left: 0, scale: 1, scroll: { top: 0, left: 0 } })
+  /** Toglie i gestori della finestra del trascinamento di una guida (rilascio, annullo, smontaggio). */
+  const guideCleanup = useRef<(() => void) | null>(null)
+  useEffect(() => () => guideCleanup.current?.(), [])
 
   const selected = resolveSelection(page, selection)
   const doc = () => iframe.current?.contentDocument ?? null
   const elementNode = useCallback((id: number | null | undefined) => (id === null || id === undefined ? null : (doc()?.querySelector(`[data-lab-id="${id}"]`) as HTMLElement | null)), [])
 
   /** Elementi bloccati (lucchetto nei Livelli) e i loro discendenti: sulla tela non si scelgono. */
-  const lockedIds = useMemo(() => {
-    const out = new Set<number>()
-    if (!page) return out
-    for (const key of lockedKeys) {
-      const element = elementForKey(page, key)
-      if (!element) continue
-      const stack = [element.id]
-      while (stack.length) {
-        const id = stack.pop()!
-        out.add(id)
-        stack.push(...page.elements[id]!.children)
-      }
-    }
-    return out
-  }, [page, lockedKeys])
+  const keyIds = (model: HtmlModel | null, keys: readonly string[]) =>
+    model ? withDescendants(model, keys.map((key) => elementForViewKey(model, key)?.id).filter((id): id is number => id !== undefined)) : new Set<number>()
+  const lockedIds = useMemo(() => keyIds(page, lockedKeys), [page, lockedKeys])
+  /** Nascosti (occhio) e bloccati non entrano nel rettangolo di selezione, con quello che contengono. */
+  const unpickable = useMemo(() => new Set([...lockedIds, ...keyIds(page, hiddenKeys)]), [page, hiddenKeys, lockedIds])
 
   /** Occhio nei Livelli: nascosti solo nel canvas del designer (stile in linea nell'iframe, mai nel file). */
   const applyHidden = useCallback(() => {
@@ -232,7 +221,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       node.removeAttribute('data-lab-hidden')
     })
     for (const key of useCanvasView.getState().hidden) {
-      const element = elementForKey(model, key)
+      const element = elementForViewKey(model, key)
       const node = element ? (d.querySelector(`[data-lab-id="${element.id}"]`) as HTMLElement | null) : null
       if (!node) continue
       node.style.visibility = 'hidden'
@@ -425,27 +414,39 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
 
   // ------------------------------------------------------------ guide trascinate dai righelli
 
+  // Zoom, posizione e scorrimento di ADESSO: i gestori della finestra vivono più di un disegno (si zooma o si
+  // scorre mentre si trascina), quindi leggono da qui e non dai valori del disegno in cui sono nati.
+  guideView.current = { left, scale, scroll }
+
   /** Px della pagina sotto il puntatore, per una guida verticale (x) o orizzontale (y). */
   const guideValueAt = (axis: 'x' | 'y', clientX: number, clientY: number): { value: number; out: boolean } => {
+    const view = guideView.current
     const box = host.current!.getBoundingClientRect()
     const hx = clientX - box.left
     const hy = clientY - box.top
     const out = hx < 0 || hy < 0 || hx > box.width || hy > box.height
-    const value = axis === 'x' ? scroll.left + (hx - left) / scale : scroll.top + (hy - STAGE_PAD) / scale
+    const value = axis === 'x' ? view.scroll.left + (hx - view.left) / view.scale : view.scroll.top + (hy - STAGE_PAD) / view.scale
     return { value, out }
   }
 
   const startGuideDrag = (axis: 'x' | 'y', index: number, event: React.PointerEvent) => {
     event.preventDefault()
     event.stopPropagation()
-    const first = guideValueAt(axis, event.clientX, event.clientY)
-    setGuideDrag({ axis, index, ...first })
+    guideCleanup.current?.()
+    setGuideDrag({ axis, index, ...guideValueAt(axis, event.clientX, event.clientY) })
     const move = (e: PointerEvent) => setGuideDrag({ axis, index, ...guideValueAt(axis, e.clientX, e.clientY) })
-    const up = (e: PointerEvent) => {
+    const cleanup = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
-      const { value, out } = guideValueAt(axis, e.clientX, e.clientY)
+      window.removeEventListener('pointercancel', cancel)
+      window.removeEventListener('blur', cancel)
+      guideCleanup.current = null
       setGuideDrag(null)
+    }
+    const cancel = () => cleanup()
+    const up = (e: PointerEvent) => {
+      const { value, out } = guideValueAt(axis, e.clientX, e.clientY)
+      cleanup()
       const current = useCanvasView.getState().guides
       const list = axis === 'x' ? current.xs : current.ys
       const next = moveGuide(list, index, out ? null : value)
@@ -453,6 +454,9 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', cancel)
+    window.addEventListener('blur', cancel)
+    guideCleanup.current = cleanup
   }
 
   const isWithin = (id: number, container: number) => {
@@ -973,7 +977,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       const box = boxBetween({ x: current.startX, y: current.startY }, current.current)
       // Un clic senza trascinare resta un clic (il body scelto).
       if (box.width < 4 && box.height < 4) return
-      const hits = marqueeHits(page!, box, (id) => rectOf(elementNode(id)))
+      const hits = marqueeHits(page!, box, (id) => rectOf(elementNode(id)), unpickable)
       if (hits.length) useDesigner.getState().setGroup(hits.map((id) => page!.elements[id]!))
       return
     }

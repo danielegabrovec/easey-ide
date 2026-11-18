@@ -96,6 +96,27 @@ try {
   await page.mouse.up()
   check('riportata sul righello, la guida sparisce', !!(await until(async () => (await page.getByTestId('user-guide-y').count()) === 0, 4000)))
 
+  // Zoom a metà trascinamento: la guida finisce comunque sotto il puntatore (prima usava lo zoom di partenza).
+  const top3 = await page.getByTestId('ruler-top').boundingBox()
+  const hostBox = await page.getByTestId('designer-host').boundingBox()
+  const midX = hostBox.x + hostBox.width / 2
+  await page.mouse.move(midX, top3.y + 5)
+  await page.mouse.down()
+  await page.mouse.move(midX, hostBox.y + 200, { steps: 6 })
+  await page.keyboard.down('Control')
+  await page.mouse.wheel(0, -300)
+  await page.keyboard.up('Control')
+  await wait(300)
+  const finalY = hostBox.y + 260
+  await page.mouse.move(midX, finalY, { steps: 6 })
+  await page.mouse.up()
+  await wait(200)
+  const zoomedGuide = await page.getByTestId('user-guide-y').last().boundingBox()
+  check('zoom durante il trascinamento: la guida resta sotto il puntatore', !!zoomedGuide && Math.abs(zoomedGuide.y + zoomedGuide.height / 2 - finalY) < 2, JSON.stringify({ guide: zoomedGuide && zoomedGuide.y + zoomedGuide.height / 2, finalY }))
+  await page.getByTestId('designer-overlay').focus()
+  await page.keyboard.press('Control+0')
+  await wait(300)
+
   // 5. Spegnere i righelli.
   await page.getByTestId('designer-rulers').click()
   check('il pulsante Righelli li spegne', (await page.getByTestId('ruler-top').count()) === 0 && (await page.getByTestId('designer-rulers').getAttribute('aria-pressed')) === 'false')

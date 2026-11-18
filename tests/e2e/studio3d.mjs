@@ -49,6 +49,22 @@ try {
   check('l’albero mostra tutti gli oggetti della scena pronta', !!rows, String(await page.getByTestId('s3-row').count()))
   check('la lampada è nell’albero', (await row('Lampada calda').count()) === 1)
 
+  // Annullando fino all'inizio il file torna com'era (prima restava la versione modificata).
+  const original = JSON.stringify(byName('Cubo').position)
+  const cuboOnDisk = () => JSON.stringify(byName('Cubo')?.position)
+  await row('Cubo').first().click()
+  await page.getByTestId('s3-pos-x').fill('1.5')
+  await page.getByTestId('s3-pos-x').press('Enter')
+  check('modifica salvata', !!(await until(() => byName('Cubo')?.position[0] === 1.5, 5000)))
+  await page.getByTestId('s3-undo').click()
+  check('annullando fino all’inizio il file torna quello di prima', !!(await until(() => cuboOnDisk() === original, 5000)), `${cuboOnDisk()} (atteso ${original})`)
+  // Modifica e annulla dentro il ritardo del salvataggio: su disco non deve restare la modifica.
+  await page.getByTestId('s3-pos-x').fill('3')
+  await page.getByTestId('s3-pos-x').press('Enter')
+  await page.getByTestId('s3-undo').click()
+  await wait(1200)
+  check('modifica + annulla subito: su disco resta la versione di prima', cuboOnDisk() === original, `${cuboOnDisk()} (atteso ${original})`)
+
   // 2. Aggiungi, ispettore, annulla/ripeti, gruppo, trascinamento, Canc.
   await page.getByTestId('s3-add').click()
   await page.getByTestId('s3-add-box').click()

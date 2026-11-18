@@ -104,7 +104,17 @@ export function activateStudio3D(): void {
   })
   registerCommand<{ path: string }>({ id: 'studio3d.open', title: 'studio3d.open', palette: false, run: (args) => args && openStudio3D(args.path) })
   // Per il blocco «Scena 3D» del designer: Three nel progetto, modulo generato e immagine della scena.
-  registerCommand<{ path: string }>({ id: 'studio3d.prepareEmbed', title: 'studio3d.prepareEmbed', palette: false, run: async (args) => (args ? await prepareSceneEmbed(args.path) : undefined) })
+  // Restituisce true solo se tutto è pronto: un errore (mostrato da executeCommand) ferma l'inserimento.
+  registerCommand<{ path: string }>({
+    id: 'studio3d.prepareEmbed',
+    title: 'studio3d.prepareEmbed',
+    palette: false,
+    run: async (args) => {
+      if (!args) return false
+      await prepareSceneEmbed(args.path)
+      return true
+    }
+  })
   // Scena nuova senza dialogo (dal designer): restituisce il percorso del file creato.
   registerCommand<{ dir: string; name: string; preset?: string }>({ id: 'studio3d.createScene', title: 'studio3d.createScene', palette: false, run: async (args) => (args ? await createScene(args.dir, args.name, args.preset ?? 'vetrina') : null) })
   registerFileOpener({ id: 'studio3d', matches: isScene3DPath, command: 'studio3d.open' })
