@@ -4282,3 +4282,189 @@ button.quick-line:hover {
   background: var(--accent-soft);
   border-bottom: 1px solid var(--border);
 }
+
+/* ---- Studio 3D (1.7): albero, vista, ispettore, codice ---- */
+
+.s3-panel {
+  display: flex;
+  flex-direction: column;
+  outline: none;
+}
+
+.s3-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(170px, 220px) minmax(280px, 1fr) minmax(230px, 280px);
+}
+
+.s3-body.with-code {
+  grid-template-columns: minmax(170px, 220px) minmax(260px, 1fr) minmax(260px, 0.8fr) minmax(230px, 280px);
+}
+
+.s3-tree,
+.s3-inspector {
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg-panel);
+}
+
+.s3-tree {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+}
+
+.s3-row .s3-icon {
+  width: 16px;
+  text-align: center;
+  font-size: 11px;
+}
+
+.s3-row .layer-flag {
+  margin-left: auto;
+}
+
+.s3-row.is-hidden .tree-name {
+  opacity: 0.45;
+}
+
+.s3-root-drop {
+  margin: 8px;
+  padding: 6px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.s3-root-drop.over {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.s3-view {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background: #0b0d12;
+}
+
+.s3-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  outline: none;
+  touch-action: none;
+}
+
+.s3-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.s3-status {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.55);
+  color: #e5e7eb;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.s3-inspector {
+  border-left: 1px solid var(--border);
+  padding: 8px 10px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.s3-inspector .insp-section-title {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.s3-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.s3-field > label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.s3-field input[type='number'],
+.s3-field input:not([type]),
+.s3-field select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.s3-field input[type='color'] {
+  width: 48px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border);
+  background: transparent;
+}
+
+.s3-vec {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.s3-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.s3-code {
+  min-height: 0;
+  overflow: auto;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+  font: 11.5px/1.5 var(--font-mono, ui-monospace, monospace);
+  padding: 6px 0;
+}
+
+.s3-code-line {
+  display: flex;
+  gap: 10px;
+  padding: 0 10px 0 0;
+  white-space: pre;
+}
+
+.s3-code-line.hit {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.s3-code-no {
+  flex: 0 0 34px;
+  text-align: right;
+  color: var(--text-muted);
+  user-select: none;
+}

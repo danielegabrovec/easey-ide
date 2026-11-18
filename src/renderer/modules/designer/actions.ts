@@ -1,5 +1,8 @@
 // Azioni del designer: ognuna diventa una modifica chirurgica di HTML e/o CSS in un unico passo annullabile.
-import { blockById, PAGE_BODY_RESET } from '@shared/designer/blocks'
+import { blockById, PAGE_BODY_RESET, SCENE_BLOCK_ID } from '@shared/designer/blocks'
+import { hasSceneLoader, SCENE_FOLDER, SCENE_LOADER, SCENE_LOADER_SOURCE, sceneCanvasHtml, sceneLoaderTag } from '@shared/designer/scene-embed'
+import { isScene3DPath, SCENE3D_EXTENSION } from '@shared/scene3d/model'
+import { executeCommand } from '../../workbench/commands'
 import { appendRulesOnce, BREAKPOINTS, getDeclarations, getVariables, setDeclarations } from '@shared/designer/css-edit'
 import { copyableStyles, themeRules, type SiteTheme, type StylePatch } from '@shared/designer/presets'
 import { DEFAULT_PLACEHOLDER_COLORS, placeholderNames, placeholderPath, placeholderSvg } from '@shared/design-kit/placeholder'
@@ -8,7 +11,7 @@ import { ICON_CSS, iconSvg } from '@shared/design-kit/icons'
 import type { LintFix } from '@shared/design-kit/lint'
 import { themeFromColor } from '@shared/design-kit/themes'
 import { typeVariables, type TypeScaleId } from '@shared/design-kit/type'
-import { dirnameOf, filePaths } from '@shared/paths'
+import { basenameOf, dirnameOf, filePaths, joinRelative, relativeTo } from '@shared/paths'
 import { ide } from '../../ipc'
 import { t } from '../../i18n'
 import { choose } from '../../ui/dialogs'
@@ -538,9 +541,11 @@ export function endOfBody(html: HtmlModel): Placement {
   return { targetId: target.id, where: target.where }
 }
 
-export function insertBlock(blockId: string, placement: Placement, overrides?: { html?: string }): Promise<void> {
+export function insertBlock(blockId: string, placement: Placement, overrides?: { html?: string; finish?: (editHtml: (build: (html: HtmlModel) => TextEdit[]) => HtmlModel) => void }): Promise<void> {
   const block = blockById(blockId)
   if (!block) return Promise.resolve()
+  // La scena 3D (1.7): prima si sceglie (o si crea) la scena e si preparano i suoi file.
+  if (blockId === SCENE_BLOCK_ID && !overrides?.html) return insertScene3D(placement)
   return withPage(async ({ html, editHtml, editCss }) => {
     const tag = /^<([a-z][\w-]*)/i.exec(block.html)?.[1]?.toLowerCase() ?? 'div'
     const newId = suggestId(html, tag)
@@ -558,10 +563,58 @@ export function insertBlock(blockId: string, placement: Placement, overrides?: {
       editHtml((h) => insertHtml(h, placement.targetId, placement.where, fragment))
       if (block.css) await editCss((css) => appendRulesOnce(css, block.css!))
     }
+    overrides?.finish?.(editHtml)
     const page = parse(await modelFor(useDesigner.getState().path!))
     const inserted = findByAttrId(page, newId)
     if (inserted) useDesigner.getState().select(keyOf(inserted))
   })
+}
+
+/**
+ * Blocco «Scena 3D» (1.7): si sceglie una scena del progetto o se ne crea una nuova; lo Studio 3D prepara
+ * i file (Three in `vendor/three`, modulo generato e immagine accanto alla scena), qui si scrive il caricatore
+ * `js/scene-3d.js` (una volta), il <canvas data-scena> e lo script del caricatore in fondo al body: un passo solo.
+ */
+export async function insertScene3D(placement: Placement): Promise<void> {
+  const path = useDesigner.getState().path
+  if (!path) return
+  const pageDir = dirnameOf(path)
+  const scenes = filePaths(workbench().tree).filter(isScene3DPath)
+  const choice = await choose<string>({
+    title: t('designer.sceneChooseTitle'),
+    message: t('designer.sceneChooseMessage'),
+    choices: [...scenes.slice(0, 6).map((scene) => ({ value: scene, label: basenameOf(scene).replace(SCENE3D_EXTENSION, ''), testId: `scene-pick-${basenameOf(scene)}` })), { value: '', label: t('designer.sceneNew'), testId: 'scene-new' }]
+  })
+  if (choice === null) return
+  let scene = choice
+  if (!scene) {
+    const created = (await executeCommand('studio3d.createScene', { dir: joinRelative(pageDir, SCENE_FOLDER), name: 'Scena', preset: 'vetrina' })) as string | null | undefined
+    if (!created) return
+    scene = created
+  }
+  try {
+    await executeCommand('studio3d.prepareEmbed', { path: scene })
+    const loader = joinRelative(pageDir, SCENE_LOADER)
+    if (!filePaths(workbench().tree).includes(loader)) {
+      try {
+        await ide.invoke('workspace:createFile', loader, SCENE_LOADER_SOURCE)
+      } catch {
+        /* esiste già (albero non ancora aggiornato) */
+      }
+    }
+  } catch (error) {
+    notifyError(error)
+    return
+  }
+  const name = basenameOf(scene).replace(SCENE3D_EXTENSION, '')
+  await insertBlock(SCENE_BLOCK_ID, placement, {
+    html: sceneCanvasHtml(relativeTo(pageDir, scene), t('designer.sceneLabel', { name })),
+    finish: (editHtml) => {
+      editHtml((h) => (h.body !== null && !hasSceneLoader(h.source) ? insertHtml(h, h.body, 'inside-end', sceneLoaderTag()) : []))
+    }
+  })
+  notify(t('designer.sceneInserted'), 'success')
+  if (!choice) void executeCommand('studio3d.open', { path: scene })
 }
 
 /**

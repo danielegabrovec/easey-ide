@@ -23,6 +23,7 @@ export type TreeMenuAction =
   | 'newBlocks'
   | 'newNodes'
   | 'newDiagram'
+  | 'newScene3D'
   | 'rename'
   | 'duplicate'
   | 'move'
@@ -56,13 +57,13 @@ const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'a
 const DATABASE_EXTENSIONS = new Set(['db', 'sqlite', 'sqlite3'])
 /** File che «Esegui passo passo» sa seguire (come il modulo step-run). */
 const TRACEABLE = new Set(['js', 'mjs', 'cjs', 'ts', 'mts', 'cts'])
-const VISUAL_SUFFIXES = ['.blocchi.json', '.nodi.json', '.diagramma.json']
+const VISUAL_SUFFIXES = ['.blocchi.json', '.nodi.json', '.diagramma.json', '.scene3d.json']
 
 const isVisualDocument = (path: string) => VISUAL_SUFFIXES.some((suffix) => path.toLowerCase().endsWith(suffix))
 
 /** Le voci di «Nuovo» (nella cartella del file, nella cartella stessa o nella principale). */
 function newItems(): TreeMenuNode[] {
-  return [{ action: 'newFile' }, { action: 'newFolder' }, 'separator', { action: 'newPage' }, { action: 'newBlocks' }, { action: 'newNodes' }, { action: 'newDiagram' }]
+  return [{ action: 'newFile' }, { action: 'newFolder' }, 'separator', { action: 'newPage' }, { action: 'newBlocks' }, { action: 'newNodes' }, { action: 'newDiagram' }, { action: 'newScene3D' }]
 }
 
 const copyMenu = (kind: TreeMenuTarget['kind']): TreeMenuNode =>

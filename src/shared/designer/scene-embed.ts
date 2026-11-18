@@ -1,7 +1,8 @@
 // Scena 3D dentro una pagina (1.7): `<canvas class="scena-3d" data-scena="scene/x.scene3d.json">` e uno
 // script modulo che la fa girare. Accanto a ogni scena c'è il suo modulo generato (`x.scene3d.js`, rifatto
-// a ogni salvataggio nello Studio 3D) e la sua immagine (`x.scene3d.png`, mostrata nel designer, dove gli
-// script non girano). Three sta nel progetto (`vendor/three/`), mai su una CDN. Puro e testato.
+// a ogni salvataggio nello Studio 3D) e la sua immagine (`x.scene3d.svg`: un SVG che contiene il PNG della
+// scena, perché i file del progetto si scrivono come testo; mostrata nel designer, dove gli script non
+// girano). Three sta nel progetto (`vendor/three/`), mai su una CDN. Puro e testato.
 import { dirnameOf, normalizeRelative, relativeTo } from '../paths'
 import { SCENE3D_EXTENSION } from '../scene3d/model'
 
@@ -18,8 +19,14 @@ const stem = (scenePath: string) => scenePath.slice(0, scenePath.length - SCENE3
 
 /** Il modulo generato di una scena: `scene/x.scene3d.json` → `scene/x.scene3d.js`. */
 export const sceneModulePath = (scenePath: string): string => `${stem(scenePath)}.scene3d.js`
-/** L'immagine della scena per il designer: `scene/x.scene3d.json` → `scene/x.scene3d.png`. */
-export const sceneImagePath = (scenePath: string): string => `${stem(scenePath)}.scene3d.png`
+/** L'immagine della scena per il designer: `scene/x.scene3d.json` → `scene/x.scene3d.svg`. */
+export const sceneImagePath = (scenePath: string): string => `${stem(scenePath)}.scene3d.svg`
+
+/** Il file dell'immagine: un SVG che contiene il PNG (URL dati) disegnato dallo Studio 3D. */
+export function sceneImageSvg(pngDataUrl: string, width: number, height: number): string {
+  const href = pngDataUrl.replace(/[^A-Za-z0-9+/=:;,.-]/g, '')
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(width)}" height="${Math.round(height)}" viewBox="0 0 ${Math.round(width)} ${Math.round(height)}"><image href="${href}" width="100%" height="100%" preserveAspectRatio="xMidYMid slice"/></svg>\n`
+}
 
 /** Da dove il modulo di una scena importa Three (relativo alla sua cartella). */
 export function threeImportFor(scenePath: string): string {

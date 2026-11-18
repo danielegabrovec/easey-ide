@@ -39,7 +39,7 @@ export function setLayoutPreset(preset: LayoutPreset): void {
 }
 
 /** Pannelli che hanno bisogno di spazio: aperti, nascondono anteprima e console. */
-const WIDE_PANELS = ['designer', 'quick', 'visual:', 'diagram:']
+const WIDE_PANELS = ['designer', 'quick', 'visual:', 'diagram:', 'studio3d:']
 
 export function isWidePanel(id: string): boolean {
   return WIDE_PANELS.some((prefix) => (prefix.endsWith(':') ? id.startsWith(prefix) : id === prefix))

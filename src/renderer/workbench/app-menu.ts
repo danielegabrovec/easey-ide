@@ -44,7 +44,7 @@ const SPEC: Spec[] = [
   },
   {
     label: 'menu.create',
-    items: ['designer.open', 'designer.newPage', '-', 'sql.show', '-', 'visual.newBlocks', 'visual.newNodes', 'diagram.new', '-', 'ai.chat']
+    items: ['designer.open', 'designer.newPage', '-', 'sql.show', '-', 'visual.newBlocks', 'visual.newNodes', 'diagram.new', 'studio3d.new', '-', 'ai.chat']
   },
   {
     label: 'menu.run',

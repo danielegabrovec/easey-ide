@@ -4,6 +4,7 @@
 import type { ComponentType } from 'react'
 import {
   BadgeEuro,
+  Box,
   ChartColumn,
   CircleHelp,
   Columns2,
@@ -84,6 +85,7 @@ const ICONS: Record<string, Icon> = {
   icona: Star,
   emoji: Smile,
   forma: Shapes,
+  'scena-3d': Box,
   intestazione: PanelTop,
   hero: Sparkles,
   prezzi: BadgeEuro,

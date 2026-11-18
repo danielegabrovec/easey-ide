@@ -6,7 +6,7 @@ import { inferLayout } from '@shared/canvas-kit/layout-infer'
 import { applyEdits } from '@shared/designer/html-edit'
 import { findByAttrId, isFreeElement, parseHtml } from '@shared/designer/html-model'
 import { buildCanvasDocument } from '@shared/designer/canvas-document'
-import { designerSceneStyle, hasSceneLoader, SCENE_LOADER_SOURCE, sceneCanvasHtml, sceneImagePath, sceneLoaderTag, sceneModulePath, threeImportFor } from '@shared/designer/scene-embed'
+import { designerSceneStyle, hasSceneLoader, SCENE_LOADER_SOURCE, sceneCanvasHtml, sceneImagePath, sceneImageSvg, sceneLoaderTag, sceneModulePath, threeImportFor } from '@shared/designer/scene-embed'
 
 describe('forme disegnate', () => {
   it('ogni strumento che disegna ha un frammento con una classe; Seleziona e Mano no', () => {
@@ -108,7 +108,10 @@ describe('da libero a layout', () => {
 describe('scena 3D nella pagina', () => {
   it('modulo e immagine accanto alla scena; Three importato dalla radice del progetto', () => {
     expect(sceneModulePath('scene/cubo.scene3d.json')).toBe('scene/cubo.scene3d.js')
-    expect(sceneImagePath('scene/cubo.scene3d.json')).toBe('scene/cubo.scene3d.png')
+    expect(sceneImagePath('scene/cubo.scene3d.json')).toBe('scene/cubo.scene3d.svg')
+    const svg = sceneImageSvg('data:image/png;base64,AAA+/=" onload="x', 800, 450)
+    expect(svg).toContain('<image href="data:image/png;base64,AAA+/=onload=x"')
+    expect(svg).toContain('width="800" height="450"')
     expect(threeImportFor('scene/cubo.scene3d.json')).toBe('../vendor/three/three.module.js')
     expect(threeImportFor('cubo.scene3d.json')).toBe('./vendor/three/three.module.js')
     expect(threeImportFor('sito/scene/x.scene3d.json')).toBe('../../vendor/three/three.module.js')
@@ -124,11 +127,11 @@ describe('scena 3D nella pagina', () => {
   })
 
   it('nel designer il canvas mostra l’immagine della scena sopra il segnaposto (solo nel canvas)', () => {
-    expect(designerSceneStyle('scene/x.scene3d.json')).toContain('url("scene/x.scene3d.png")')
-    expect(designerSceneStyle('altro.json')).not.toContain('.png')
+    expect(designerSceneStyle('scene/x.scene3d.json')).toContain('url("scene/x.scene3d.svg")')
+    expect(designerSceneStyle('altro.json')).not.toContain('scene3d.svg')
     const page = `<!doctype html><html><head></head><body>${sceneCanvasHtml('scene/x.scene3d.json', 'x')}<script type="module" src="js/scene-3d.js"></script></body></html>`
     const built = buildCanvasDocument(page, { htmlPath: 'index.html', stylesheet: () => null })
-    expect(built).toMatch(/<canvas[^>]+style="background: url\(&quot;scene\/x\.scene3d\.png&quot;\)/)
+    expect(built).toMatch(/<canvas[^>]+style="background: url\(&quot;scene\/x\.scene3d\.svg&quot;\)/)
     expect(built).not.toContain('scene-3d.js')
   })
 })

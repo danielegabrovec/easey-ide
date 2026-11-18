@@ -4,6 +4,10 @@
 // scegliendo un tema nella scheda «Sito» si ricolora tutta la pagina.
 
 import { ICON_CSS, iconSvg } from '../design-kit/icons'
+import { SCENE_CANVAS_CLASS, SCENE_CANVAS_CSS } from './scene-embed'
+
+/** Il blocco della scena 3D (1.7): non si inserisce come gli altri, prima si sceglie la scena. */
+export const SCENE_BLOCK_ID = 'scena-3d'
 
 export type BlockCategory = 'struttura' | 'testo' | 'moduli' | 'media' | 'sezioni' | 'modelli'
 
@@ -152,6 +156,8 @@ const BASE_BLOCKS: Block[] = [
   { id: 'video', label: 'Video', category: 'media', html: '<video controls width="480"></video>', freeSize: { width: 320, height: 180 } },
   { id: 'icona', label: 'Icona', category: 'media', html: `<span class="lab-icona">${icon('sparkles')}</span>`, css: `${ICON_TILE_CSS}\n\n${ICON_CSS}`, keywords: 'icona simbolo svg lucide pittogramma', freeSize: { width: 48, height: 48 } },
   { id: 'emoji', label: 'Emoji grande', category: 'media', html: '<span class="lab-emoji">🚀</span>', css: '.lab-emoji {\n  font-size: 64px;\n  line-height: 1;\n}', freeSize: { width: 80, height: 80 } },
+  // 1.7: scena dello Studio 3D. Il designer chiede quale scena usare e scrive il vero <canvas data-scena>.
+  { id: SCENE_BLOCK_ID, label: 'Scena 3D', category: 'media', html: `<canvas class="${SCENE_CANVAS_CLASS}"></canvas>`, css: SCENE_CANVAS_CSS, keywords: '3d three webgl tridimensionale modello studio', freeSize: { width: 480, height: 270 } },
   { id: 'forma', label: 'Forma colorata', category: 'media', html: '<div class="lab-forma"></div>', css: '.lab-forma {\n  width: 120px;\n  height: 120px;\n  border-radius: 24px;\n  background: linear-gradient(135deg, #6d7cff, #b26dff);\n}', freeSize: { width: 120, height: 120 } },
   {
     id: 'intestazione',

@@ -13,6 +13,7 @@ import { activateRunTerminal } from './run-terminal'
 import { activateRunWeb } from './run-web'
 import { activateSqlLab } from './sql-lab'
 import { activateStepRun } from './step-run'
+import { activateStudio3D } from './studio3d'
 import { activateVisualCode } from './visual-code'
 
 export function activateModules(): void {
@@ -25,6 +26,7 @@ export function activateModules(): void {
   activateDesigner()
   activateVisualCode()
   activateDiagrams()
+  activateStudio3D()
   activateLearn()
   activateStepRun()
   activateGit()

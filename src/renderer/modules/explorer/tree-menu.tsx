@@ -47,6 +47,7 @@ function run(action: TreeMenuAction, target: TreeMenuTarget, local: TreeMenuLoca
     newBlocks: () => executeCommand('visual.newBlocks'),
     newNodes: () => executeCommand('visual.newNodes'),
     newDiagram: () => executeCommand('diagram.new'),
+    newScene3D: () => executeCommand('studio3d.new', { dir: dir || 'scene' }),
     rename: () => executeCommand('explorer.rename', { path }),
     duplicate: () => executeCommand('explorer.duplicate', { path }),
     move: () => executeCommand('explorer.move', { path }),
