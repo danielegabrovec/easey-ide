@@ -5,6 +5,7 @@ import type { DockviewApi, IDockviewPanel, IDockviewPanelProps } from 'dockview'
 import { create } from 'zustand'
 import { t } from '../i18n'
 import { withPanelBoundary } from './ErrorBoundary'
+import { hideStart } from './start'
 import { chooseCenterGroup, isSideGroup, newCenterPosition, type SideGroups } from '@shared/layout-areas'
 
 /**
@@ -219,6 +220,8 @@ function liveGroup(area: Area) {
 
 export function showPanel(options: ShowPanelOptions): IDockviewPanel | null {
   if (!api) return null
+  // Chi apre un pannello vuole lavorare: la schermata iniziale lascia il posto alla griglia.
+  if (!options.inactive) hideStart()
   const existing = api.getPanel(options.id)
   if (existing) {
     if (!options.inactive) {

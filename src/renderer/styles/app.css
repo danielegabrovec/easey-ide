@@ -113,6 +113,19 @@ textarea:focus {
   font-weight: 650;
   margin-right: 10px;
   letter-spacing: 0.2px;
+  /* È un pulsante: riporta la schermata iniziale. */
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 650;
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.toolbar .brand:hover {
+  background: var(--bg-hover);
 }
 
 .toolbar .brand .logo {
@@ -988,12 +1001,6 @@ kbd {
   white-space: pre-wrap;
   font-family: var(--font-code);
   font-size: 12px;
-}
-
-.welcome-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 /* Il dialogo riceve il fuoco quando non ha campi: niente contorno sul riquadro intero. */

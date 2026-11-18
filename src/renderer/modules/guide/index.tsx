@@ -13,7 +13,7 @@ import { openDialog } from '../../ui/dialogs'
 import { runTour } from '../../ui/Tour'
 import { t } from '../../i18n'
 import { dismissTip, installGuideRefresh, markTourCompleted, useGuide } from './guide-store'
-import { GlossaryPanel, HelpDialog, OFFER_TIP, ToursDialog, TourOffer, WelcomeNextSteps } from './GuideViews'
+import { GlossaryPanel, HelpDialog, OFFER_TIP, StartToursCard, ToursDialog, WelcomeNextSteps } from './GuideViews'
 import { GuideHomePanel } from './GuideHome'
 import { tourById } from './tours'
 import './guide.css'
@@ -40,7 +40,8 @@ function startTourById(id: string): boolean {
 export function activateGuide(): void {
   registerPanel(GLOSSARY_PANEL, GlossaryPanel)
   registerPanel(GUIDE_PANEL, GuideHomePanel)
-  registerSlot('welcome.top', 'guide-offer', TourOffer, 0)
+  // Nella colonna «Impara» della schermata iniziale: l'invito al primo percorso (primo avvio) o i percorsi guidati.
+  registerSlot('welcome.learn', 'guide-tours', StartToursCard, 1)
   registerSlot('welcome.column', 'guide-next', WelcomeNextSteps)
   installGuideRefresh()
 

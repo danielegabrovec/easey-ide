@@ -1,5 +1,24 @@
 # Novità di Easey IDE
 
+## In arrivo — schermata iniziale (2026-11-18)
+
+La versione la decide la sessione che coordina il rilascio 0.1.0 (numerazione 0.x fino alla 1.0).
+
+**Una schermata iniziale vera** (richiesta del titolare: «quelle presenti sono pessime»; stesso disegno di Easey DB e
+IDE Next). Senza progetto aperto occupa **tutta la finestra**: niente più pannello «Benvenuto» schiacciato fra
+Esplora, Anteprima e Console vuote. Appena apri o crei un progetto torna la disposizione di lavoro com'era; il
+**logo** in alto (o «Schermata iniziale» nel menu Aiuto) la riporta, con «Torna a «progetto»» ed Esc.
+- In alto: nome, versione, stato dell'AI locale, «Cosa costruiamo oggi?» e un disegno vero dell'idea dell'app (il
+  codice a sinistra e la pagina che funziona a destra).
+- **Tre strade**: Nuovo progetto, Apri cartella, Corsi ed esercizi; sotto «Oppure» Scrittura rapida, Laboratorio,
+  Percorsi guidati, Tutti i comandi con le scorciatoie.
+- **Riprendi da dove eri rimasto**: i progetti recenti con quando («ieri, 18:40», «lunedì», «12 novembre») e «Apri».
+- **Impara**: il Manuale con l'avanzamento vero, l'invito al primo percorso (poi i percorsi guidati fatti), le novità.
+- I modelli di progetto in una riga; tema chiaro e scuro; da 1024×700 in su senza testo spezzato.
+- L'assistente AI non copre la schermata: si apre col nuovo pulsante «AI» nella barra.
+- Con un progetto aperto e nessun file, al centro c'è «Inizio» (Esegui, Apri un file, strumenti visuali).
+- Parte comune con IDE Next nel kit condiviso `src/shared/start-kit/`.
+
 ## 1.6.0 — 2026-11-15
 
 Ciò che Easey DB ha fatto nella 1.1 serve anche qui, più le richieste del titolare sul designer.

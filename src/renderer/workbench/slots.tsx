@@ -5,7 +5,11 @@ import { Fragment, type FunctionComponent } from 'react'
 import { create } from 'zustand'
 
 /** Spazi noti: Benvenuto in alto, colonna del Benvenuto, sopra a tutta la finestra (schede non modali). */
-export type SlotName = 'welcome.top' | 'welcome.column' | 'workbench.overlay' | 'quick.top'
+/**
+ * `workbench.start` = la schermata iniziale a tutta finestra (modulo Esplora); `welcome.column` = sotto «Riprendi»,
+ * `welcome.learn` = le schede della colonna «Impara» (Manuale, percorsi guidati).
+ */
+export type SlotName = 'welcome.column' | 'welcome.learn' | 'workbench.start' | 'workbench.overlay' | 'quick.top'
 
 interface SlotEntry {
   id: string

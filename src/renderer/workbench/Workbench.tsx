@@ -1,13 +1,15 @@
 // Il guscio dell'IDE: barra superiore, area a pannelli con il pannello laterale destro (chat AI),
 // barra di stato e host di dialoghi/menu/avvisi.
 // Non contiene logica di dominio: tutte le azioni passano dai comandi registrati dai moduli.
+import { hideStart, useStart, useStartVisible } from './start'
+import { useSidePanel } from './side-panel'
 import { useCallback, useEffect, useState } from 'react'
 import { DockviewReact, themeDark, themeLight, type DockviewReadyEvent } from 'dockview'
-import { AlertCircle, AlertTriangle, Copy, History, X, Command as CommandIcon, Moon, Play, Settings2, Sun, SquareTerminal, TerminalSquare, Globe, PenTool, Database, Zap, FlaskConical, Compass, BookOpen, PanelLeftClose, PanelLeftOpen, PanelBottomClose, PanelBottomOpen } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Copy, History, X, Command as CommandIcon, Moon, Play, Settings2, Sun, SquareTerminal, TerminalSquare, Globe, PenTool, Database, Zap, FlaskConical, Compass, BookOpen, Sparkles, PanelLeftClose, PanelLeftOpen, PanelBottomClose, PanelBottomOpen } from 'lucide-react'
 import { executeCommand } from './commands'
 import { panelComponents, setDockApi, useLayout } from './layout'
 import { initLayout } from './presets'
-import { useWorkbench } from './store'
+import { useWorkbench, workbench } from './store'
 import { CommandPalette } from './CommandPalette'
 import { SidePanelHost } from './SidePanel'
 import { DialogHost } from '../ui/dialogs'
@@ -53,10 +55,11 @@ function Toolbar() {
   const theme = useWorkbench((s) => s.settings.theme)
   return (
     <div className="toolbar">
-      <div className="brand">
+      {/* Il logo riporta la schermata iniziale (anche con un progetto aperto). */}
+      <button className="brand" onClick={() => executeCommand('workbench.welcome')} title={t('start.logoHint')} data-testid="brand-home">
         <img className="logo" src={logo} alt="" />
         <span>Easey</span>
-      </div>
+      </button>
       <LayoutToggles />
       <div className="divider" />
       <button className="btn run" title={`${t('toolbar.run')} (F5)`} disabled={!project} onClick={() => executeCommand('run.project')} data-testid="run-project">
@@ -106,6 +109,7 @@ function Toolbar() {
         </span>
       )}
       <div className="divider" />
+      <AssistantButton />
       <button className="icon-btn" title={`${t('toolbar.palette')} (Ctrl+Shift+P)`} onClick={() => executeCommand('workbench.commandPalette')}>
         <CommandIcon size={16} />
       </button>
@@ -226,6 +230,49 @@ function LabToggle() {
   )
 }
 
+/** Schermata iniziale sopra la griglia (che sotto resta com'era): senza progetto, o chiesta col logo. */
+function StartHost() {
+  const visible = useStartVisible()
+  useEffect(() => {
+    if (!visible) return
+    const onKey = (event: KeyboardEvent) => {
+      // Esc torna al lavoro, ma solo se c'è qualcosa a cui tornare e nessun dialogo è aperto.
+      if (event.key === 'Escape' && workbench().project && !document.querySelector('.dialog')) hideStart()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [visible])
+  if (!visible) return null
+  return (
+    <div className="start-host" data-testid="start-host">
+      <Slot name="workbench.start" />
+    </div>
+  )
+}
+
+/** «AI» nella barra: l'assistente anche sopra la schermata iniziale; altrimenti apre e chiude la colonna. */
+function AssistantButton() {
+  const overStart = useStartVisible()
+  const open = useSidePanel((s) => s.open)
+  const assistant = useStart((s) => s.assistant)
+  const active = overStart ? assistant && open : open
+  return (
+    <button
+      className={`icon-btn${active ? ' active' : ''}`}
+      title={`${t('start.assistant')} (Ctrl+Alt+B)`}
+      aria-pressed={active}
+      onClick={() => {
+        if (!overStart) return void executeCommand('ai.toggleChat')
+        useStart.setState({ assistant: !assistant })
+        if (!assistant) useSidePanel.getState().setOpen(true, true)
+      }}
+      data-testid="toolbar-assistant"
+    >
+      <Sparkles size={16} />
+    </button>
+  )
+}
+
 export function Workbench() {
   const theme = useWorkbench((s) => s.settings.theme)
 
@@ -245,6 +292,7 @@ export function Workbench() {
       <div className="workbench-main">
         <div className="dock-host">
           <DockviewReact components={panelComponents()} onReady={onReady} theme={theme === 'dark' ? themeDark : themeLight} />
+          <StartHost />
           <Toasts />
         </div>
         <ErrorBoundary name={t('activity.sidePanel')}>

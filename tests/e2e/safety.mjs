@@ -46,11 +46,11 @@ try {
 
   // 2. Pannelli al centro: senza Benvenuto (e senza altri editor) il file non deve finire nella colonna dell'Esplora.
   await run.palette('Ripristina la disposizione')
-  const welcomeTab = page.locator('.dv-tab', { hasText: 'Benvenuto' })
+  const welcomeTab = page.locator('.dv-tab', { hasText: 'Inizio' })
   await welcomeTab.waitFor({ timeout: 5000 })
   await welcomeTab.hover()
   await welcomeTab.locator('.dv-default-tab-action').click()
-  await until(async () => (await page.locator('.welcome').count()) === 0, 3000)
+  await until(async () => (await page.getByTestId('project-home').count()) === 0, 3000)
   await page.locator('[data-path="main.js"]').click()
   const opened = await until(() => page.locator('[data-editor-path="main.js"]').isVisible(), 8000)
   const placement = await page.evaluate(() => {

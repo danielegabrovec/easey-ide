@@ -1,0 +1,626 @@
+/* Schermata iniziale: stesso disegno di Easey DB e IDE Next (docs/SCHERMATA-INIZIALE.md di Easey DB).
+   Solo token del tema; nessun gradiente, nessuna etichetta in maiuscolo. */
+.start-host {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: var(--bg);
+  overflow: auto;
+}
+
+.start {
+  min-height: 100%;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.start-desk {
+  position: relative;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 36px 48px 28px;
+}
+
+.start-back {
+  position: absolute;
+  top: 16px;
+  right: 48px;
+}
+
+/* ---------------------------------------------------------------- in alto */
+.start-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 560px;
+  gap: 48px;
+  align-items: center;
+}
+
+.start-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.start-who strong {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.start-ai {
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.start-ai i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  display: inline-block;
+}
+
+.start-ai.ready i {
+  background: var(--success);
+}
+
+.start-ai:hover {
+  border-color: var(--border-strong);
+}
+
+.start-hero h1 {
+  font-family: 'Segoe UI Variable Display', var(--font-ui);
+  font-size: 38px;
+  line-height: 1.12;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 14px;
+}
+
+.start-hero p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1.55;
+  max-width: 46ch;
+}
+
+/* ---------------------------------------------------------------- illustrazione: il codice e la sua pagina */
+.start-views {
+  position: relative;
+  height: 250px;
+}
+
+.start-view {
+  position: absolute;
+  z-index: 1;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+
+.start-view .cap {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  padding: 7px 10px 6px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.start-code {
+  left: 0;
+  top: 8px;
+  width: 296px;
+}
+
+.start-code .cap b {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--code);
+  display: inline-block;
+}
+
+.start-code pre {
+  margin: 0;
+  padding: 10px 12px;
+  font-family: var(--font-code);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre;
+}
+
+.start-code .tg {
+  color: var(--accent-strong);
+}
+
+.start-code .at {
+  color: var(--code);
+}
+
+.start-code .st,
+.start-code .nu {
+  color: var(--page);
+}
+
+.start-code .kw {
+  color: var(--code);
+}
+
+.start-page {
+  left: 384px;
+  top: 40px;
+  width: 176px;
+}
+
+.start-page .cap {
+  background: var(--page-soft);
+}
+
+.start-page .dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.start-page .dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  display: inline-block;
+}
+
+.start-page .url {
+  color: var(--text-faint);
+}
+
+.start-page .body {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  padding: 18px 16px 20px;
+  background: var(--bg-panel);
+}
+
+.start-page .body strong {
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.start-page .fake-btn {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-radius: var(--radius);
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.start-page .count {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.start-page .count b {
+  color: var(--text);
+}
+
+.start-run {
+  position: absolute;
+  z-index: 2;
+  left: 340px;
+  top: 114px;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--code);
+  background: var(--bg);
+  color: var(--code);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.start-views svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ---------------------------------------------------------------- le tre strade */
+.start-roads {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 40px;
+}
+
+.start-road {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 4px 14px;
+  align-items: start;
+  text-align: left;
+  padding: 18px 18px 18px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.start-road:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-elevated);
+}
+
+.start-road:focus-visible,
+.start-model:focus-visible,
+.start-card:focus-visible,
+.start-recent-open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.start-road .ic {
+  grid-row: span 2;
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+}
+
+.start-road strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.start-road .t {
+  color: var(--text-muted);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.start-road.main {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.start-road .ic.a {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.start-road .ic.b {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.start-road .ic.c {
+  background: var(--page-soft);
+  color: var(--page);
+}
+
+.start-more {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  color: var(--text-muted);
+  font-size: 13.5px;
+  align-items: center;
+}
+
+.start-more .link-btn {
+  color: var(--accent-strong);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.start-more .link-btn:hover {
+  text-decoration: underline;
+}
+
+.start-more kbd {
+  font: 11px var(--font-code);
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 5px;
+}
+
+/* ---------------------------------------------------------------- riprendi e impara */
+.start-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 40px;
+  margin-top: 40px;
+  align-items: start;
+}
+
+.start h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+}
+
+.start-empty {
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.start-recent {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-panel);
+}
+
+.start-recent li {
+  position: relative;
+  border-top: 1px solid var(--border);
+}
+
+.start-recent li:first-child {
+  border-top: 0;
+}
+
+.start-recent li.first {
+  background: var(--bg-elevated);
+}
+
+.start-recent-open {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 11px 44px 11px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.start-recent-open:hover {
+  background: var(--bg-hover);
+}
+
+.start-recent .tile {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.start-recent .text {
+  display: grid;
+  min-width: 0;
+}
+
+.start-recent .name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.start-recent .path {
+  color: var(--text-faint);
+  font-size: 12px;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.start-recent .when {
+  color: var(--text-muted);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.start-recent li.first .when {
+  color: var(--text);
+}
+
+.start-open {
+  padding: 5px 14px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.start-recent .recent-forget {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+}
+
+.start-recent li:hover .recent-forget,
+.start-recent .recent-forget:focus-visible {
+  opacity: 1;
+}
+
+.start-learn {
+  display: grid;
+  gap: 10px;
+}
+
+.start-card {
+  display: grid;
+  gap: 3px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: var(--bg-panel);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.start-card:hover {
+  border-color: var(--border-strong);
+}
+
+.start-card strong {
+  font-size: 14.5px;
+}
+
+.start-card span {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.start-card.book {
+  border-color: var(--border-strong);
+}
+
+.start-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--bg-hover);
+  margin: 8px 0 4px;
+  overflow: hidden;
+}
+
+.start-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.start-card .meta {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.start-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ---------------------------------------------------------------- modelli e piede */
+.start-models {
+  margin-top: 36px;
+}
+
+.start-model-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.start-model {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px 12px 11px;
+  background: var(--bg-panel);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.start-model:hover {
+  border-color: var(--border-strong);
+}
+
+.start-model .sw {
+  height: 6px;
+  border-radius: 3px;
+  margin-bottom: 8px;
+  opacity: 0.85;
+}
+
+.start-model strong {
+  font-size: 13.5px;
+}
+
+.start-model span:not(.sw) {
+  color: var(--text-faint);
+  font-size: 12px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.start-foot {
+  margin-top: 34px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  color: var(--text-faint);
+  font-size: 12.5px;
+}
+
+/* ---------------------------------------------------------------- finestre strette (da 1024×700 in su) */
+@media (max-width: 1100px) {
+  .start-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .start-views {
+    display: none;
+  }
+  .start-model-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .start-desk {
+    padding: 28px 32px 24px;
+  }
+  .start-back {
+    right: 32px;
+  }
+  .start-cols {
+    gap: 24px;
+  }
+}

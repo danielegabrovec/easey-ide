@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
-export const SHARED_KITS = ['canvas-kit', 'scene3d']
+export const SHARED_KITS = ['canvas-kit', 'scene3d', 'start-kit']
 
 export function sharedKitHashes(kit) {
   const dir = join(root, 'src', 'shared', kit)

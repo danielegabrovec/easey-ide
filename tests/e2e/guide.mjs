@@ -20,11 +20,8 @@ try {
   await page.getByTestId('guide-offer-later').click()
   check('«Più tardi» chiude l’invito', !!(await until(async () => (await offer.count()) === 0, 3000)))
 
-  // 2. Cosa fare adesso, senza progetto
-  const next = page.getByTestId('welcome-next-steps')
-  check('«Cosa fare adesso» c’è nel Benvenuto', !!(await until(() => next.isVisible(), 5000)))
-  const noProject = await until(async () => (await page.getByTestId('next-hint-no-project').count()) === 1 && (await page.getByTestId('next-hint-quick').count()) === 1, 5000)
-  check('senza progetto propone di crearne uno e la Scrittura rapida', !!noProject)
+  // 2. Senza progetto le tre strade dicono già cosa fare (1.7): «Cosa fare adesso» arriva con il progetto.
+  check('senza progetto: le tre strade, niente «Cosa fare adesso» doppio', (await page.locator('.start-road').count()) === 3 && (await page.getByTestId('welcome-next-steps').count()) === 0)
 
   // 3. F1 nel Benvenuto
   await page.locator('.welcome').click({ position: { x: 5, y: 5 } })
@@ -39,13 +36,17 @@ try {
   await run.newProject('web-js', 'Guide')
   await page.getByTestId('side-panel').waitFor({ timeout: 5000 }).catch(() => undefined)
   if ((await page.getByTestId('side-panel').count()) > 0) await page.keyboard.press('Control+Alt+B')
-  await run.palette('Benvenuto')
+  await run.palette('Schermata iniziale')
+  check('con un progetto «Cosa fare adesso» c’è nella schermata iniziale', !!(await until(() => page.getByTestId('welcome-next-steps').isVisible(), 5000)))
   check('con un progetto propone di eseguirlo', !!(await until(async () => (await page.getByTestId('next-hint-run').count()) === 1, 5000)))
   await page.getByTestId('next-hint-run').click()
   check('il suggerimento esegue davvero (anteprima attiva)', !!(await until(async () => (await page.locator('.dv-tab.dv-active-tab', { hasText: 'Anteprima' }).count()) > 0, 8000)))
   await wait(1000)
-  await run.palette('Benvenuto')
+  await run.palette('Schermata iniziale')
   check('dopo l’esecuzione il suggerimento «Esegui» sparisce', !!(await until(async () => (await page.getByTestId('welcome-next-steps').isVisible()) && (await page.getByTestId('next-hint-run').count()) === 0, 6000)))
+  // Esc: dalla schermata iniziale si torna al progetto.
+  await page.keyboard.press('Escape')
+  await until(async () => (await page.getByTestId('start-screen').count()) === 0, 3000)
   await page.locator('[data-path="index.html"]').click()
   await page.locator('[data-editor-path="index.html"] .view-lines').click()
   await page.keyboard.press('F1')
@@ -100,7 +101,7 @@ try {
   await run.app.close()
   page = await run.launch()
   await page.waitForSelector('.toolbar', { timeout: 20000 })
-  await run.palette('Benvenuto')
+  await run.palette('Schermata iniziale')
   await wait(800)
   check('dopo il riavvio l’invito non torna', (await page.getByTestId('guide-offer').count()) === 0)
 } catch (error) {

@@ -5,6 +5,8 @@ import { registerPanel, showPanel } from '../../workbench/layout'
 import { t } from '../../i18n'
 import { checkExercise, importCourse } from './actions'
 import { LearnPanel } from './LearnPanel'
+import { StartManualCard } from './StartManualCard'
+import { registerSlot } from '../../workbench/slots'
 import { currentExercise, useLearn } from './learn-store'
 
 function showLearn(): void {
@@ -13,6 +15,8 @@ function showLearn(): void {
 
 export function activateLearn(): void {
   registerPanel('learn', LearnPanel)
+  // Schermata iniziale, colonna «Impara»: il corso in corso con l'avanzamento.
+  registerSlot('welcome.learn', 'learn-manual', StartManualCard, 0)
   const category = t('category.learn')
   registerCommand({ id: 'learn.show', title: t('cmd.learnShow'), category, keybinding: 'Ctrl+Alt+L', run: () => showLearn() })
   registerCommand({
