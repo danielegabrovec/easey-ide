@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FREE_CANVAS_CLASS, FREE_ELEMENT_CLASS, hasClass, isFreeElement, type ElementInfo } from '@shared/designer/html-model'
 import { clampBox, decideDrop, elementLabel, flowAxis, targetParent, type Axis, type DropTarget, freeContainerAt, appendTarget } from '@shared/designer/drop'
-import { fitScale, STAGE_PAD, stageX, wheelZoom, zoomAround } from '@shared/designer/zoom'
+import { fitScale, STAGE_PAD, stageX, wheelZoom, zoomAround } from '@shared/canvas-kit/zoom'
 import { blockById } from '@shared/designer/blocks'
 import { showContextMenu } from '../../ui/ContextMenu'
 import { t } from '../../i18n'

@@ -1,7 +1,7 @@
 // Modulo Designer: progettazione visuale delle pagine HTML (stile Canva nelle tavole libere,
 // stile Wix a sezioni), con modifiche chirurgiche al codice HTML/CSS dell'utente.
 import { newPageHtml, pageFileName, pageFolder } from '@shared/designer/pages'
-import { stepZoom } from '@shared/designer/zoom'
+import { stepZoom } from '@shared/canvas-kit/zoom'
 import { basenameOf, extensionOf, filePaths } from '@shared/paths'
 import type * as Monaco from 'monaco-editor'
 import { ide } from '../../ipc'

@@ -1,4 +1,4 @@
-// Zoom e spostamento della vista del canvas del designer (calcoli puri, testati).
+// Zoom e spostamento della vista della tavola (calcoli puri, testati; canvas kit condiviso con IDE Next).
 // La pagina è disegnata in un iframe largo quanto il punto di interruzione (1200/820/390 px) e scalata;
 // la scala vale «adatta» (null: la pagina entra in larghezza, mai oltre il 100 %) oppure un valore fisso.
 // In verticale la vista si sposta scorrendo la pagina dentro l'iframe; in orizzontale spostando il

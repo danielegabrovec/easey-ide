@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clampZoom, fitScale, STAGE_PAD, stageX, stepZoom, wheelZoom, ZOOM_MAX, ZOOM_MIN, zoomAround, zoomPercent } from '@shared/designer/zoom'
+import { clampZoom, fitScale, STAGE_PAD, stageX, stepZoom, wheelZoom, ZOOM_MAX, ZOOM_MIN, zoomAround, zoomPercent } from '@shared/canvas-kit/zoom'
 
 describe('zoom del canvas', () => {
   it('«adatta» fa entrare la pagina in larghezza senza superare il 100 %', () => {
