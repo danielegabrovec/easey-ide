@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type * as Monaco from 'monaco-editor'
 import type { IDockviewPanelProps } from 'dockview'
-import { Columns2, FilePlus2, Globe, Laptop, ListChecks, Monitor, Move, Redo2, Smartphone, Tablet, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Columns2, FilePlus2, Globe, Laptop, ListChecks, Monitor, Move, Redo2, Ruler, Smartphone, Tablet, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
+import { useCanvasView } from './view-state'
 import { buildCanvasDocument, resolveRelative } from '@shared/designer/canvas-document'
 import type { Breakpoint } from '@shared/designer/css-edit'
 import { linkedStylesheets } from '@shared/designer/html-edit'
@@ -174,6 +175,16 @@ function PagePicker({ path }: { path: string }) {
   )
 }
 
+/** Righelli e guide (1.7): acceso/spento, ricordato. */
+function RulersToggle() {
+  const on = useCanvasView((s) => s.rulers)
+  return (
+    <button className={`btn ghost${on ? ' active' : ''}`} onClick={() => useCanvasView.getState().setRulers(!on)} title={t('designer.rulersHint')} aria-pressed={on} data-testid="designer-rulers">
+      <Ruler size={14} /> <span className="btn-label">{t('designer.rulers')}</span>
+    </button>
+  )
+}
+
 /** «Sposta liberamente» (1.6): acceso, un elemento trascinato resta esattamente dove lo si lascia. */
 function FreeMoveToggle() {
   const on = useDesigner((s) => s.freeMove)
@@ -194,6 +205,7 @@ export function DesignerPanel({ params }: IDockviewPanelProps<{ path: string }>)
   useEffect(() => {
     useDesigner.getState().setPage(path)
     useDesigner.getState().setQuality(null)
+    useCanvasView.getState().load(path)
   }, [path])
 
   // Grafica → codice: l'elemento selezionato si seleziona e si illumina nel codice (se il file è aperto),
@@ -245,6 +257,7 @@ export function DesignerPanel({ params }: IDockviewPanelProps<{ path: string }>)
         </div>
         <ZoomControl />
         <FreeMoveToggle />
+        <RulersToggle />
         <span style={{ flex: 1 }} />
         <QualityButton />
         <button className="icon-btn" title={`${t('designer.undo')} (Ctrl+Z)`} onClick={() => undo()}>

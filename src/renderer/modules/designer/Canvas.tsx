@@ -2,19 +2,31 @@
 // un livello che gestisce tutte le interazioni. Nelle "tavole libere" gli elementi si spostano e si
 // ridimensionano a mano libera con guide magnetiche (stile Canva); altrove si riordinano a flusso (stile Wix).
 // Le regole su dove finisce un elemento rilasciato stanno in @shared/designer/drop (pure e testate).
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { FREE_CANVAS_CLASS, FREE_ELEMENT_CLASS, hasClass, isFreeElement, type ElementInfo } from '@shared/designer/html-model'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { FREE_CANVAS_CLASS, FREE_ELEMENT_CLASS, findByAttrId, findByPath, hasClass, isFreeElement, type ElementInfo, type HtmlModel } from '@shared/designer/html-model'
 import { clampBox, decideDrop, elementLabel, flowAxis, targetParent, type Axis, type DropTarget, freeContainerAt, appendTarget } from '@shared/designer/drop'
 import { fitScale, STAGE_PAD, stageX, wheelZoom, zoomAround } from '@shared/canvas-kit/zoom'
+import { resizeRect, type Handle } from '@shared/canvas-kit/geometry'
+import { SNAP_DISTANCE, snapMove, snapResize, type SnapContext } from '@shared/canvas-kit/snap'
+import { measureBetween, nearestDistances } from '@shared/canvas-kit/measure'
+import { drawnRect, isShapeTool, toolForKey, type DrawTool } from '@shared/canvas-kit/draw'
+import { moveGuide } from '@shared/canvas-kit/rulers'
+import { ALIGN_MODES, type RestackOp } from '@shared/canvas-kit/align'
 import { blockById } from '@shared/designer/blocks'
-import { showContextMenu } from '../../ui/ContextMenu'
+import { showContextMenu, type MenuItem } from '../../ui/ContextMenu'
 import { t } from '../../i18n'
 import { notify } from '../../workbench/notifications'
-import { backToFlow, copyStyle, duplicateSelected, insertBlock, makeFreeInPlace, moveNode, moveOutOfFreeCanvas, pasteStyle, placePage, removeSelected, setElementText, setFreeBox, setFreeBoxes, setStyles } from './actions'
+import { backToFlow, copyStyle, drawElement, duplicateSelected, insertBlock, makeFreeInPlace, moveNode, moveOutOfFreeCanvas, pasteStyle, placePage, removeSelected, setElementRules, setElementText, setFreeBox, setFreeBoxes, setStyles } from './actions'
+import { alignSelection, canInferLayout, distributeSelection, freeToLayout, restackSelection } from './arrange'
 import { redo, undo } from './document'
 import { keyOf, resolveSelection, selectedElements, useDesigner } from './designer-store'
 import { boxBetween, marqueeHits, type Box } from '@shared/designer/selection'
 import { registerFrame } from './frame-access'
+import { ArrangeBar } from './ArrangeBar'
+import { DrawTools } from './DrawTools'
+import { Rulers } from './Rulers'
+import { showSnap, SnapLayer } from './SnapLayer'
+import { useCanvasView } from './view-state'
 
 interface Rect {
   left: number
@@ -47,6 +59,10 @@ type Drag =
   /** Rettangolo di selezione (1.6): trascinato sullo sfondo, prende gli elementi che ci stanno dentro. */
   | { kind: 'marquee'; startX: number; startY: number; current: { x: number; y: number } }
   | { kind: 'free-resize'; startX: number; startY: number; id: number; handle: string; origin: Rect; current: Rect; free: boolean }
+  /** Strumento di disegno (1.7): rettangolo tracciato nel contenitore sotto il puntatore (px rispetto al contenitore). */
+  | { kind: 'draw'; tool: DrawTool; container: number; origin: { x: number; y: number }; start: { x: number; y: number }; bounds: { width: number; height: number } | null; containerHeight: number; current: Rect }
+  /** Maniglia di rotazione (1.7): gradi da scrivere in `transform: rotate()`. */
+  | { kind: 'rotate'; id: number; center: { x: number; y: number }; start: number; pointer0: number; current: number; top: number }
   | FlowDrag
 
 /** Un altro elemento libero della selezione multipla che si sposta insieme a quello trascinato. */
@@ -67,8 +83,6 @@ interface Indicator {
 }
 
 const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
-/** Distanza di aggancio delle guide (px dello schermo: a ogni zoom si aggancia alla stessa distanza visiva). */
-const SNAP = 6
 /** Fascia (px dello schermo) vicino al bordo di un contenitore che vale «prima/dopo» invece di «dentro». */
 const EDGE = 7
 /**
@@ -114,6 +128,31 @@ function rectOf(element: Element | null): Rect | null {
 
 const inside = (rect: Rect, x: number, y: number) => x >= rect.left && x <= rect.left + rect.width && y >= rect.top && y <= rect.top + rect.height
 
+/** L'elemento di una chiave dello stato dell'editor (`#id` o `@percorso`, vedi view-state). */
+function elementForKey(page: HtmlModel, key: string): ElementInfo | null {
+  if (key.startsWith('#')) return findByAttrId(page, key.slice(1))
+  if (key.startsWith('@')) return findByPath(page, key.slice(1) ? key.slice(1).split('.').map(Number) : [])
+  return null
+}
+
+/** Rotazione attuale (gradi) letta dalla matrice calcolata: 0 se non ruota. */
+function rotationOf(node: HTMLElement): number {
+  const value = node.ownerDocument.defaultView?.getComputedStyle(node).transform ?? 'none'
+  const match = /matrix\(([^,]+),\s*([^,]+)/.exec(value)
+  return match ? Math.round((Math.atan2(Number(match[2]), Number(match[1])) * 180) / Math.PI) : 0
+}
+
+/** Elementi dell'iframe (altra finestra: `instanceof HTMLElement` non vale) che contano per l'aggancio. */
+function snapSiblings(parent: HTMLElement, exclude: ReadonlySet<Element>): Rect[] {
+  const out: Rect[] = []
+  for (const child of Array.from(parent.children) as HTMLElement[]) {
+    if (exclude.has(child) || child.hasAttribute('data-lab-ghost') || ['SCRIPT', 'STYLE', 'LINK', 'TEMPLATE'].includes(child.tagName)) continue
+    if (child.offsetWidth + child.offsetHeight === 0) continue
+    out.push({ left: child.offsetLeft, top: child.offsetTop, width: child.offsetWidth, height: child.offsetHeight })
+  }
+  return out
+}
+
 export function Canvas({ html: canvasHtml, width, onReady }: { html: string; width: number; onReady?: () => void }) {
   const page = useDesigner((s) => s.html)
   const selection = useDesigner((s) => s.selection)
@@ -148,12 +187,61 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   leftRef.current = left
   const [, setTick] = useState(0)
   const [indicator, setIndicator] = useState<Indicator | null>(null)
-  const [guides, setGuides] = useState<{ x: number[]; y: number[] }>({ x: [], y: [] })
   const [editing, setEditing] = useState<{ id: number; rect: Rect; style: React.CSSProperties; text: string } | null>(null)
+  // 1.7: strumenti, righelli, guide, occhio e lucchetto (stato solo dell'editor, view-state.ts).
+  const tool = useCanvasView((s) => s.tool)
+  const rulers = useCanvasView((s) => s.rulers)
+  const userGuides = useCanvasView((s) => s.guides)
+  const hiddenKeys = useCanvasView((s) => s.hidden)
+  const lockedKeys = useCanvasView((s) => s.locked)
+  /** Scorrimento della pagina nell'iframe (righelli e guide lo seguono). */
+  const [scroll, setScroll] = useState({ top: 0, left: 0 })
+  const crossX = useRef<HTMLDivElement>(null)
+  const crossY = useRef<HTMLDivElement>(null)
+  const drawPreview = useRef<HTMLDivElement>(null)
+  /** Guida trascinata (dal righello o già sulla tela): `out` = lasciandola qui sparisce. */
+  const [guideDrag, setGuideDrag] = useState<{ axis: 'x' | 'y'; index: number; value: number; out: boolean } | null>(null)
 
   const selected = resolveSelection(page, selection)
   const doc = () => iframe.current?.contentDocument ?? null
   const elementNode = useCallback((id: number | null | undefined) => (id === null || id === undefined ? null : (doc()?.querySelector(`[data-lab-id="${id}"]`) as HTMLElement | null)), [])
+
+  /** Elementi bloccati (lucchetto nei Livelli) e i loro discendenti: sulla tela non si scelgono. */
+  const lockedIds = useMemo(() => {
+    const out = new Set<number>()
+    if (!page) return out
+    for (const key of lockedKeys) {
+      const element = elementForKey(page, key)
+      if (!element) continue
+      const stack = [element.id]
+      while (stack.length) {
+        const id = stack.pop()!
+        out.add(id)
+        stack.push(...page.elements[id]!.children)
+      }
+    }
+    return out
+  }, [page, lockedKeys])
+
+  /** Occhio nei Livelli: nascosti solo nel canvas del designer (stile in linea nell'iframe, mai nel file). */
+  const applyHidden = useCallback(() => {
+    const d = iframe.current?.contentDocument
+    const model = useDesigner.getState().html
+    if (!d || !model) return
+    d.querySelectorAll('[data-lab-hidden]').forEach((node) => {
+      ;(node as HTMLElement).style.visibility = ''
+      node.removeAttribute('data-lab-hidden')
+    })
+    for (const key of useCanvasView.getState().hidden) {
+      const element = elementForKey(model, key)
+      const node = element ? (d.querySelector(`[data-lab-id="${element.id}"]`) as HTMLElement | null) : null
+      if (!node) continue
+      node.style.visibility = 'hidden'
+      node.setAttribute('data-lab-hidden', '')
+    }
+  }, [])
+
+  useEffect(() => applyHidden(), [hiddenKeys, page, applyHidden])
 
   useEffect(() => {
     registerFrame(iframe.current)
@@ -164,6 +252,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   useEffect(() => {
     writeCanvas(iframe.current, canvasHtml, () => {
       const state = useDesigner.getState()
+      applyHidden()
       state.canvasLoaded()
       if (!state.revealSelection) return
       const target = resolveSelection(state.html, state.selection)
@@ -175,7 +264,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     })
     setTick((n) => n + 1)
     onReady?.()
-  }, [canvasHtml, onReady])
+  }, [canvasHtml, onReady, applyHidden])
 
   // Misura lo spazio disponibile: la scala «adatta» e l'altezza della pagina dipendono da lì.
   useLayoutEffect(() => {
@@ -273,9 +362,12 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     const loop = () => {
       const s = rectOf(elementNode(useDesigner.getState().selection ? resolveSelection(useDesigner.getState().html, useDesigner.getState().selection)?.id : null))
       const h = rectOf(elementNode(useDesigner.getState().hoverId))
-      const signature = JSON.stringify([s, h])
+      const scroller = iframe.current?.contentDocument?.scrollingElement
+      const sc = { top: scroller?.scrollTop ?? 0, left: scroller?.scrollLeft ?? 0 }
+      const signature = JSON.stringify([s, h, sc])
       if (signature !== last) {
         last = signature
+        setScroll((prev) => (prev.top === sc.top && prev.left === sc.left ? prev : sc))
         setTick((n) => n + 1)
       }
       frame = requestAnimationFrame(loop)
@@ -301,9 +393,67 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       const info = page.elements[id]
       if (!info || info.tag === 'html' || info.tag === 'head') continue
       if (exclude !== undefined && isWithin(id, exclude)) continue
+      if (lockedIds.has(id)) continue
       return id
     }
     return page.body
+  }
+
+  // ------------------------------------------------------------ aggancio, guide e misure (1.7, canvas kit)
+
+  /** Contesto d'aggancio di un elemento libero: contenitore, fratelli e guide dei righelli nelle sue coordinate. */
+  const snapContextOf = (node: HTMLElement, exclude: ReadonlySet<Element>): { origin: { x: number; y: number }; ctx: SnapContext } => {
+    const parent = node.parentElement!
+    const p = parent.getBoundingClientRect()
+    const origin = { x: p.left + parent.clientLeft, y: p.top + parent.clientTop }
+    const scroller = doc()?.scrollingElement
+    const sx = scroller?.scrollLeft ?? 0
+    const sy = scroller?.scrollTop ?? 0
+    const guides = useCanvasView.getState().guides
+    return {
+      origin,
+      ctx: {
+        container: { width: parent.clientWidth, height: parent.clientHeight },
+        siblings: snapSiblings(parent, exclude),
+        userGuides: { xs: guides.xs.map((gx) => gx - sx - origin.x), ys: guides.ys.map((gy) => gy - sy - origin.y) },
+        threshold: SNAP_DISTANCE / scale
+      }
+    }
+  }
+
+  /** Etichetta «L × A» sotto un riquadro (coordinate del livello del canvas). */
+  const sizeLabel = (box: Rect, origin = { x: 0, y: 0 }) => ({ text: `${Math.round(box.width)} × ${Math.round(box.height)}`, x: origin.x + box.left, y: origin.y + box.top + box.height + 6 / scale })
+
+  // ------------------------------------------------------------ guide trascinate dai righelli (1.7)
+
+  /** Px della pagina sotto il puntatore, per una guida verticale (x) o orizzontale (y). */
+  const guideValueAt = (axis: 'x' | 'y', clientX: number, clientY: number): { value: number; out: boolean } => {
+    const box = host.current!.getBoundingClientRect()
+    const hx = clientX - box.left
+    const hy = clientY - box.top
+    const out = hx < 0 || hy < 0 || hx > box.width || hy > box.height
+    const value = axis === 'x' ? scroll.left + (hx - left) / scale : scroll.top + (hy - STAGE_PAD) / scale
+    return { value, out }
+  }
+
+  const startGuideDrag = (axis: 'x' | 'y', index: number, event: React.PointerEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+    const first = guideValueAt(axis, event.clientX, event.clientY)
+    setGuideDrag({ axis, index, ...first })
+    const move = (e: PointerEvent) => setGuideDrag({ axis, index, ...guideValueAt(axis, e.clientX, e.clientY) })
+    const up = (e: PointerEvent) => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      const { value, out } = guideValueAt(axis, e.clientX, e.clientY)
+      setGuideDrag(null)
+      const current = useCanvasView.getState().guides
+      const list = axis === 'x' ? current.xs : current.ys
+      const next = moveGuide(list, index, out ? null : value)
+      useCanvasView.getState().setGuides(axis === 'x' ? { ...current, xs: next } : { ...current, ys: next })
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
   }
 
   const isWithin = (id: number, container: number) => {
@@ -501,7 +651,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       // Esce dalla tavola: l'elemento torna dov'era finché non lo si lascia.
       node.style.left = ''
       node.style.top = ''
-      setGuides({ x: [], y: [] })
+      showSnap(null)
     }
     const r = node.getBoundingClientRect()
     drag.current = { kind: 'flow', id: from.id, startX: from.startX, startY: from.startY, grab: from.grab, size: { width: r.width, height: r.height }, home, origin, target: null }
@@ -516,17 +666,70 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     cancelAnimationFrame(scrollLoop.current)
     hideGhost()
     setIndicator(null)
-    setGuides({ x: [], y: [] })
+    showSnap(null)
+    hideDrawPreview()
     if (current && (current.kind === 'free-move' || current.kind === 'free-resize')) {
       const node = elementNode(current.id)
       if (node) for (const prop of ['left', 'top', 'width', 'height'] as const) node.style[prop] = ''
+      for (const member of current.kind === 'free-move' ? current.group : []) {
+        member.node.style.left = ''
+        member.node.style.top = ''
+      }
     }
+    if (current?.kind === 'rotate') {
+      const node = elementNode(current.id)
+      if (node) node.style.transform = ''
+    }
+  }
+
+  const hideDrawPreview = () => {
+    if (drawPreview.current) drawPreview.current.style.display = 'none'
+  }
+
+  /** Inizio di un disegno: il contenitore è la tavola sotto il puntatore, o il primo contenitore che può ricevere figli. */
+  const startDraw = (x: number, y: number, drawTool: DrawTool): boolean => {
+    if (!page) return false
+    const hit = idAt(x, y) ?? page.body
+    if (hit === null) return false
+    // Sopra una forma libera (un rettangolo è un <div>) si disegna accanto, non dentro: si sale al suo contenitore.
+    let container = tavolaFor(hit) ?? freeContainerAt(page, hit)
+    while (container !== null && container !== page.body && isFreeElement(page, container) && !hasClass(page.elements[container]!, FREE_CANVAS_CLASS)) {
+      const parent = page.elements[container]!.parent
+      container = parent === null ? null : (tavolaFor(parent) ?? freeContainerAt(page, parent))
+    }
+    const node = container !== null ? elementNode(container) : null
+    if (container === null || !node) return false
+    const r = node.getBoundingClientRect()
+    const origin = { x: r.left + node.clientLeft, y: r.top + node.clientTop }
+    const start = { x: x - origin.x, y: y - origin.y }
+    const bounds = hasClass(page.elements[container]!, FREE_CANVAS_CLASS) ? { width: node.clientWidth, height: node.clientHeight } : null
+    const current = drawnRect(start, start, drawTool)
+    drag.current = { kind: 'draw', tool: drawTool, container, origin, start, bounds, containerHeight: node.offsetHeight, current }
+    updateDraw(drag.current, x, y, false, false)
+    return true
+  }
+
+  const updateDraw = (current: Extract<Drag, { kind: 'draw' }>, x: number, y: number, square: boolean, fromCenter: boolean) => {
+    let box = drawnRect(current.start, { x: x - current.origin.x, y: y - current.origin.y }, current.tool, { square, fromCenter })
+    // In una tavola (che taglia ciò che sborda) il disegno resta dentro.
+    if (current.bounds) {
+      const width = Math.min(box.width, current.bounds.width)
+      const height = Math.min(box.height, current.bounds.height)
+      box = { width, height, ...clampBox(box.left, box.top, width, height, current.bounds.width, current.bounds.height) }
+    } else box = { ...box, left: Math.max(0, box.left), top: Math.max(0, box.top) }
+    current.current = box
+    const preview = drawPreview.current
+    if (preview) {
+      Object.assign(preview.style, { display: 'block', left: `${current.origin.x + box.left}px`, top: `${current.origin.y + box.top}px`, width: `${box.width}px`, height: `${box.height}px` })
+      preview.dataset['tool'] = current.tool
+    }
+    showSnap({ label: sizeLabel(box, current.origin) })
   }
 
   // ------------------------------------------------------------ puntatore
 
   // Spostamento della vista (sul canvas e anche sullo sfondo attorno alla pagina).
-  const isPanStart = (event: React.PointerEvent) => event.button === 1 || (event.button === 0 && spaceHeld)
+  const isPanStart = (event: React.PointerEvent) => event.button === 1 || (event.button === 0 && (spaceHeld || tool === 'hand'))
 
   const onHostPointerDown = (event: React.PointerEvent) => {
     if (!isPanStart(event)) return
@@ -536,6 +739,14 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   }
 
   const onHostPointerMove = (event: React.PointerEvent) => {
+    // Mirino nei righelli: spostato direttamente nel DOM (niente ridisegno a ogni movimento).
+    const box = host.current?.getBoundingClientRect()
+    if (box && crossX.current && crossY.current) {
+      crossX.current.style.display = 'block'
+      crossY.current.style.display = 'block'
+      crossX.current.style.left = `${event.clientX - box.left}px`
+      crossY.current.style.top = `${event.clientY - box.top}px`
+    }
     const current = panDrag.current
     if (!current) return
     const dx = event.clientX - current.x
@@ -558,7 +769,23 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     if (event.button !== 0 || editing) return
     overlay.current?.focus()
     const { x, y } = toDoc(event)
+    showSnap(null)
     const handle = (event.target as HTMLElement).dataset['handle']
+    if ((event.target as HTMLElement).dataset['rotate'] && selected) {
+      const node = elementNode(selected.id)
+      const r = rectOf(node)
+      if (!node || !r) return
+      const center = { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+      const start = rotationOf(node)
+      drag.current = { kind: 'rotate', id: selected.id, center, start, pointer0: Math.atan2(y - center.y, x - center.x), current: start, top: r.top }
+      overlay.current?.setPointerCapture(event.pointerId)
+      return
+    }
+    // Strumento di disegno: si traccia un elemento nuovo (clic = misura base).
+    if (isShapeTool(tool) && !handle) {
+      if (startDraw(x, y, tool)) overlay.current?.setPointerCapture(event.pointerId)
+      return
+    }
     if (handle && selected) {
       const node = elementNode(selected.id)!
       const free = isFreeElement(page!, selected.id)
@@ -598,6 +825,26 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     if (!current) {
       const id = idAt(x, y)
       if (id !== useDesigner.getState().hoverId) useDesigner.getState().setHover(id)
+      // Alt sopra un altro elemento: le distanze fra quello scelto e questo (stile Figma).
+      const chosen = selectedElements()[0]
+      const a = event.altKey && chosen && id !== null && id !== chosen.id ? rectOf(elementNode(chosen.id)) : null
+      const b = a ? rectOf(elementNode(id)) : null
+      showSnap(a && b ? { measures: measureBetween(a, b) } : null)
+      return
+    }
+    if (current.kind === 'draw') {
+      updateDraw(current, x, y, event.shiftKey, event.altKey)
+      return
+    }
+    if (current.kind === 'rotate') {
+      const node = elementNode(current.id)
+      if (!node) return
+      let deg = current.start + ((Math.atan2(y - current.center.y, x - current.center.x) - current.pointer0) * 180) / Math.PI
+      deg = event.shiftKey ? Math.round(deg / 15) * 15 : Math.round(deg)
+      deg = ((((deg + 180) % 360) + 360) % 360) - 180
+      current.current = deg
+      node.style.transform = deg ? `rotate(${deg}deg)` : 'none'
+      showSnap({ label: { text: `${deg}°`, x: current.center.x, y: current.top - 28 / scale } })
       return
     }
     if (current.kind === 'marquee') {
@@ -651,27 +898,18 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
         refreshFlow()
         return
       }
-      let left = current.origin.left + dx
-      let top = current.origin.top + dy
-      // Guide magnetiche: bordi e centri della tavola e degli altri elementi.
-      const xs = [0, parent.clientWidth / 2, parent.clientWidth]
-      const ys = [0, parent.clientHeight / 2, parent.clientHeight]
-      for (const sibling of Array.from(parent.children) as HTMLElement[]) {
-        if (sibling === node) continue
-        xs.push(sibling.offsetLeft, sibling.offsetLeft + sibling.offsetWidth / 2, sibling.offsetLeft + sibling.offsetWidth)
-        ys.push(sibling.offsetTop, sibling.offsetTop + sibling.offsetHeight / 2, sibling.offsetTop + sibling.offsetHeight)
-      }
+      // Aggancio del canvas kit: bordi e centri di contenitore, fratelli e guide dei righelli, più linee
+      // insieme, distanze uguali; Alt lo spegne. Le misure in px verso i vicini si vedono mentre si sposta.
       const w = current.origin.width
       const h = current.origin.height
-      const snapX = event.altKey ? null : xs.flatMap((gx) => [gx - left, gx - (left + w / 2), gx - (left + w)].map((delta) => ({ gx, delta }))).filter((c) => Math.abs(c.delta) <= SNAP / scale).sort((a, b) => Math.abs(a.delta) - Math.abs(b.delta))[0]
-      const snapY = event.altKey ? null : ys.flatMap((gy) => [gy - top, gy - (top + h / 2), gy - (top + h)].map((delta) => ({ gy, delta }))).filter((c) => Math.abs(c.delta) <= SNAP / scale).sort((a, b) => Math.abs(a.delta) - Math.abs(b.delta))[0]
-      if (snapX) left += snapX.delta
-      if (snapY) top += snapY.delta
+      const { origin, ctx } = snapContextOf(node, new Set<Element>([node, ...current.group.map((m) => m.node)]))
+      const snapped = snapMove({ left: current.origin.left + dx, top: current.origin.top + dy, width: w, height: h }, ctx, event.altKey)
       // Mai oltre i bordi della tavola (che taglia ciò che sborda): l'elemento resta sempre visibile.
-      const clamped = clampBox(left, top, w, h, parent.clientWidth, parent.clientHeight)
-      left = clamped.left
-      top = clamped.top
-      setGuides({ x: snapX ? [parentRect.left + snapX.gx] : [], y: snapY ? [parentRect.top + snapY.gy] : [] })
+      const clamped = clampBox(snapped.box.left, snapped.box.top, w, h, parent.clientWidth, parent.clientHeight)
+      const left = clamped.left
+      const top = clamped.top
+      const placed = { left, top, width: w, height: h }
+      showSnap({ origin, guides: snapped.guides, spacing: snapped.spacing, measures: nearestDistances(placed, ctx.siblings, ctx.container) })
       current.current = { ...current.origin, left, top }
       node.style.left = `${left}px`
       node.style.top = `${top}px`
@@ -682,19 +920,15 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       return
     }
     // Ridimensionamento.
+    // Ridimensionamento del canvas kit (Maiusc = proporzioni); da libero aggancia i bordi mossi alle stesse linee.
     const { handle, origin } = current
-    const box = { ...origin }
-    if (handle.includes('e')) box.width = Math.max(8, origin.width + dx)
-    if (handle.includes('s')) box.height = Math.max(8, origin.height + dy)
-    if (handle.includes('w')) {
-      box.width = Math.max(8, origin.width - dx)
-      box.left = origin.left + (origin.width - box.width)
-    }
-    if (handle.includes('n')) {
-      box.height = Math.max(8, origin.height - dy)
-      box.top = origin.top + (origin.height - box.height)
-    }
-    if (event.shiftKey && origin.height > 0) box.height = Math.round((box.width * origin.height) / origin.width)
+    let box = resizeRect(origin, handle as Handle, { x: dx, y: dy }, { keepRatio: event.shiftKey })
+    if (current.free) {
+      const { origin: o, ctx } = snapContextOf(node, new Set<Element>([node]))
+      const snapped = snapResize(box, handle as Handle, ctx, event.altKey)
+      box = snapped.box
+      showSnap({ origin: o, guides: snapped.guides, label: sizeLabel(box, o) })
+    } else showSnap({ label: sizeLabel(box) })
     current.current = box
     node.style.width = `${box.width}px`
     node.style.height = `${box.height}px`
@@ -710,9 +944,26 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     cancelAnimationFrame(scrollLoop.current)
     overlay.current?.releasePointerCapture?.(event.pointerId)
     hideGhost()
-    setGuides({ x: [], y: [] })
+    showSnap(null)
+    hideDrawPreview()
     setIndicator(null)
     if (!current) return
+    if (current.kind === 'draw') {
+      const box = current.current
+      // Dopo aver disegnato si torna a Seleziona (come negli editor di grafica).
+      useCanvasView.getState().setTool('select')
+      void drawElement(current.tool, current.container, box, Math.max(current.containerHeight, box.top + box.height + 8))
+      return
+    }
+    if (current.kind === 'rotate') {
+      if (current.current === current.start) {
+        const node = elementNode(current.id)
+        if (node) node.style.transform = ''
+        return
+      }
+      void setElementRules([{ id: current.id, declarations: { transform: current.current ? `rotate(${current.current}deg)` : null } }])
+      return
+    }
     // Clic (senza trascinare) su un elemento della selezione multipla: resta solo lui.
     if (current.kind === 'pending' && useDesigner.getState().others.length) {
       useDesigner.getState().selectElement(page!.elements[current.id] ?? null)
@@ -790,6 +1041,20 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       return
     }
     const ctrl = event.ctrlKey || event.metaKey
+    // Strumenti di disegno (1.7): V H F R O T B I; Esc torna a Seleziona.
+    if (event.key === 'Escape' && useCanvasView.getState().tool !== 'select') {
+      event.preventDefault()
+      useCanvasView.getState().setTool('select')
+      return
+    }
+    if (!ctrl && !event.altKey && event.key.length === 1) {
+      const next = toolForKey(event.key)
+      if (next) {
+        event.preventDefault()
+        useCanvasView.getState().setTool(next)
+        return
+      }
+    }
     if (ctrl && event.key.toLowerCase() === 'z') {
       event.preventDefault()
       if (event.shiftKey) redo()
@@ -851,30 +1116,47 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     const id = idAt(x, y)
     const element = id !== null ? page?.elements[id] : null
     if (!element) return
-    select(element)
+    // Tasto destro su un elemento già scelto con altri: la selezione multipla resta (allinea, livelli…).
+    const group = selectedElements()
+    const inGroup = group.length > 1 && group.some((e) => e.id === element.id)
+    if (!inGroup) select(element)
     const parent = element.parent !== null ? page!.elements[element.parent] : null
     const free = isFreeElement(page!, element.id)
-    showContextMenu(event, [
-      ...(element.leafText ? [{ label: t('designer.editText'), run: () => startEditing(element) }] : []),
-      { label: t('designer.duplicate'), run: () => void duplicateSelected() },
-      ...(parent && parent.tag !== 'html' ? [{ label: t('designer.selectParent'), run: () => select(parent) }] : []),
+    const restackItems: MenuItem[] = (['front', 'forward', 'backward', 'back'] as RestackOp[]).map((op) => ({ label: t(`designer.restack.${op}` as 'designer.restack.front'), run: () => void restackSelection(op), testId: `designer-restack-${op}` }))
+    const alignItems: MenuItem[] = [
+      ...ALIGN_MODES.map((mode) => ({ label: t(`designer.align.${mode}` as 'designer.align.left'), run: () => void alignSelection(mode), testId: `designer-align-${mode}` })),
       'separator' as const,
+      { label: t('designer.distributeH'), run: () => void distributeSelection('horizontal'), disabled: group.length < 3, title: t('designer.distributeNeedThree') },
+      { label: t('designer.distributeV'), run: () => void distributeSelection('vertical'), disabled: group.length < 3, title: t('designer.distributeNeedThree') }
+    ]
+    // «Da libero a layout»: sul contenitore con figli liberi (o sul contenitore dell'elemento libero).
+    const layoutTarget = canInferLayout(element) ? element : parent && canInferLayout(parent) ? parent : null
+    const node = elementNode(element.id)
+    const rotated = node ? rotationOf(node) !== 0 : false
+    const items: MenuItem[] = [
+      ...(element.leafText && !inGroup ? [{ label: t('designer.editText'), run: () => startEditing(element) }] : []),
+      ...(!inGroup ? [{ label: t('designer.duplicate'), run: () => void duplicateSelected() }] : []),
+      ...(parent && parent.tag !== 'html' && !inGroup ? [{ label: t('designer.selectParent'), run: () => select(parent) }] : []),
+      'separator' as const,
+      ...(inGroup ? [{ label: t('designer.arrange'), items: alignItems, testId: 'designer-align-menu' }] : []),
       { label: t('designer.copyStyle'), run: () => copyStyleWithNotice(element) },
       ...(useDesigner.getState().styleClipboard > 0 ? [{ label: t('designer.pasteStyle'), run: () => void pasteStyle() }] : []),
       ...(free
         ? [
-            { label: t('designer.bringFront'), run: () => void setStyles({ 'z-index': '10' }) },
-            { label: t('designer.sendBack'), run: () => void setStyles({ 'z-index': '0' }) },
+            { label: t('designer.layers'), items: restackItems, testId: 'designer-restack-menu' },
             hasClass(element, FREE_ELEMENT_CLASS)
               ? { label: t('designer.backToFlow'), run: () => void backToFlow(element.id), testId: 'designer-back-to-flow' }
               : { label: t('designer.moveOutOfCanvas'), run: () => void moveOutOfFreeCanvas(element.id) }
           ]
-        : element.tag !== 'body' && parent
+        : element.tag !== 'body' && parent && !inGroup
           ? [{ label: t('designer.makeFree'), run: () => makeFreeHere(element.id), testId: 'designer-make-free' }]
           : []),
+      ...(rotated ? [{ label: t('designer.unrotate'), run: () => void setElementRules([{ id: element.id, declarations: { transform: null } }]), testId: 'designer-unrotate' }] : []),
+      ...(layoutTarget ? [{ label: t('designer.freeToLayout'), detail: elementLabel(layoutTarget), run: () => void freeToLayout(layoutTarget), testId: 'designer-free-to-layout' }] : []),
       'separator' as const,
       { label: t('designer.delete'), danger: true, run: () => void removeSelected() }
-    ])
+    ]
+    showContextMenu(event, items)
   }
 
   const commitEdit = (text: string | null) => {
@@ -888,17 +1170,42 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   const hoverRect = hoverId !== null && hoverId !== selected?.id && !indicator ? rectOf(elementNode(hoverId)) : null
   const selectedFree = selected ? isFreeElement(page!, selected.id) : false
   const resizable = selected && !['body', 'html'].includes(selected.tag)
+  // Righelli: px della pagina sotto il bordo della tela, selezione evidenziata (in px della tela).
+  const toHostX = (overlayX: number) => left + overlayX * scale
+  const toHostY = (overlayY: number) => STAGE_PAD + overlayY * scale
+  const rulerView = {
+    width: hostSize.width,
+    height: hostSize.height,
+    originX: scroll.left - left / scale,
+    originY: scroll.top - STAGE_PAD / scale,
+    scale,
+    selection: selectedRect ? { x0: toHostX(selectedRect.left), x1: toHostX(selectedRect.left + selectedRect.width), y0: toHostY(selectedRect.top), y1: toHostY(selectedRect.top + selectedRect.height) } : null
+  }
+  const shownGuides = (axis: 'x' | 'y') => {
+    const list = axis === 'x' ? userGuides.xs : userGuides.ys
+    if (!guideDrag || guideDrag.axis !== axis) return list.map((value, index) => ({ value, index, dragging: false }))
+    const out = list.map((value, index) => ({ value: index === guideDrag.index ? guideDrag.value : value, index, dragging: index === guideDrag.index }))
+    if (guideDrag.index >= list.length) out.push({ value: guideDrag.value, index: guideDrag.index, dragging: true })
+    return out
+  }
 
   return (
+    <div className={`designer-canvas${rulers ? ' with-rulers' : ''}`} data-testid="designer-canvas">
+      <DrawTools />
+      {rulers && <Rulers view={rulerView} crossX={crossX} crossY={crossY} onGuideStart={(axis, event) => startGuideDrag(axis, axis === 'x' ? userGuides.xs.length : userGuides.ys.length, event)} />}
     <div
-      className={`designer-host${spaceHeld ? ' panning' : ''}`}
+      className={`designer-host${spaceHeld || tool === 'hand' ? ' panning' : ''}${isShapeTool(tool) ? ' drawing' : ''}`}
       ref={host}
       onPointerDown={onHostPointerDown}
       onPointerMove={onHostPointerMove}
       onPointerUp={onHostPointerUp}
       onPointerCancel={onHostPointerUp}
       onPointerEnter={() => (hovering.current = true)}
-      onPointerLeave={() => (hovering.current = false)}
+      onPointerLeave={() => {
+        hovering.current = false
+        if (crossX.current) crossX.current.style.display = 'none'
+        if (crossY.current) crossY.current.style.display = 'none'
+      }}
       onAuxClick={(event) => event.button === 1 && event.preventDefault()}
       data-testid="designer-host"
     >
@@ -917,12 +1224,17 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={cancelDrag}
-          onPointerLeave={() => !drag.current && useDesigner.getState().setHover(null)}
+          onPointerLeave={() => {
+            if (drag.current) return
+            useDesigner.getState().setHover(null)
+            showSnap(null)
+          }}
           onDoubleClick={() => selected?.leafText && startEditing(selected)}
           onDragOver={onDragOver}
           onDragLeave={() => setIndicator(null)}
           onDrop={onDrop}
           onKeyDown={onKeyDown}
+          onKeyUp={(event) => event.key === 'Alt' && !drag.current && showSnap(null)}
           onContextMenu={onContextMenu}
           data-testid="designer-overlay"
         >
@@ -936,6 +1248,8 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
                 {others.length > 0 ? ` · ${t('designer.multiCount', { n: others.length + 1 })}` : ''}
               </span>
               {resizable && visibleHandles(selectedFree ? HANDLES : ['e', 's', 'se'], selectedRect.width * scale, selectedRect.height * scale).map((h) => <span key={h} className={`dz-handle h-${h}`} data-handle={h} />)}
+              {/* Solo sugli elementi liberi: su quelli in fila coprirebbe l'elemento di sopra (clic rubati). */}
+              {resizable && selectedFree && !others.length && <span className="dz-rotate" data-rotate="1" title={t('designer.rotateHint')} data-testid="designer-rotate" />}
             </div>
           )}
           {others.length > 0 &&
@@ -964,12 +1278,8 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
               {indicator.label}
             </div>
           )}
-          {guides.x.map((gx) => (
-            <div key={`x${gx}`} className="dz-guide v" style={{ left: gx }} />
-          ))}
-          {guides.y.map((gy) => (
-            <div key={`y${gy}`} className="dz-guide h" style={{ top: gy }} />
-          ))}
+          <SnapLayer />
+          <div ref={drawPreview} className="dz-draw-preview" style={{ display: 'none' }} data-testid="designer-draw-preview" />
           {editing && (
             <div
               className="dz-editor"
@@ -1004,6 +1314,15 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
           )}
         </div>
       </div>
+      {/* Guide dei righelli: sopra la pagina, si spostano trascinandole; riportate sul righello spariscono. */}
+      {shownGuides('x').map((g) => (
+        <div key={`gx${g.index}`} className={`dz-user-guide v${g.dragging ? ' dragging' : ''}${g.dragging && guideDrag?.out ? ' leaving' : ''}`} style={{ left: left + (g.value - scroll.left) * scale }} onPointerDown={(e) => e.button === 0 && startGuideDrag('x', g.index, e)} title={t('designer.guideHint')} data-testid="user-guide-x" />
+      ))}
+      {shownGuides('y').map((g) => (
+        <div key={`gy${g.index}`} className={`dz-user-guide h${g.dragging ? ' dragging' : ''}${g.dragging && guideDrag?.out ? ' leaving' : ''}`} style={{ top: STAGE_PAD + (g.value - scroll.top) * scale }} onPointerDown={(e) => e.button === 0 && startGuideDrag('y', g.index, e)} title={t('designer.guideHint')} data-testid="user-guide-y" />
+      ))}
+      <ArrangeBar />
+    </div>
     </div>
   )
 }

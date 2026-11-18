@@ -4,6 +4,7 @@
 import { parse, serialize, type DefaultTreeAdapterMap } from 'parse5'
 import { PREVIEW_HOST, PREVIEW_SCHEME } from '../contracts/runner'
 import { dirnameOf, normalizeRelative } from '../paths'
+import { designerSceneStyle, SCENE_CANVAS_CLASS } from './scene-embed'
 
 type Node = DefaultTreeAdapterMap['node']
 type Element = DefaultTreeAdapterMap['element']
@@ -63,6 +64,14 @@ export function buildCanvasDocument(source: string, options: CanvasOptions): str
       child.attrs = child.attrs.filter((a) => !/^on/i.test(a.name))
       if (child.tagName === 'head') head = child
       if (child.tagName === 'script') toRemove.push(child)
+      // Scena 3D (1.7): qui gli script non girano, si vede l'immagine della scena (o un segnaposto).
+      if (child.tagName === 'canvas' && (child.attrs.find((a) => a.name === 'class')?.value ?? '').split(/\s+/).includes(SCENE_CANVAS_CLASS)) {
+        const src = child.attrs.find((a) => a.name === 'data-scena')?.value ?? ''
+        const style = child.attrs.find((a) => a.name === 'style')
+        const extra = designerSceneStyle(src)
+        if (style) style.value = `${style.value.replace(/;?\s*$/, ';')} ${extra}`
+        else child.attrs.push({ name: 'style', value: extra })
+      }
       if (child.tagName === 'link' && /stylesheet/i.test(child.attrs.find((a) => a.name === 'rel')?.value ?? '')) {
         const href = child.attrs.find((a) => a.name === 'href')?.value ?? ''
         const path = resolveRelative(options.htmlPath, href)

@@ -2,7 +2,8 @@
 // trascinamento di una riga = sposta l'elemento prima, dopo o dentro un altro (come il Navigatore
 // degli editor visuali); le frecce spostano fra i fratelli.
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Eye, EyeOff, Lock, LockOpen, Trash2 } from 'lucide-react'
+import { useCanvasView, viewKey } from './view-state'
 import { VOID_TAGS, type ElementInfo } from '@shared/designer/html-model'
 import type { InsertPosition } from '@shared/designer/html-edit'
 import { t } from '../../i18n'
@@ -28,8 +29,39 @@ export function Layers() {
   const selection = useDesigner((s) => s.selection)
   const [closed, setClosed] = useState<Set<string>>(new Set())
   const [drop, setDrop] = useState<{ id: number; where: InsertPosition } | null>(null)
+  const others = useDesigner((s) => s.others)
+  const hidden = useCanvasView((s) => s.hidden)
+  const locked = useCanvasView((s) => s.locked)
   const selected = resolveSelection(page, selection)
   if (!page || page.body === null) return <div className="hint" style={{ padding: 10 }}>{t('designer.noBody')}</div>
+  const chosen = new Set(others.map((key) => resolveSelection(page, key)?.id).filter((id): id is number => id !== undefined))
+
+  // Righe visibili nell'ordine dell'albero (per Maiusc+clic: tutte quelle fra la scelta e questa).
+  const visibleRows = (): number[] => {
+    const out: number[] = []
+    const walk = (id: number) => {
+      const element = page.elements[id]!
+      if (HIDDEN.has(element.tag)) return
+      out.push(id)
+      if (!closed.has(branchKey(element))) for (const child of element.children) walk(child)
+    }
+    walk(page.body!)
+    return out
+  }
+
+  /** Clic = solo lui; Ctrl+clic = aggiunge/toglie; Maiusc+clic = tutti quelli fra la scelta e questo (1.7). */
+  const pick = (element: ElementInfo, event: React.MouseEvent) => {
+    const state = useDesigner.getState()
+    if (event.ctrlKey || event.metaKey) state.toggleInGroup(element)
+    else if (event.shiftKey && selected) {
+      const rows = visibleRows()
+      const a = rows.indexOf(selected.id)
+      const b = rows.indexOf(element.id)
+      if (a < 0 || b < 0) return state.selectElement(element)
+      const range = rows.slice(Math.min(a, b), Math.max(a, b) + 1).filter((id) => page.elements[id]!.tag !== 'body')
+      state.setGroup([selected, ...range.filter((id) => id !== selected.id).map((id) => page.elements[id]!)])
+    } else state.selectElement(element)
+  }
 
   // Un ramo si ricorda per id o percorso: resta chiuso anche dopo le modifiche che rianalizzano la pagina.
   const branchKey = (element: ElementInfo) => element.attrs['id'] ?? element.path.join('.')
@@ -59,10 +91,10 @@ export function Layers() {
     return (
       <div key={id}>
         <div
-          className={`tree-row layer-row${selected?.id === id ? ' active' : ''}${marker}`}
+          className={`tree-row layer-row${selected?.id === id ? ' active' : chosen.has(id) ? ' chosen' : ''}${marker}${hidden.includes(viewKey(element)) ? ' is-hidden' : ''}`}
           style={{ paddingLeft: 4 + depth * 12 }}
           draggable={element.tag !== 'body'}
-          onClick={() => useDesigner.getState().selectElement(element)}
+          onClick={(event) => pick(element, event)}
           onMouseEnter={() => useDesigner.getState().setHover(id)}
           onMouseLeave={() => useDesigner.getState().setHover(null)}
           onDragStart={(event) => {
@@ -102,6 +134,36 @@ export function Layers() {
             <span className="layer-toggle" />
           )}
           <span className="tree-name">{label(element)}</span>
+          {element.tag !== 'body' && (
+            <span className="layer-flags">
+              <button
+                className={`layer-flag${hidden.includes(viewKey(element)) ? ' on' : ''}`}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  useCanvasView.getState().toggleHidden(viewKey(element))
+                }}
+                title={hidden.includes(viewKey(element)) ? t('designer.layerShow') : t('designer.layerHide')}
+                aria-label={hidden.includes(viewKey(element)) ? t('designer.layerShow') : t('designer.layerHide')}
+                aria-pressed={hidden.includes(viewKey(element))}
+                data-testid="layer-eye"
+              >
+                {hidden.includes(viewKey(element)) ? <EyeOff size={12} /> : <Eye size={12} />}
+              </button>
+              <button
+                className={`layer-flag${locked.includes(viewKey(element)) ? ' on' : ''}`}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  useCanvasView.getState().toggleLocked(viewKey(element))
+                }}
+                title={locked.includes(viewKey(element)) ? t('designer.layerUnlock') : t('designer.layerLock')}
+                aria-label={locked.includes(viewKey(element)) ? t('designer.layerUnlock') : t('designer.layerLock')}
+                aria-pressed={locked.includes(viewKey(element))}
+                data-testid="layer-lock"
+              >
+                {locked.includes(viewKey(element)) ? <Lock size={12} /> : <LockOpen size={12} />}
+              </button>
+            </span>
+          )}
         </div>
         {!isClosed && children.map((child) => render(child, depth + 1))}
       </div>

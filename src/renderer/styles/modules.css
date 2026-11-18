@@ -1875,6 +1875,387 @@ button.ai-chip:hover {
   height: calc(1px * var(--dz-inv));
 }
 
+/* ---- Tela 1.7: strumenti di disegno, righelli, guide, misure, rotazione, barra Allinea ---- */
+
+.designer-canvas {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  grid-template-rows: 1fr;
+  grid-template-areas: 'tools host';
+  min-width: 0;
+  min-height: 0;
+}
+
+.designer-canvas.with-rulers {
+  grid-template-columns: 34px 20px 1fr;
+  grid-template-rows: 20px 1fr;
+  grid-template-areas:
+    'tools corner top'
+    'tools left host';
+}
+
+.designer-canvas > .designer-host {
+  grid-area: host;
+}
+
+.draw-tools {
+  grid-area: tools;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.draw-tools .icon-btn.active {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--text);
+}
+
+.draw-sep {
+  width: 18px;
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border);
+}
+
+.designer-host.drawing .designer-overlay {
+  cursor: crosshair;
+}
+
+.ruler-corner {
+  grid-area: corner;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.ruler {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-panel);
+  color: var(--text-muted);
+  font: 9px/1 var(--font-ui);
+  user-select: none;
+}
+
+.ruler-top {
+  grid-area: top;
+  border-bottom: 1px solid var(--border);
+  cursor: row-resize;
+}
+
+.ruler-left {
+  grid-area: left;
+  border-right: 1px solid var(--border);
+  cursor: col-resize;
+}
+
+.ruler-tick {
+  position: absolute;
+  background: var(--border-strong, #8a93a6);
+  pointer-events: none;
+}
+
+.ruler-top .ruler-tick {
+  bottom: 0;
+  width: 1px;
+  height: 4px;
+}
+
+.ruler-top .ruler-tick.major {
+  height: 9px;
+}
+
+.ruler-left .ruler-tick {
+  right: 0;
+  height: 1px;
+  width: 4px;
+}
+
+.ruler-left .ruler-tick.major {
+  width: 9px;
+}
+
+.ruler-num {
+  position: absolute;
+  white-space: nowrap;
+}
+
+.ruler-top .ruler-num {
+  left: 3px;
+  bottom: 5px;
+}
+
+.ruler-left .ruler-num {
+  right: 6px;
+  top: 3px;
+  transform: rotate(-90deg);
+  transform-origin: right top;
+}
+
+.ruler-sel {
+  position: absolute;
+  background: color-mix(in srgb, #6d7cff 30%, transparent);
+  pointer-events: none;
+}
+
+.ruler-top .ruler-sel {
+  top: 0;
+  bottom: 0;
+}
+
+.ruler-left .ruler-sel {
+  left: 0;
+  right: 0;
+}
+
+.ruler-cross {
+  position: absolute;
+  display: none;
+  background: #ec4899;
+  pointer-events: none;
+}
+
+.ruler-top .ruler-cross {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.ruler-left .ruler-cross {
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+/* Guide dei righelli: sopra la pagina, area di presa di 7 px attorno alla linea di 1 px. */
+.dz-user-guide {
+  position: absolute;
+  z-index: 4;
+}
+
+.dz-user-guide.v {
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  margin-left: -3px;
+  cursor: col-resize;
+  background: linear-gradient(to right, transparent 3px, #06b6d4 3px, #06b6d4 4px, transparent 4px);
+}
+
+.dz-user-guide.h {
+  left: 0;
+  right: 0;
+  height: 7px;
+  margin-top: -3px;
+  cursor: row-resize;
+  background: linear-gradient(to bottom, transparent 3px, #06b6d4 3px, #06b6d4 4px, transparent 4px);
+}
+
+.dz-user-guide.leaving {
+  opacity: 0.35;
+}
+
+/* Guide d'aggancio a segmento, distanze uguali (rosa) e misure (rosse) stile Figma. */
+.dz-snap {
+  position: absolute;
+  background: #ec4899;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.dz-snap.v {
+  width: calc(1px * var(--dz-inv));
+}
+
+.dz-snap.h {
+  height: calc(1px * var(--dz-inv));
+}
+
+.dz-spacing,
+.dz-measure {
+  position: absolute;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.dz-spacing.h,
+.dz-measure.h {
+  height: calc(1px * var(--dz-inv));
+}
+
+.dz-spacing.v,
+.dz-measure.v {
+  width: calc(1px * var(--dz-inv));
+}
+
+.dz-spacing {
+  background: #ec4899;
+}
+
+.dz-measure {
+  background: #ef4444;
+}
+
+.dz-spacing > span,
+.dz-measure > span,
+.dz-angle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: calc(1px * var(--dz-inv)) calc(4px * var(--dz-inv));
+  border-radius: calc(3px * var(--dz-inv));
+  color: white;
+  font: 600 calc(10px * var(--dz-inv)) / calc(14px * var(--dz-inv)) var(--font-ui);
+  white-space: nowrap;
+}
+
+.dz-spacing > span {
+  background: #ec4899;
+}
+
+.dz-measure > span {
+  background: #ef4444;
+}
+
+.dz-angle {
+  position: absolute;
+  transform: translate(-50%, 0);
+  background: #1f2937;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.dz-draw-preview {
+  position: absolute;
+  pointer-events: none;
+  outline: calc(1px * var(--dz-inv)) solid #6d7cff;
+  background: rgb(109 124 255 / 0.12);
+}
+
+.dz-draw-preview[data-tool='ellipse'] {
+  border-radius: 50%;
+}
+
+/* Maniglia di rotazione: un cerchietto sopra il centro della selezione. */
+.dz-rotate {
+  position: absolute;
+  left: calc(50% - 6px * var(--dz-inv));
+  top: calc(-26px * var(--dz-inv));
+  width: calc(12px * var(--dz-inv));
+  height: calc(12px * var(--dz-inv));
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: white;
+  border: calc(2px * var(--dz-inv)) solid #6d7cff;
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.dz-rotate::after {
+  content: '';
+  position: absolute;
+  left: calc(50% - 0.5px * var(--dz-inv));
+  top: 100%;
+  width: calc(1px * var(--dz-inv));
+  height: calc(14px * var(--dz-inv));
+  background: #6d7cff;
+}
+
+.dz-selected .dz-label + .dz-rotate,
+.dz-selected .dz-rotate {
+  z-index: 2;
+}
+
+/* Centrata in alto; nella tela stretta va a capo invece di uscire dai bordi. */
+.arrange-bar {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 16px);
+  box-sizing: border-box;
+  z-index: 6;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-panel);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+  width: max-content;
+}
+
+.arrange-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
+.arrange-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--border);
+}
+
+.arrange-note {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: color-mix(in srgb, #f59e0b 22%, transparent);
+}
+
+.layer-row .layer-flags {
+  margin-left: auto;
+  display: flex;
+  gap: 1px;
+  opacity: 0;
+}
+
+.layer-row:hover .layer-flags,
+.layer-row .layer-flags:focus-within,
+.layer-row .layer-flags:has(.on) {
+  opacity: 1;
+}
+
+.layer-flag {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.layer-flag:hover,
+.layer-flag.on {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.layer-row.is-hidden .tree-name {
+  opacity: 0.45;
+}
+
+.layer-row.chosen {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
 .dz-editor {
   position: absolute;
   outline: 2px solid #6d7cff;

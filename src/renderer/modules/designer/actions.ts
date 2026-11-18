@@ -30,10 +30,15 @@ import {
 } from '@shared/designer/html-edit'
 import { FREE_ELEMENT_CLASS, findByAttrId, hasClass, isFreeElement, withClass, type ElementInfo, type HtmlModel } from '@shared/designer/html-model'
 import { FREE_PROPS, appendTarget, freeContainerStyle, freeStyleChange, landsInFreeCanvas } from '@shared/designer/drop'
-import { notifyError } from '../../workbench/notifications'
+import { notify, notifyError } from '../../workbench/notifications'
 import { modelFor, parse, stylesheetFor, Transaction } from './document'
 import { keyOf, selectedElement, selectedElements, useDesigner } from './designer-store'
 import { outermostLastFirst } from '@shared/designer/selection'
+import type { DrawTool } from '@shared/canvas-kit/draw'
+import { describePlan, type LayoutPlan } from '@shared/canvas-kit/layout-infer'
+import { drawnDeclarations, drawnShape } from '@shared/designer/draw-shapes'
+import { layoutHtmlEdit, layoutRules, newRowCount } from '@shared/designer/layout-apply'
+import { FREE_CANVAS_CLASS } from '@shared/designer/html-model'
 
 type PageWork = (context: {
   html: HtmlModel
@@ -366,6 +371,158 @@ export function setFreeBoxes(boxes: { id: number; left?: number; top?: number; w
 export function setFreeBox(box: { left?: number; top?: number; width?: number; height?: number }): Promise<void> {
   const element = selectedElement()
   return element ? setFreeBoxes([{ id: element.id, ...box }]) : Promise.resolve()
+}
+
+// ---------------------------------------------------------------- tela libera (1.7)
+
+/** Selettore della regola di un contenitore (il body non riceve un id), aggiungendo l'id se manca. */
+function containerSelector(html: HtmlModel, id: number, editHtml: (build: (html: HtmlModel) => TextEdit[]) => HtmlModel): string {
+  if (html.elements[id]!.tag === 'body') return 'body'
+  const updated = editHtml((h) => ensureId(h, id).edits)
+  return `#${ensureId(updated, id).id}`
+}
+
+/**
+ * Strumenti di disegno: crea l'elemento dello strumento nel contenitore, libero, alla posizione e misura
+ * disegnate (px rispetto al contenitore). In una tavola è un suo figlio; altrove riceve la classe `libero`
+ * e il contenitore fa da riferimento (come «Mettilo dove vuoi»). Un passo solo annullabile.
+ */
+export function drawElement(tool: DrawTool, containerId: number, box: { left: number; top: number; width: number; height: number }, containerHeight: number): Promise<void> {
+  const shape = drawnShape(tool)
+  if (!shape) return Promise.resolve()
+  return withPage(async ({ html, editHtml, editCss }) => {
+    const container = html.elements[containerId]
+    if (!container) return
+    const inCanvas = hasClass(container, FREE_CANVAS_CLASS)
+    const newId = suggestId(html, shape.tag)
+    let fragment = withRootId(shape.html, newId)
+    if (!inCanvas) fragment = fragment.replace(/\sclass="/, ` class="${FREE_ELEMENT_CLASS} `)
+    await ensurePlaceholders(fragment)
+    // In fondo al contenitore, ma prima degli script finali.
+    const target = inCanvas ? { id: containerId, where: 'inside-end' as const } : appendTarget(html, containerId)
+    const after = editHtml((h) => insertHtml(h, target.id, target.where, fragment))
+    const selector = inCanvas ? null : containerSelector(after, containerId, editHtml)
+    await editCss((css) => {
+      let next = shape.css ? appendRulesOnce(css, shape.css) : css
+      next = setDeclarations(next, `#${newId}`, drawnDeclarations(tool, box))
+      if (selector) next = setDeclarations(next, selector, freeContainerStyle(container.tag, containerHeight))
+      return next
+    })
+    const page = parse(await modelFor(useDesigner.getState().path!))
+    const inserted = findByAttrId(page, newId)
+    if (inserted) useDesigner.getState().selectElement(inserted)
+  })
+}
+
+export interface FreePlacement {
+  id: number
+  left: number
+  top: number
+  width?: number
+  height?: number
+  /** Elemento in fila da rendere libero prima (misurato nel canvas: non salta). */
+  makeFree?: { containerHeight: number }
+}
+
+/**
+ * Posizioni di più elementi in un unico passo; quelli ancora in fila diventano prima liberi (classe `libero`,
+ * contenitore di riferimento). Serve ad «Allinea», «Distribuisci» e «Mettili liberi e allinea».
+ */
+export function placeFreeBoxes(items: FreePlacement[]): Promise<void> {
+  if (!items.length) return Promise.resolve()
+  return withPage(async ({ html, editHtml, editCss }) => {
+    let current = html
+    const rules: [string, Record<string, string | null>][] = []
+    for (const item of items) {
+      const element = current.elements[item.id]
+      if (!element) continue
+      const ensured = ensureId(current, item.id)
+      if (ensured.edits.length) current = editHtml(() => ensured.edits)
+      const declarations: Record<string, string | null> = { position: 'absolute', left: `${Math.round(item.left)}px`, top: `${Math.round(item.top)}px` }
+      if (item.width !== undefined) declarations['width'] = `${Math.round(item.width)}px`
+      if (item.height !== undefined) declarations['height'] = `${Math.round(item.height)}px`
+      if (item.makeFree && !isFreeElement(current, item.id) && element.parent !== null) {
+        current = editHtml((h) => setAttribute(h, item.id, 'class', withClass(h.elements[item.id]!.attrs['class'], FREE_ELEMENT_CLASS, true)))
+        declarations['margin'] = '0'
+        const parent = current.elements[element.parent]!
+        const selector = containerSelector(current, element.parent, editHtml)
+        current = editHtml(() => [])
+        rules.push([selector, freeContainerStyle(parent.tag, item.makeFree.containerHeight)])
+      }
+      rules.push([`#${ensured.id}`, declarations])
+    }
+    await editCss((css) => rules.reduce((next, [selector, declarations]) => setDeclarations(next, selector, declarations), css))
+    // Il principale resta scelto (con l'id appena aggiunto) e gli altri con lui.
+    const keys = items.map((item) => current.elements[item.id]).filter((e): e is ElementInfo => !!e)
+    if (keys.length) useDesigner.getState().setGroup(keys)
+  })
+}
+
+/** Dichiarazioni sulla regola `#id` di ciascun elemento (livelli, rotazione…), in un passo solo. */
+export function setElementRules(entries: { id: number; declarations: Record<string, string | null> }[]): Promise<void> {
+  if (!entries.length) return Promise.resolve()
+  return withPage(async ({ html, editHtml, editCss }) => {
+    let current = html
+    const rules: [string, Record<string, string | null>][] = []
+    for (const { id: elementId, declarations } of entries) {
+      if (!current.elements[elementId]) continue
+      const { id, edits } = ensureId(current, elementId)
+      if (edits.length) current = editHtml(() => edits)
+      rules.push([`#${id}`, declarations])
+    }
+    await editCss((css) => rules.reduce((next, [selector, declarations]) => setDeclarations(next, selector, declarations), css))
+  })
+}
+
+/**
+ * «Da libero a layout»: i figli liberi del contenitore vanno in un flex (riga o colonna, con le righe
+ * affiancate in un nuovo <div>) o in una griglia, nell'ordine in cui si vedono; perdono la posizione
+ * assoluta. Una tavola smette di essere tavola (ne conserva l'aspetto). Un passo solo annullabile.
+ */
+export function applyFreeLayout(containerId: number, plan: LayoutPlan<number>): Promise<void> {
+  return withPage(async ({ html, editHtml, editCss }) => {
+    const container = html.elements[containerId]
+    if (!container || container.tag === 'body') return
+    const freeCanvas = hasClass(container, FREE_CANVAS_CLASS)
+    const positioned = isFreeElement(html, containerId)
+    let current = html
+    const ensure = (id: number) => {
+      const result = ensureId(current, id)
+      if (result.edits.length) current = editHtml(() => result.edits)
+      return result.id
+    }
+    const containerKey = ensure(containerId)
+    const flow = plan.kind === 'grid' ? plan.order : plan.children.flatMap((c) => (c.kind === 'item' ? [c.id] : c.items))
+    const keys = new Map<number, string>()
+    for (const id of flow) keys.set(id, ensure(id))
+    for (const id of flow) {
+      const element = current.elements[id]!
+      if (hasClass(element, FREE_ELEMENT_CLASS)) current = editHtml((h) => setAttribute(h, id, 'class', withClass(h.elements[id]!.attrs['class'], FREE_ELEMENT_CLASS, false)))
+    }
+    // La tavola diventa un contenitore normale: i figli non sono più liberi per forza.
+    if (freeCanvas) current = editHtml((h) => setAttribute(h, containerId, 'class', withClass(h.elements[containerId]!.attrs['class'], FREE_CANVAS_CLASS, false)))
+    const rowIds: string[] = []
+    for (let i = 0; i < newRowCount(plan); i++) {
+      let n = rowIds.length + 1
+      while (findByAttrId(current, `riga-${n}`) || rowIds.includes(`riga-${n}`)) n++
+      rowIds.push(`riga-${n}`)
+    }
+    const edit = layoutHtmlEdit(current, containerId, plan, rowIds)
+    if (edit) current = editHtml(() => [edit])
+    const { css: sheets, stylesheet } = useDesigner.getState()
+    // L'aspetto della tavola (sfondo, larghezza, margini) resta sulla regola del contenitore.
+    const look = freeCanvas && stylesheet ? getDeclarations(sheets[stylesheet] ?? '', `.${FREE_CANVAS_CLASS}`) : {}
+    for (const prop of ['height', 'position', 'overflow']) delete look[prop]
+    const rules = layoutRules(plan, `#${containerKey}`, (id) => `#${keys.get(id)}`, (i) => `#${rowIds[i]}`, { freeCanvas, positioned })
+    await editCss((css) => {
+      let next = Object.keys(look).length ? setDeclarations(css, `#${containerKey}`, look) : css
+      for (const [selector, declarations] of rules) next = setDeclarations(next, selector, declarations)
+      return next
+    })
+    const after = findByAttrId(current, containerKey)
+    if (after) useDesigner.getState().selectElement(after)
+    notify(t('designer.layoutDone', { plan: describePlan(plan) }), 'success')
+  })
 }
 
 function withRootId(html: string, id: string): string {
