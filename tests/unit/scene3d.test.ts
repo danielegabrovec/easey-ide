@@ -199,6 +199,55 @@ describe('codice generato', () => {
     expect(() => new Function('THREE', `${body}; return montaScena`)(THREE)).not.toThrow()
   })
 
+  it('ferma() libera geometrie, materiali e ombre, poi il renderer e il suo contesto WebGL', () => {
+    const doc = SCENE_PRESETS.find((p) => p.id === 'logo')!.build()
+    const body = generateScene3DModule(doc).code.replace(/^import .*$/m, '').replace('export function', 'function')
+    // Un renderer finto (in Node non c'è WebGL) che conta le chiamate; il resto è il THREE vero.
+    const calls: string[] = []
+    class FakeRenderer {
+      shadowMap = { enabled: false }
+      toneMapping = 0
+      toneMappingExposure = 1
+      setPixelRatio() {}
+      setSize() {}
+      render() {}
+      dispose() {
+        calls.push('dispose')
+      }
+      forceContextLoss() {
+        calls.push('forceContextLoss')
+      }
+    }
+    const fakeThree = { ...THREE, WebGLRenderer: FakeRenderer }
+    const globals = globalThis as unknown as Record<string, unknown>
+    const saved = { ResizeObserver: globals.ResizeObserver, requestAnimationFrame: globals.requestAnimationFrame, cancelAnimationFrame: globals.cancelAnimationFrame }
+    globals.ResizeObserver = class {
+      observe() {}
+      disconnect() {}
+    }
+    globals.requestAnimationFrame = () => 1
+    globals.cancelAnimationFrame = () => undefined
+    try {
+      const montaScena = new Function('THREE', `${body}; return montaScena`)(fakeThree) as (canvas: unknown) => { scena: THREE.Scene; ferma: () => void }
+      const { scena, ferma } = montaScena({ clientWidth: 300, clientHeight: 150 })
+      const freed = new Set<unknown>()
+      let resources = 0
+      scena.traverse((o) => {
+        const parts = [(o as THREE.Mesh).geometry, ...([] as THREE.Material[]).concat((o as THREE.Mesh).material ?? [])]
+        for (const part of parts.filter(Boolean)) {
+          resources++
+          part!.addEventListener('dispose', () => freed.add(part))
+        }
+      })
+      expect(resources).toBeGreaterThan(3)
+      ferma()
+      expect(freed.size).toBe(resources)
+      expect(calls).toEqual(['dispose', 'forceContextLoss'])
+    } finally {
+      Object.assign(globals, saved)
+    }
+  })
+
   it('nomi con virgolette e a capo non rompono il codice; HTML con import map e senza </script> interni', () => {
     let doc = emptyScene3D('Scena "strana" </script>')
     doc = addObject(doc, createMesh(doc, 'sphere', { name: 'a\nb "c"' }))

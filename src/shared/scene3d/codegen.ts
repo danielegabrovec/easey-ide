@@ -188,7 +188,29 @@ export function generateScene3DModule(doc: Scene3DDocument, options: CodegenOpti
     push(`  const animati = [${animated.map((o) => `[${names[o.id]}, ${q(o.animation.kind)}, ${n(o.animation.speed)}]`).join(', ')}]`)
     push('  const inizio = performance.now()', '  function passo(ora) {', '    const t = (ora - inizio) / 1000', '    for (const [o, kind, speed] of animati) anima(o, kind, speed, t)', '    disegna()', '    ciclo = requestAnimationFrame(passo)', '  }', '  ciclo = requestAnimationFrame(passo)')
   }
-  push('', '  return {', '    scena,', '    camera,', '    renderer,', '    ferma() {', '      cancelAnimationFrame(ciclo)', '      osservatore.disconnect()', '      renderer.dispose()', '    }', '  }', '}', '')
+  // ferma() libera tutto: con molti montaggi e smontaggi (componenti React, Svelte, Angular) non restano
+  // geometrie, materiali, ombre delle luci né contesti WebGL aperti.
+  push(
+    '',
+    '  return {',
+    '    scena,',
+    '    camera,',
+    '    renderer,',
+    '    ferma() {',
+    '      cancelAnimationFrame(ciclo)',
+    '      osservatore.disconnect()',
+    '      scena.traverse((o) => {',
+    '        if (o.geometry) o.geometry.dispose()',
+    '        for (const m of [].concat(o.material || [])) m.dispose()',
+    '        if (o.isLight && o.dispose) o.dispose()',
+    '      })',
+    '      renderer.dispose()',
+    '      renderer.forceContextLoss()',
+    '    }',
+    '  }',
+    '}',
+    ''
+  )
   return { code: lines.join('\n'), map, names }
 }
 
