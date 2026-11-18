@@ -1,8 +1,31 @@
 # Novità di Easey IDE
 
-## In arrivo — schermata iniziale (2026-11-18)
+## 0.1.0 — 2026-11-18
 
-La versione la decide la sessione che coordina il rilascio 0.1.0 (numerazione 0.x fino alla 1.0).
+**Nuova numerazione.** Easey IDE è ancora in costruzione: le versioni ripartono da 0.1 e arriveranno alla 1.0 quando
+sarà pronto da rilasciare davvero. Le vecchie versioni 1.x non sono più pubblicate.
+
+**Tela libera stile Figma (designer)**
+- **Righelli** in alto e a sinistra con il mirino del cursore; trascinando dal righello metti delle **guide** (restano
+  solo nell'editor, non nella pagina) a cui gli elementi si agganciano.
+- **Aggancio a più guide insieme** (bordi e centri degli elementi vicini e del contenitore), a **distanze uguali** e
+  anche **mentre ridimensioni**; le distanze in px compaiono mentre sposti, e con Alt sopra un altro elemento.
+- **Strumenti di disegno**: Seleziona V, Mano H, Tavola F, Rettangolo R, Ellisse O, Testo T, Bottone B, Immagine I
+  (un clic = misura base, trascinando = la misura che disegni).
+- **Allinea, distribuisci, stessa larghezza/altezza** in cima all'ispettore; per gli elementi in fila «Mettili liberi
+  e allinea», senza salti.
+- **Livelli** (porta avanti/indietro, in primo piano, in fondo), **maniglia di rotazione** (Maiusc = scatti di 15°),
+  **occhio e lucchetto** nei Livelli (solo nell'editor).
+- **Da libero a layout**: gli elementi messi a mano diventano righe, colonne o griglia che si adattano allo schermo
+  (Ctrl+Z torna com'era).
+
+**Studio 3D (Three.js)**
+- File `*.scene3d.json` (menu Crea, tasto destro in Esplora): vista 3D con orbita, maniglie sposta/ruota/scala (W/E/R),
+  albero degli oggetti con i gruppi, ispettore (posizione, materiale, luci, animazioni, sfondo e nebbia), scene pronte,
+  annulla/ripeti, «Mostra codice» e «Salva immagine»; senza scheda grafica un'anteprima 2D.
+- Blocco **Scena 3D** nella Tavolozza: la scena entra nella pagina e gira nell'Anteprima; Three è copiato nel progetto
+  (`vendor/three`), niente internet.
+- Parti comuni con IDE Next nei kit condivisi `src/shared/canvas-kit/` e `src/shared/scene3d/`.
 
 **Una schermata iniziale vera** (richiesta del titolare: «quelle presenti sono pessime»; stesso disegno di Easey DB e
 IDE Next). Senza progetto aperto occupa **tutta la finestra**: niente più pannello «Benvenuto» schiacciato fra
@@ -18,6 +41,10 @@ Esplora, Anteprima e Console vuote. Appena apri o crei un progetto torna la disp
 - L'assistente AI non copre la schermata: si apre col nuovo pulsante «AI» nella barra.
 - Con un progetto aperto e nessun file, al centro c'è «Inizio» (Esegui, Apri un file, strumenti visuali).
 - Parte comune con IDE Next nel kit condiviso `src/shared/start-kit/`.
+
+## Prima della 0.1 (vecchia numerazione)
+
+Fino al 15/11/2026 le versioni erano numerate 1.x; quelle release non sono più pubblicate.
 
 ## 1.6.0 — 2026-11-15
 

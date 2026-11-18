@@ -12,7 +12,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="Licenza MIT" src="https://img.shields.io/badge/licenza-MIT-6366f1"></a>
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4">
-  <img alt="Versione 1.6.0" src="https://img.shields.io/badge/versione-1.6.0-a855f7">
+  <img alt="Versione 0.1.0" src="https://img.shields.io/badge/versione-0.1.0-a855f7">
   <img alt="AI locale" src="https://img.shields.io/badge/AI-locale%20(Ollama%20%2F%20LM%20Studio)-f59e0b">
 </p>
 
@@ -50,7 +50,17 @@ rapida**: JavaScript, TypeScript, Python, SQL, HTML, C, C++, C#, Java o Rust sen
 A tutta finestra quando non c'è un progetto: tre strade (nuovo progetto, apri cartella, corsi), i progetti recenti con
 la data in parole, il Manuale con l'avanzamento, i modelli. Il logo in alto la riporta in qualunque momento.
 
-### Novità 1.6: metti le cose dove vuoi, e un laboratorio per esercitarti
+### Novità: la tela libera e lo Studio 3D
+- **Righelli e guide**: trascina dal righello per mettere una guida; gli elementi si agganciano a più guide insieme
+  (bordi e centri dei vicini e del contenitore), a distanze uguali e anche mentre li ridimensioni. Le distanze in px
+  compaiono mentre sposti (e con Alt sopra un altro elemento).
+- **Strumenti di disegno** come in Figma: Seleziona V, Mano H, Tavola F, Rettangolo R, Ellisse O, Testo T, Bottone B,
+  Immagine I. **Allinea, distribuisci, livelli**, maniglia di rotazione, occhio e lucchetto nei Livelli.
+- **Da libero a layout**: ciò che hai messo a mano diventa righe, colonne o griglia che si adattano allo schermo.
+- **Studio 3D** (Three.js): scene `*.scene3d.json` con orbita, maniglie sposta/ruota/scala, oggetti e gruppi, materiali,
+  luci, animazioni, scene pronte e codice generato; il blocco **Scena 3D** la mette in una pagina, senza internet.
+
+### Metti le cose dove vuoi, e un laboratorio per esercitarti
 - **Designer**: «Sposta liberamente» (l'elemento resta dove lo lasci), rettangolo di selezione e selezione multipla
   (Maiusc/Ctrl + clic), stili e spostamenti su tutti gli scelti.
 - **Laboratorio**: esempi da provare nei dieci linguaggi, output sotto, esecuzioni e assistente AI a destra.
@@ -58,7 +68,7 @@ la data in parole, il Manuale con l'avanzamento, i modelli. Il logo in alto la r
 - **AI**: suggerimento in grigio col formato dei modelli da codice, parole sbagliate corrette con Ctrl+., risposte brevi.
 - **Guida** (come si usa l'app) e **Manuale** (imparare un linguaggio) separati, ognuno col suo pulsante.
 
-### Novità 1.5: non perdi niente e sai sempre cosa fare dopo
+### Non perdi niente e sai sempre cosa fare dopo
 - **Percorsi guidati** (Aiuto → Percorsi guidati): una nuvoletta indica dove cliccare e va avanti da sola quando fai
   l'azione. **Cosa fare adesso** nel Benvenuto propone il passo successivo; **F1** apre l'aiuto della parte in cui
   sei; **Glossario** della programmazione con la ricerca.
@@ -122,7 +132,7 @@ Costruisci la pagina **trascinando** titoli, pulsanti, immagini, moduli e sezion
 colori e caratteri da un pannello. Il codice HTML/CSS si aggiorna **solo dove serve** (il tuo codice
 non viene riformattato) e, se modifichi il codice, il disegno si aggiorna.
 
-Novità 1.4, per pagine più belle e un designer che non ti fa perdere niente:
+Per pagine più belle e un designer che non ti fa perdere niente:
 - **trascini dove vuoi**: lasciato nello spazio vuoto di una scheda o di una sezione, l'elemento entra dentro;
   durante il trascinamento vedi l'anteprima, il contenitore di arrivo evidenziato e «dentro scheda › dopo il
   pulsante»; Esc annulla; nella tavola libera gli elementi non escono più dai bordi;
@@ -201,7 +211,10 @@ una lezione e ogni esercizio 🧪 un compito. Come scrivere un corso: [docs/CORS
 
 ## Installazione
 
-1. Scarica `Easey-IDE-Setup-1.6.0.exe` dalla pagina
+> Easey IDE è ancora in costruzione: le versioni ripartono da **0.1** e arriveranno alla **1.0** quando sarà
+> pronto da rilasciare davvero.
+
+1. Scarica `Easey-IDE-Setup-0.1.0.exe` dalla pagina
    [Releases](https://github.com/danielegabrovec/easey-ide/releases).
 2. Avvialo e scegli la cartella di installazione.
    L'installer non è firmato digitalmente: se Windows SmartScreen lo segnala, scegli

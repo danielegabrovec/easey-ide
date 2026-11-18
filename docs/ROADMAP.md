@@ -18,6 +18,8 @@ Piano completo approvato il 2026-11-11. Ogni fase è un vertical slice con il su
 | 1.1 | **Scrittura rapida** senza progetto: JavaScript, TypeScript, Python (Pyodide incluso), SQL in memoria e HTML; risultati accanto alle righe, worker con tempo massimo (cicli infiniti fermati), aiuto a quattro livelli (Spento/Leggero/Intermedio/Forte) e «Genera con AI», raccolta di file nei Documenti, bozza persistente ([ADR 0007](adr/0007-scrittura-rapida.md)) | ✅ v1.1.0 |
 | 1.2 | Scrittura rapida anche in **C, C++, C#, Java e Rust** con i compilatori installati sul PC (rilevati anche fuori dal PATH; scheda con il comando winget se mancano), errori di compilazione e crash sulla riga giusta, riquadro **Input** da tastiera (anche per `input()` di Python), parole chiave e modelli rapidi per i linguaggi senza servizio di completamento ([ADR 0008](adr/0008-scrittura-rapida-linguaggi-compilati.md)) | ✅ v1.2.0 |
 | 1.5 | **Allo stesso livello di Easey DB** ([analisi](MIGLIORAMENTI.md#confronto-con-easey-db-10--analisi-del-15112026-verso-la-150)): niente lavoro perso (salvataggi rimandati messi al sicuro alla chiusura e al cambio di progetto, database in memoria segnalato, Cestino), errori che restano con il registro delle attività, barriere dei pannelli, dialoghi che non perdono il testo, pannelli sempre al centro, formule leggibili e suggerimenti dal file aperto nella chat, un solo completamento AI per i dieci linguaggi, file Python/C/C++/C#/Java/Rust apribili nei progetti, percorsi guidati, «Cosa fare adesso», Glossario, aiuto F1 | ✅ v1.5.0 |
+| **0.1** | **Nuova numerazione 0.x** (decisione del titolare del 18/11/2026: il progetto è ancora in costruzione, si arriva alla 1.0 quando è rilasciabile). **Tela libera stile Figma** (righelli e guide, aggancio a più guide e distanze uguali, misure, strumenti di disegno, allinea/distribuisci/livelli, rotazione, occhio e lucchetto, «Da libero a layout»), **Studio 3D** Three.js con blocco «Scena 3D» nelle pagine, **schermata iniziale** nuova; kit condivisi con IDE Next | ✅ v0.1.0 |
+| 0.2 | Editor di layout e CSS completo (flex e grid visuali, margini e padding sul riquadro, stati :hover/:focus, ombre, gradienti e bordi, transizioni e animazioni, «quale regola vince») e logica di script integrata (evento di un elemento → funzione creata e aperta, nodi collegati agli elementi, prova dal vivo) | in programma |
 | F8 | Prossimi passi (a richiesta): pacchetti Python di Pyodide (numpy, pandas…) scaricati a richiesta, altri linguaggi per la Scrittura rapida (Go, Kotlin, Lua), driver PostgreSQL/MySQL/SQL Server su server veri, aggiornamenti automatici (electron-updater + canale di pubblicazione), API pubblica per plugin sugli stessi punti di estensione, verifiche automatiche per gli esercizi importati dai manuali | da fare |
 
 ## F3 — Editor grafico stile Canva/Wix
@@ -52,7 +54,7 @@ HTML/CSS si aggiorna in tempo reale (e modificando il codice si aggiorna il dise
 cambio colore e carattere dall'ispettore, il codice mostra solo quelle modifiche; modifico il CSS a
 mano e il disegno si aggiorna; test round-trip HTML/CSS su fixture.
 
-## Schermata iniziale ✅ (ramo feat/schermata-iniziale, in attesa del rilascio 0.x)
+## Schermata iniziale ✅ v0.1.0
 
 Disegno comune alle tre app (docs/SCHERMATA-INIZIALE.md di Easey DB): a tutta finestra senza progetto, tre strade,
 recenti con la data in parole, Impara con l'avanzamento, modelli, chiaro e scuro; il logo la riporta.
