@@ -24,7 +24,7 @@ import { PreviewService, registerPreviewScheme } from './services/preview/previe
 import { SettingsService } from './services/settings/settings-service'
 import { TerminalService } from './services/terminal/terminal-service'
 import { HistoryService } from './services/workspace/history-service'
-import { createFromTemplate, listTemplates } from './services/workspace/templates'
+import { createFromTemplate, freeProjectName, listTemplates } from './services/workspace/templates'
 import { WorkspaceService } from './services/workspace/workspace-service'
 import { QuickRunner } from './services/quick/quick-runner'
 import { NativeToolchains } from './services/quick/native-runner'
@@ -221,6 +221,7 @@ registerHandlers(
 
     'workspace:templates': () => listTemplates(),
     'workspace:defaultLocation': () => join(app.getPath('documents'), APP_NAME),
+    'workspace:freeName': (location, base) => freeProjectName(location, base),
     'workspace:pickFolder': () => pickFolder(),
     'workspace:create': async ({ templateId, name, location }) => openProject(await createFromTemplate(templateId, name, location)),
     'workspace:open': (root) => openProject(root),

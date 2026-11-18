@@ -1,7 +1,7 @@
 // Collaudo end-to-end di F3 (designer visuale) sull'app costruita.
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { createRun, ensureBuilt, until, wait } from './helpers.mjs'
+import { createRun, designerFlowMode, ensureBuilt, until, wait } from './helpers.mjs'
 
 ensureBuilt()
 const run = createRun('designer')
@@ -19,6 +19,7 @@ try {
   const css = () => readFileSync(cssFile, 'utf8')
 
   await page.getByTestId('open-designer').click()
+  await designerFlowMode(page)
   const frame = page.frameLocator('[data-testid="designer-frame"]')
   check('canvas: la pagina è disegnata', !!(await until(async () => (await frame.locator('h1').innerText({ timeout: 500 })) === 'Ciao!', 15000)))
   check('canvas: gli script non vengono eseguiti in progettazione', (await frame.locator('script').count()) === 0)
@@ -177,6 +178,7 @@ try {
   // Modello "Sito con il designer": pagina a sezioni con una tavola libera.
   await run.newProject('web-designer', 'Sito pronto')
   await page.getByTestId('open-designer').click()
+  await designerFlowMode(page)
   const ready = await until(async () => (await frame.locator('.lab-hero h1').count()) === 1 && (await frame.locator('.tavola').count()) === 1, 15000)
   check('modello "Sito con il designer": sezioni e tavola libera', !!ready)
   await run.shot('06-modello')

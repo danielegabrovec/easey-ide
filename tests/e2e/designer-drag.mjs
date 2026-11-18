@@ -2,7 +2,7 @@
 // Lo scenario dell'utente: il sottotitolo finisce fuori dalla scheda e lo si riporta dentro trascinandolo.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { createRun, ensureBuilt, until, wait } from './helpers.mjs'
+import { createRun, designerFlowMode, ensureBuilt, until, wait } from './helpers.mjs'
 
 ensureBuilt()
 const run = createRun('designer-drag')
@@ -17,6 +17,7 @@ try {
   const body = () => html().split('<body>')[1] ?? ''
 
   await page.getByTestId('open-designer').click()
+  await designerFlowMode(page)
   const frame = page.frameLocator('[data-testid="designer-frame"]')
   check('canvas pronto', !!(await until(async () => (await frame.locator('h1').count()) === 1, 15000)))
   await wait(400)

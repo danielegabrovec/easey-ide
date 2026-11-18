@@ -12,7 +12,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="Licenza MIT" src="https://img.shields.io/badge/licenza-MIT-6366f1"></a>
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4">
-  <img alt="Versione 0.1.0" src="https://img.shields.io/badge/versione-0.1.0-a855f7">
+  <img alt="Versione 0.1.1" src="https://img.shields.io/badge/versione-0.1.1-a855f7">
   <img alt="AI locale" src="https://img.shields.io/badge/AI-locale%20(Ollama%20%2F%20LM%20Studio)-f59e0b">
 </p>
 
@@ -214,7 +214,7 @@ una lezione e ogni esercizio 🧪 un compito. Come scrivere un corso: [docs/CORS
 > Easey IDE è ancora in costruzione: le versioni ripartono da **0.1** e arriveranno alla **1.0** quando sarà
 > pronto da rilasciare davvero.
 
-1. Scarica `Easey-IDE-Setup-0.1.0.exe` dalla pagina
+1. Scarica `Easey-IDE-Setup-0.1.1.exe` dalla pagina
    [Releases](https://github.com/danielegabrovec/easey-ide/releases).
 2. Avvialo e scegli la cartella di installazione.
    L'installer non è firmato digitalmente: se Windows SmartScreen lo segnala, scegli

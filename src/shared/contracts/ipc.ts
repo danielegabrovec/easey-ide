@@ -49,6 +49,8 @@ export interface InvokeChannels {
 
   'workspace:templates': () => ProjectTemplate[]
   'workspace:defaultLocation': () => string
+  /** Primo nome libero nella cartella: «La mia pagina», poi «La mia pagina 2»… (0.1.1). */
+  'workspace:freeName': (location: string, base: string) => string
   'workspace:pickFolder': () => string | null
   'workspace:create': (request: CreateProjectRequest) => ProjectInfo
   'workspace:open': (root: string) => ProjectInfo
@@ -178,6 +180,7 @@ export const INVOKE_CHANNELS = [
   'settings:update',
   'workspace:templates',
   'workspace:defaultLocation',
+  'workspace:freeName',
   'workspace:pickFolder',
   'workspace:create',
   'workspace:open',

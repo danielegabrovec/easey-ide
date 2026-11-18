@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { DEFAULT_SETTINGS } from '@shared/contracts/settings'
 import { HistoryService } from '../../src/main/services/workspace/history-service'
-import { createFromTemplate, listTemplates, sanitizeProjectName } from '../../src/main/services/workspace/templates'
+import { createFromTemplate, freeProjectName, listTemplates, sanitizeProjectName } from '../../src/main/services/workspace/templates'
 import { inferConfig, parseConfig, WorkspaceService } from '../../src/main/services/workspace/workspace-service'
 import { mergeSettings, pushRecent, SettingsService } from '../../src/main/services/settings/settings-service'
 
@@ -162,5 +162,16 @@ describe('impostazioni', () => {
     const file = join(dir, 'settings.json')
     await new SettingsService(file).update({ fontSize: 18 })
     expect((await new SettingsService(file).get()).fontSize).toBe(18)
+  })
+})
+
+describe('nome libero per un nuovo progetto (0.1.1)', () => {
+  it('propone il nome se la cartella non c’è, poi «nome 2», «nome 3»', async () => {
+    expect(freeProjectName(dir, 'La mia pagina')).toBe('La mia pagina')
+    await createFromTemplate('empty', 'La mia pagina', dir)
+    expect(freeProjectName(dir, 'La mia pagina')).toBe('La mia pagina 2')
+    await createFromTemplate('empty', 'La mia pagina 2', dir)
+    expect(freeProjectName(dir, 'La mia pagina')).toBe('La mia pagina 3')
+    expect(freeProjectName('', 'Prova')).toBe('Prova')
   })
 })

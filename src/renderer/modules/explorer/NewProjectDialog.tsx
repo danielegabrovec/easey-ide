@@ -19,10 +19,23 @@ export function NewProjectDialog({ close, initialTemplate }: { close: () => void
     void ide.invoke('workspace:defaultLocation').then(setLocation)
   }, [])
 
+  // Nome proposto: il primo libero nella cartella («La mia pagina 2» se «La mia pagina» c'è già), così «Crea» non
+  // finisce mai in «La cartella esiste già».
   useEffect(() => {
     const template = templates.find((tpl) => tpl.id === templateId)
-    if (template && !name) setName(template.mode === 'web' ? t('newProject.defaultWebName') : t('newProject.defaultConsoleName'))
-  }, [templates, templateId, name])
+    if (!template || name || !location) return
+    const base = template.mode === 'web' ? t('newProject.defaultWebName') : t('newProject.defaultConsoleName')
+    let alive = true
+    void ide
+      .invoke('workspace:freeName', location, base)
+      .catch(() => base)
+      .then((free) => {
+        if (alive) setName((current) => current || free)
+      })
+    return () => {
+      alive = false
+    }
+  }, [templates, templateId, name, location])
 
   const nameError = validateName(name) ?? (name.includes('/') ? t('newProject.noSlash') : null)
   const canCreate = !busy && !!name.trim() && !nameError && !!location

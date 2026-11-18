@@ -127,3 +127,14 @@ export async function terminalText(page) {
 }
 
 export const problemCount = async (page) => Number((await page.getByTestId('status-problems').innerText()).trim().split(/\s+/)[0])
+
+/**
+ * Spegne «Sposta liberamente» (dalla 0.1.1 parte acceso): per i collaudi del trascinamento «in fila»
+ * (riordinare nel flusso, rilasci prima/dopo/dentro), che restano il comportamento a pulsante spento.
+ */
+export async function designerFlowMode(page) {
+  const toggle = page.getByTestId('designer-free-move')
+  await toggle.waitFor({ timeout: 15000 })
+  if ((await toggle.getAttribute('aria-pressed')) === 'true') await toggle.click()
+  await until(async () => (await toggle.getAttribute('aria-pressed')) === 'false', 3000)
+}

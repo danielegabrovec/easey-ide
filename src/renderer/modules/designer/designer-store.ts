@@ -84,11 +84,13 @@ export function resolveSelection(html: HtmlModel | null, key: SelectionKey | nul
 const FREE_MOVE_KEY = 'easey.designer.freeMove'
 const NO_OTHERS: SelectionKey[] = []
 
+// «Sposta liberamente» parte ACCESO (0.1.1, richiesta del titolare: in un editor grafico ciò che trascini resta
+// dove lo lasci, come in Figma); si spegne dal pulsante e la scelta si ricorda. Alt mentre trascini = in fila.
 function readFreeMove(): boolean {
   try {
-    return localStorage.getItem(FREE_MOVE_KEY) === '1'
+    return localStorage.getItem(FREE_MOVE_KEY) !== '0'
   } catch {
-    return false
+    return true
   }
 }
 

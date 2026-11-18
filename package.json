@@ -1,6 +1,6 @@
 {
   "name": "easey-ide",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Easey IDE: l'IDE per imparare a programmare in HTML, CSS, JavaScript, TypeScript e SQL, con progettazione visuale, esercizi verificati e AI locale",
   "author": {

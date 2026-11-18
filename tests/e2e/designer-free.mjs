@@ -1,6 +1,6 @@
 // Collaudo di «Sposta liberamente» nel designer (1.6, richiesta del titolare: «se devo spostarlo in un punto
 // particolare si deve poter fare»). `npm run build` prima.
-//  1. acceso il pulsante, il titolo trascinato resta esattamente dove lo si lascia (classe libero, left/top nel CSS)
+//  1. il pulsante è acceso di partenza (0.1.1), il titolo trascinato resta esattamente dove lo si lascia (classe libero, left/top nel CSS)
 //  2. il contenitore fa da riferimento e non si accorcia; il titolo si sposta di nuovo trascinandolo e con le frecce
 //  3. tasto destro «Rimetti in fila» lo riporta nel flusso; «Mettilo dove vuoi» lo rende libero dov'è
 //  4. spento il pulsante, trascinare rimette in fila come prima; la scelta si ricorda
@@ -48,10 +48,9 @@ try {
   const ruleOf = (id) => (new RegExp(`#${id}\\s*\\{([^}]*)\\}`).exec(css()) ?? [])[1] ?? ''
   const px = (rule, prop) => Number((new RegExp(`(?:^|[;\\s])${prop}:\\s*(-?\\d+)px`).exec(rule) ?? [])[1] ?? NaN)
 
-  // 1. Acceso e trascinato.
+  // 1. Acceso di partenza (0.1.1: come in Figma, ciò che trascini resta dove lo lasci) e trascinato.
   const toggle = page.getByTestId('designer-free-move')
-  await toggle.click()
-  check('il pulsante «Sposta liberamente» si accende', (await toggle.getAttribute('aria-pressed')) === 'true')
+  check('«Sposta liberamente» è acceso di partenza', (await toggle.getAttribute('aria-pressed')) === 'true')
   // Fuori dalla scheda, nel bianco sotto: il titolo deve restare lì (nel body, prima degli script).
   const before = await box('h1')
   const card = await box('main')

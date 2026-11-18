@@ -358,6 +358,25 @@ export function sanitizeProjectName(name: string): string {
   return cleaned
 }
 
+/**
+ * Primo nome di progetto libero in `location` (0.1.1): il nome proposto («La mia pagina») se la cartella non c'è,
+ * altrimenti «La mia pagina 2», «… 3»… Così il nome che la finestra propone non va mai contro una cartella esistente.
+ */
+export function freeProjectName(location: string, base: string): string {
+  let cleaned: string
+  try {
+    cleaned = sanitizeProjectName(base)
+  } catch {
+    return base
+  }
+  if (!location || !existsSync(resolve(location, cleaned))) return cleaned
+  for (let i = 2; i < 1000; i++) {
+    const candidate = `${cleaned} ${i}`
+    if (!existsSync(resolve(location, candidate))) return candidate
+  }
+  return cleaned
+}
+
 /** Crea la cartella del progetto con i file del modello. Restituisce la radice. */
 export async function createFromTemplate(templateId: string, name: string, location: string): Promise<string> {
   const template = TEMPLATES.find((t) => t.id === templateId)

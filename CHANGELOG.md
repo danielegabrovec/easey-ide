@@ -1,5 +1,12 @@
 # Novità di Easey IDE
 
+## 0.1.1 — 2026-11-18
+
+- **«Sposta liberamente» parte acceso**: nel designer ciò che trascini resta esattamente dove lo lasci, come in Figma.
+  Il pulsante lo spegne (la scelta si ricorda) e Alt mentre trascini rimette in fila come prima.
+- **Nuovo progetto**: il nome proposto non va più contro una cartella che esiste già («La mia pagina 2», «3»…), quindi
+  niente più «La cartella esiste già».
+
 ## 0.1.0 — 2026-11-18
 
 **Nuova numerazione.** Easey IDE è ancora in costruzione: le versioni ripartono da 0.1 e arriveranno alla 1.0 quando
