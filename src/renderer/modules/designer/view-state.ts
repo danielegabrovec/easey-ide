@@ -1,4 +1,4 @@
-// Stato della tela che vale solo nell'editor (1.7), mai scritto nell'HTML o nel CSS dell'utente:
+// Stato della tela che vale solo nell'editor, mai scritto nell'HTML o nel CSS dell'utente:
 // strumento di disegno attivo, righelli accesi, guide trascinate dai righelli, elementi nascosti (occhio)
 // e bloccati (lucchetto) nei Livelli. Guide, nascosti e bloccati si ricordano per file (localStorage).
 import { create } from 'zustand'

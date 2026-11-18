@@ -1,4 +1,4 @@
-// Modulo Studio 3D (1.7): editor delle scene Three.js (`*.scene3d.json`) con il kit condiviso `scene3d`.
+// Modulo Studio 3D: editor delle scene Three.js (`*.scene3d.json`) con il kit condiviso `scene3d`.
 // Si apre da Esplora come gli altri editor speciali (registerFileOpener), «Nuova scena 3D» dal menu, dalla
 // palette e dal tasto destro dell'albero; il designer chiede i file per la scena in pagina con
 // `studio3d.prepareEmbed` (i moduli non si importano a vicenda).

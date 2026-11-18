@@ -49,7 +49,7 @@ export function Layers() {
     return out
   }
 
-  /** Clic = solo lui; Ctrl+clic = aggiunge/toglie; Maiusc+clic = tutti quelli fra la scelta e questo (1.7). */
+  /** Clic = solo lui; Ctrl+clic = aggiunge/toglie; Maiusc+clic = tutti quelli fra la scelta e questo. */
   const pick = (element: ElementInfo, event: React.MouseEvent) => {
     const state = useDesigner.getState()
     if (event.ctrlKey || event.metaKey) state.toggleInGroup(element)

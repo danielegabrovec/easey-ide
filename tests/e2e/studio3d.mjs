@@ -1,4 +1,4 @@
-// Collaudo dello Studio 3D e della scena 3D nelle pagine (1.7). `npm run build` prima.
+// Collaudo dello Studio 3D e della scena 3D nelle pagine. `npm run build` prima.
 //  1. «Nuova scena 3D» (dialogo con le scene pronte) crea scene/….scene3d.json e lo apre nello Studio
 //  2. aggiungi un cubo, ispettore (posizione), annulla/ripeti, gruppo e trascinamento nell'albero, Canc
 //  3. «Mostra codice» con le righe dell'oggetto scelto evidenziate; scena pronta (sostituisce, un passo)

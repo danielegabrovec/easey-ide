@@ -74,7 +74,7 @@ function designer(): TourDefinition {
   }
 }
 
-/** «La tela libera» (1.7): disegnare, righelli e guide, allinea, livelli. */
+/** «La tela libera»: disegnare, righelli e guide, allinea, livelli. */
 function telaLibera(): TourDefinition {
   const s = (id: string, rest?: Rest) => step('canvas', id, rest)
   return {
@@ -94,7 +94,7 @@ function telaLibera(): TourDefinition {
   }
 }
 
-/** «Lo Studio 3D» (1.7): una scena pronta, un oggetto, l'ispettore e il codice. */
+/** «Lo Studio 3D»: una scena pronta, un oggetto, l'ispettore e il codice. */
 function studio3d(): TourDefinition {
   const s = (id: string, rest?: Rest) => step('studio3d', id, rest)
   return {

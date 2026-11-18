@@ -108,7 +108,7 @@ via contratti), **consolidamento** (mai due modi di fare la stessa cosa).
 - Cambiare un kit: si modifica **solo qui**, `node scripts/shared-kits-lock.mjs` (o `design-kit-lock.mjs`), e si
   copiano gli stessi file e la lock in IDE Next.
 
-## Punti d'estensione della 1.7 (tela libera e Studio 3D)
+## Punti d'estensione della 0.1 (tela libera e Studio 3D)
 
 - **Stato solo dell'editor** del designer in `designer/view-state.ts` (strumento, righelli, guide, occhio, lucchetto):
   per file in localStorage, mai nell'HTML/CSS. Chiave di un elemento: `viewKey` (`#id` o `@percorso`).

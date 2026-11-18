@@ -1875,7 +1875,7 @@ button.ai-chip:hover {
   height: calc(1px * var(--dz-inv));
 }
 
-/* ---- Tela 1.7: strumenti di disegno, righelli, guide, misure, rotazione, barra Allinea ---- */
+/* ---- Tela libera: strumenti di disegno, righelli, guide, misure, rotazione, barra Allinea ---- */
 
 .designer-canvas {
   display: grid;
@@ -4272,7 +4272,7 @@ button.quick-line:hover {
   border-bottom: 1px solid var(--border);
 }
 
-/* ---- Studio 3D (1.7): albero, vista, ispettore, codice ---- */
+/* ---- Studio 3D: albero, vista, ispettore, codice ---- */
 
 .s3-panel {
   display: flex;

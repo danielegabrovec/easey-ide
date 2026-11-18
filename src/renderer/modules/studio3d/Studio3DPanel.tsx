@@ -1,4 +1,4 @@
-// Studio 3D (1.7): editor dei file `*.scene3d.json`. Barra (aggiungi, scene pronte, maniglie W/E/R,
+// Studio 3D: editor dei file `*.scene3d.json`. Barra (aggiungi, scene pronte, maniglie W/E/R,
 // animazioni, codice, immagine), albero degli oggetti con trascinamento, vista 3D (un solo WebGLRenderer,
 // disegno a richiesta) e ispettore. Ogni modifica è un passo di annulla/ripeti a istantanee (kit scene3d)
 // e si salva da sola con la protezione del lavoro non salvato (useDeferredSave).

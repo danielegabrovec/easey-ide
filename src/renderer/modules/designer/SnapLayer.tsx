@@ -1,4 +1,4 @@
-// Guide d'aggancio, distanze uguali, misure in px e angolo di rotazione (1.7), disegnate sopra la pagina.
+// Guide d'aggancio, distanze uguali, misure in px e angolo di rotazione, disegnate sopra la pagina.
 // Hanno un piccolo stato a parte: muovendo il mouse si ridisegna solo questo livello, non tutto il canvas.
 import { create } from 'zustand'
 import type { Guide, SpacingHint } from '@shared/canvas-kit/snap'

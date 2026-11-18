@@ -1,4 +1,4 @@
-// Collaudo di righelli, guide, aggancio e misure della tela (1.7). `npm run build` prima.
+// Collaudo di righelli, guide, aggancio e misure della tela. `npm run build` prima.
 //  1. righelli in alto e a sinistra con i numeri; la selezione si vede evidenziata nel righello
 //  2. trascinando dal righello in alto nasce una guida orizzontale; un elemento libero ci si aggancia,
 //     mentre lo sposto si vedono la guida d'aggancio e le misure in px

@@ -779,7 +779,7 @@ export function Inspector() {
           </button>
         ))}
       </div>
-      {/* 1.7: Allinea in cima all'ispettore (come negli editor di grafica): sulla tela coprirebbe gli elementi. */}
+      {/* Allinea in cima all'ispettore (come negli editor di grafica): sulla tela coprirebbe gli elementi. */}
       <ArrangeBar />
       {/* 1.6: con la selezione multipla gli stili valgono per tutti gli scelti. */}
       {others > 0 && tab === 'style' && (

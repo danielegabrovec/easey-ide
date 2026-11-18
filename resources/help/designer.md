@@ -13,7 +13,7 @@ Il designer modifica il file HTML e il CSS al posto tuo, cambiando solo le righe
 - **Ritocchi consigliati** trova contrasti illeggibili, immagini senza descrizione, pulsanti troppo piccoli: «Correggi» li sistema con un clic.
 - **Ctrl+Z** annulla qualunque modifica.
 
-## La tela libera (1.7)
+## La tela libera
 
 - **Strumenti di disegno** nella striscia a sinistra della tela: **V** seleziona, **H** mano, **F** tavola, **R** rettangolo, **O** ellisse, **T** testo, **B** bottone, **I** immagine. Trascina per disegnare della misura che vuoi (Maiusc = quadrato, Alt = dal centro), un clic mette la misura base. **Esc** torna a Seleziona.
 - **Aggancio**: spostando o ridimensionando un elemento libero, i bordi e i centri si attaccano agli altri elementi, al contenitore e alle guide; le linee rosa mostrano l'allineamento e le **distanze uguali**, i numeri rossi le distanze in px. **Alt** spegne l'aggancio; **Alt sopra un altro elemento** mostra le distanze fra i due.

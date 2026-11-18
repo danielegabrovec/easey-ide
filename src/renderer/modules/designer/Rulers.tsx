@@ -1,4 +1,4 @@
-// Righelli in alto e a sinistra della tela (1.7): numeri in px della pagina che seguono zoom e scorrimento,
+// Righelli in alto e a sinistra della tela: numeri in px della pagina che seguono zoom e scorrimento,
 // la selezione evidenziata, il mirino del puntatore (mosso dal Canvas direttamente nel DOM, senza ridisegni)
 // e le guide: si trascinano fuori dal righello (alto = guida orizzontale, sinistra = verticale).
 import type { RefObject } from 'react'

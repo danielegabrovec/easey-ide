@@ -376,7 +376,7 @@ export function setFreeBox(box: { left?: number; top?: number; width?: number; h
   return element ? setFreeBoxes([{ id: element.id, ...box }]) : Promise.resolve()
 }
 
-// ---------------------------------------------------------------- tela libera (1.7)
+// ---------------------------------------------------------------- tela libera
 
 /** Selettore della regola di un contenitore (il body non riceve un id), aggiungendo l'id se manca. */
 function containerSelector(html: HtmlModel, id: number, editHtml: (build: (html: HtmlModel) => TextEdit[]) => HtmlModel): string {
@@ -544,7 +544,7 @@ export function endOfBody(html: HtmlModel): Placement {
 export function insertBlock(blockId: string, placement: Placement, overrides?: { html?: string; finish?: (editHtml: (build: (html: HtmlModel) => TextEdit[]) => HtmlModel) => void }): Promise<void> {
   const block = blockById(blockId)
   if (!block) return Promise.resolve()
-  // La scena 3D (1.7): prima si sceglie (o si crea) la scena e si preparano i suoi file.
+  // La scena 3D: prima si sceglie (o si crea) la scena e si preparano i suoi file.
   if (blockId === SCENE_BLOCK_ID && !overrides?.html) return insertScene3D(placement)
   return withPage(async ({ html, editHtml, editCss }) => {
     const tag = /^<([a-z][\w-]*)/i.exec(block.html)?.[1]?.toLowerCase() ?? 'div'
@@ -571,7 +571,7 @@ export function insertBlock(blockId: string, placement: Placement, overrides?: {
 }
 
 /**
- * Blocco «Scena 3D» (1.7): si sceglie una scena del progetto o se ne crea una nuova; lo Studio 3D prepara
+ * Blocco «Scena 3D»: si sceglie una scena del progetto o se ne crea una nuova; lo Studio 3D prepara
  * i file (Three in `vendor/three`, modulo generato e immagine accanto alla scena), qui si scrive il caricatore
  * `js/scene-3d.js` (una volta), il <canvas data-scena> e lo script del caricatore in fondo al body: un passo solo.
  */

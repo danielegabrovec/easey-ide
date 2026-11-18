@@ -1,4 +1,4 @@
-// File che servono a una scena 3D dentro le pagine (1.7): Three nel progetto (`vendor/three/`, copiato una
+// File che servono a una scena 3D dentro le pagine: Three nel progetto (`vendor/three/`, copiato una
 // volta), il modulo generato accanto alla scena (`x.scene3d.js`) e la sua immagine per il designer
 // (`x.scene3d.svg`). Lo Studio li rifà a ogni salvataggio della scena (solo se la scena è usata in una pagina,
 // cioè se il modulo esiste); il blocco «Scena 3D» del designer li chiede con il comando `studio3d.prepareEmbed`.

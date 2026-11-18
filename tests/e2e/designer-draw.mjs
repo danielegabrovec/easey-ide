@@ -1,4 +1,4 @@
-// Collaudo degli strumenti di disegno della tela (1.7). `npm run build` prima.
+// Collaudo degli strumenti di disegno della tela. `npm run build` prima.
 //  1. R + trascinamento = rettangolo libero della misura disegnata (classe libero, id, regola #id), poi si torna a V
 //  2. tastiera: O + clic = ellisse alla misura base (100×100); T poi Esc torna a Seleziona
 //  3. F disegna una tavola; un rettangolo disegnato dentro diventa suo figlio (niente classe libero)

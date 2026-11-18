@@ -1,4 +1,4 @@
-// Tela 1.7 del designer HTML: forme disegnate, «Da libero a layout» tradotto in CSS e HTML, scena 3D nella pagina.
+// Tela libera del designer HTML: forme disegnate, «Da libero a layout» tradotto in CSS e HTML, scena 3D nella pagina.
 import { describe, expect, it } from 'vitest'
 import { drawnDeclarations, drawnShape } from '@shared/designer/draw-shapes'
 import { layoutCandidates, layoutHtmlEdit, layoutRules, newRowCount, ROW_CLASS } from '@shared/designer/layout-apply'

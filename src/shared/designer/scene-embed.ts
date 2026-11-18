@@ -1,4 +1,4 @@
-// Scena 3D dentro una pagina (1.7): `<canvas class="scena-3d" data-scena="scene/x.scene3d.json">` e uno
+// Scena 3D dentro una pagina: `<canvas class="scena-3d" data-scena="scene/x.scene3d.json">` e uno
 // script modulo che la fa girare. Accanto a ogni scena c'è il suo modulo generato (`x.scene3d.js`, rifatto
 // a ogni salvataggio nello Studio 3D) e la sua immagine (`x.scene3d.svg`: un SVG che contiene il PNG della
 // scena, perché i file del progetto si scrivono come testo; mostrata nel designer, dove gli script non

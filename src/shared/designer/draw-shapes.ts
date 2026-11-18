@@ -1,4 +1,4 @@
-// Cosa crea ogni strumento di disegno della tavola (1.7): il frammento HTML e le regole CSS di base.
+// Cosa crea ogni strumento di disegno della tavola: il frammento HTML e le regole CSS di base.
 // Lo strumento e la misura vengono dal canvas kit (`DRAW_TOOLS`, `drawnRect`); posizione e misura vanno
 // nella regola `#id` dell'elemento, come per gli altri elementi liberi. Puro e testato.
 import type { DrawTool } from '../canvas-kit/draw'

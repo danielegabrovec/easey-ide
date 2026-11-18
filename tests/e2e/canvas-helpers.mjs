@@ -1,4 +1,4 @@
-// Aiuti comuni dei collaudi della tela 1.7 (disegno, allinea, righelli): coordinate dello schermo degli
+// Aiuti comuni dei collaudi della tela libera (disegno, allinea, righelli): coordinate dello schermo degli
 // elementi nell'iframe del designer (scalato), trascinamenti, lettura delle regole CSS.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'

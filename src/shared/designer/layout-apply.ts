@@ -1,4 +1,4 @@
-// «Da libero a layout» (1.7) nel designer HTML: traduce il piano neutro del canvas kit (`inferLayout`)
+// «Da libero a layout» nel designer HTML: traduce il piano neutro del canvas kit (`inferLayout`)
 // in regole CSS (flex o griglia sul contenitore, posizioni tolte dai figli) e nel nuovo ordine dei figli
 // nell'HTML (le righe affiancate dentro un nuovo <div>). Puro: il designer fa tutto in un'unica transazione.
 import type { LayoutPlan, Padding } from '../canvas-kit/layout-infer'

@@ -1,4 +1,4 @@
-// Allinea, distribuisci, stessa misura, livelli e «Da libero a layout» (1.7): misure prese nel canvas,
+// Allinea, distribuisci, stessa misura, livelli e «Da libero a layout»: misure prese nel canvas,
 // calcoli del canvas kit, scrittura in un unico passo annullabile (actions.ts). Elementi in fila nella
 // selezione: si propone «Mettili liberi e allinea» (misura poi stacca, nessun salto).
 import { alignRects, distributeRects, matchSize, paintOrder, restack, zIndexes, type AlignMode, type DistributeAxis, type RestackOp } from '@shared/canvas-kit/align'

@@ -1,4 +1,4 @@
-// Striscia degli strumenti di disegno a sinistra della tela (1.7), come negli editor di grafica:
+// Striscia degli strumenti di disegno a sinistra della tela, come negli editor di grafica:
 // V seleziona, H mano, F tavola, R rettangolo, O ellisse, T testo, B bottone, I immagine. Esc torna a V.
 import type { ComponentType } from 'react'
 import { Circle, Frame, Hand, Image, MousePointer2, RectangleHorizontal, Square, Type } from 'lucide-react'

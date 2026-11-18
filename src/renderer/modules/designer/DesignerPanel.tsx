@@ -175,7 +175,7 @@ function PagePicker({ path }: { path: string }) {
   )
 }
 
-/** Righelli e guide (1.7): acceso/spento, ricordato. */
+/** Righelli e guide: acceso/spento, ricordato. */
 function RulersToggle() {
   const on = useCanvasView((s) => s.rulers)
   return (

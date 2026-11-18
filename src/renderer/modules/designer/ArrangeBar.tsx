@@ -1,4 +1,4 @@
-// Barra «Allinea» sopra la tela (1.7): appare con due o più elementi scelti. Allinea (6 modi), distribuisci,
+// Barra «Allinea» in cima all'ispettore: appare con due o più elementi scelti. Allinea (6 modi), distribuisci,
 // stessa larghezza/altezza e livelli; con elementi in fila nella selezione avvisa e propone di renderli liberi.
 import type { ComponentType } from 'react'
 import {

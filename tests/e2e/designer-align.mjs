@@ -1,4 +1,4 @@
-// Collaudo di Allinea, livelli, rotazione, occhio/lucchetto e «Da libero a layout» (1.7). `npm run build` prima.
+// Collaudo di Allinea, livelli, rotazione, occhio/lucchetto e «Da libero a layout». `npm run build` prima.
 //  1. tre rettangoli disegnati, scelti con Ctrl+clic: compare la barra Allinea; «in alto» e «distribuisci» scrivono il CSS
 //  2. livelli: «in primo piano» scrive z-index; maniglia di rotazione con Maiusc = scatti di 15°
 //  3. titolo e paragrafo in fila: «Mettili liberi e allinea» li rende liberi senza salti e li allinea a sinistra

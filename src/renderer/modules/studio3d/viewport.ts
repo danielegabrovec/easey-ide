@@ -1,4 +1,4 @@
-// Viewport dello Studio 3D (1.7). UN SOLO WebGLRenderer per tutta l'app: disegna fuori schermo e ogni
+// Viewport dello Studio 3D. UN SOLO WebGLRenderer per tutta l'app: disegna fuori schermo e ogni
 // viewport copia il risultato nel proprio <canvas> 2D (così più scene aperte non aprono più contesti WebGL).
 // Si disegna solo quando serve (modifica, camera mossa, maniglia trascinata); il ciclo continuo c'è solo
 // mentre le animazioni sono in riproduzione. Senza WebGL (o in collaudo con il ripiego forzato) la scena

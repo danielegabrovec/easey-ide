@@ -58,9 +58,9 @@ type Drag =
   /** Rettangolo di selezione (1.6): trascinato sullo sfondo, prende gli elementi che ci stanno dentro. */
   | { kind: 'marquee'; startX: number; startY: number; current: { x: number; y: number } }
   | { kind: 'free-resize'; startX: number; startY: number; id: number; handle: string; origin: Rect; current: Rect; free: boolean }
-  /** Strumento di disegno (1.7): rettangolo tracciato nel contenitore sotto il puntatore (px rispetto al contenitore). */
+  /** Strumento di disegno: rettangolo tracciato nel contenitore sotto il puntatore (px rispetto al contenitore). */
   | { kind: 'draw'; tool: DrawTool; container: number; origin: { x: number; y: number }; start: { x: number; y: number }; bounds: { width: number; height: number } | null; containerHeight: number; current: Rect }
-  /** Maniglia di rotazione (1.7): gradi da scrivere in `transform: rotate()`. */
+  /** Maniglia di rotazione: gradi da scrivere in `transform: rotate()`. */
   | { kind: 'rotate'; id: number; center: { x: number; y: number }; start: number; pointer0: number; current: number; top: number }
   | FlowDrag
 
@@ -187,7 +187,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   const [, setTick] = useState(0)
   const [indicator, setIndicator] = useState<Indicator | null>(null)
   const [editing, setEditing] = useState<{ id: number; rect: Rect; style: React.CSSProperties; text: string } | null>(null)
-  // 1.7: strumenti, righelli, guide, occhio e lucchetto (stato solo dell'editor, view-state.ts).
+  // strumenti, righelli, guide, occhio e lucchetto (stato solo dell'editor, view-state.ts).
   const tool = useCanvasView((s) => s.tool)
   const rulers = useCanvasView((s) => s.rulers)
   const userGuides = useCanvasView((s) => s.guides)
@@ -398,7 +398,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
     return page.body
   }
 
-  // ------------------------------------------------------------ aggancio, guide e misure (1.7, canvas kit)
+  // ------------------------------------------------------------ aggancio, guide e misure (canvas kit)
 
   /** Contesto d'aggancio di un elemento libero: contenitore, fratelli e guide dei righelli nelle sue coordinate. */
   const snapContextOf = (node: HTMLElement, exclude: ReadonlySet<Element>): { origin: { x: number; y: number }; ctx: SnapContext } => {
@@ -423,7 +423,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
   /** Etichetta «L × A» sotto un riquadro (coordinate del livello del canvas). */
   const sizeLabel = (box: Rect, origin = { x: 0, y: 0 }) => ({ text: `${Math.round(box.width)} × ${Math.round(box.height)}`, x: origin.x + box.left, y: origin.y + box.top + box.height + 6 / scale })
 
-  // ------------------------------------------------------------ guide trascinate dai righelli (1.7)
+  // ------------------------------------------------------------ guide trascinate dai righelli
 
   /** Px della pagina sotto il puntatore, per una guida verticale (x) o orizzontale (y). */
   const guideValueAt = (axis: 'x' | 'y', clientX: number, clientY: number): { value: number; out: boolean } => {
@@ -1040,7 +1040,7 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       return
     }
     const ctrl = event.ctrlKey || event.metaKey
-    // Strumenti di disegno (1.7): V H F R O T B I; Esc torna a Seleziona.
+    // Strumenti di disegno: V H F R O T B I; Esc torna a Seleziona.
     if (event.key === 'Escape' && useCanvasView.getState().tool !== 'select') {
       event.preventDefault()
       useCanvasView.getState().setTool('select')
