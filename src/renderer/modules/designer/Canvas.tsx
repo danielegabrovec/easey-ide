@@ -22,7 +22,6 @@ import { redo, undo } from './document'
 import { keyOf, resolveSelection, selectedElements, useDesigner } from './designer-store'
 import { boxBetween, marqueeHits, type Box } from '@shared/designer/selection'
 import { registerFrame } from './frame-access'
-import { ArrangeBar } from './ArrangeBar'
 import { DrawTools } from './DrawTools'
 import { Rulers } from './Rulers'
 import { showSnap, SnapLayer } from './SnapLayer'
@@ -1321,7 +1320,6 @@ export function Canvas({ html: canvasHtml, width, onReady }: { html: string; wid
       {shownGuides('y').map((g) => (
         <div key={`gy${g.index}`} className={`dz-user-guide h${g.dragging ? ' dragging' : ''}${g.dragging && guideDrag?.out ? ' leaving' : ''}`} style={{ top: STAGE_PAD + (g.value - scroll.top) * scale }} onPointerDown={(e) => e.button === 0 && startGuideDrag('y', g.index, e)} title={t('designer.guideHint')} data-testid="user-guide-y" />
       ))}
-      <ArrangeBar />
     </div>
     </div>
   )

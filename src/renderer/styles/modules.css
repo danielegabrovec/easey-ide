@@ -2172,27 +2172,16 @@ button.ai-chip:hover {
   z-index: 2;
 }
 
-/* Centrata in alto; nella tela stretta va a capo invece di uscire dai bordi. */
+/* In cima all'ispettore con la selezione multipla (sulla tela coprirebbe gli elementi); va a capo se serve. */
 .arrange-bar {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: calc(100% - 16px);
-  box-sizing: border-box;
-  z-index: 6;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   align-items: center;
   gap: 2px;
-  padding: 3px 6px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-panel);
-  box-shadow: var(--shadow);
-  white-space: nowrap;
-  width: max-content;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-panel));
+  flex-shrink: 0;
 }
 
 .arrange-count {

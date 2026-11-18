@@ -20,6 +20,7 @@ import { useKitFonts } from './font-preview'
 import { computedStyle, effectiveBackground, revealElement, toHex } from './frame-access'
 import type { LintIssue } from '@shared/design-kit/lint'
 import { elementLabel } from '@shared/designer/drop'
+import { ArrangeBar } from './ArrangeBar'
 
 const FONTS = [
   ['system-ui, sans-serif', 'Sistema'],
@@ -778,6 +779,8 @@ export function Inspector() {
           </button>
         ))}
       </div>
+      {/* 1.7: Allinea in cima all'ispettore (come negli editor di grafica): sulla tela coprirebbe gli elementi. */}
+      <ArrangeBar />
       {/* 1.6: con la selezione multipla gli stili valgono per tutti gli scelti. */}
       {others > 0 && tab === 'style' && (
         <p className="hint designer-multi-note" data-testid="designer-multi-note">

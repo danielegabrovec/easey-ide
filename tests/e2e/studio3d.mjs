@@ -31,8 +31,14 @@ try {
   const row = (name) => page.locator('[data-testid="s3-row"]', { hasText: name }).first()
 
   // 1. Nuova scena 3D.
-  await run.palette('Nuova scena 3D')
-  await page.locator('[data-scene-preset="stanza"]').click()
+  // Il comando c'è solo con il progetto aperto: se la palette arriva troppo presto si riprova.
+  const presetCard = page.locator('[data-scene-preset="stanza"]')
+  for (let i = 0; i < 3 && !(await presetCard.isVisible().catch(() => false)); i++) {
+    await page.keyboard.press('Escape')
+    await run.palette('Nuova scena 3D')
+    await presetCard.waitFor({ timeout: 4000 }).catch(() => undefined)
+  }
+  await presetCard.click()
   await page.getByTestId('s3-new-name').fill('Stanza')
   await page.getByTestId('s3-create').click()
   check('«Nuova scena 3D» crea scene/stanza.scene3d.json', !!(await until(() => scene()?.name === 'Stanza', 8000)), read('scene/stanza.scene3d.json').slice(0, 200))
