@@ -1,7 +1,7 @@
 // Aiuto contestuale (F1): una pagina in italiano semplice per ogni area principale dell'IDE, in
 // resources/help/<id>.md (inclusa nel renderer al momento della build). Qui la mappa pannello → pagina, pura.
 
-export const HELP_PAGES = ['benvenuto', 'editor', 'anteprima', 'terminale', 'designer', 'visuale', 'scrittura-rapida', 'database', 'corsi', 'assistente'] as const
+export const HELP_PAGES = ['benvenuto', 'editor', 'anteprima', 'terminale', 'designer', 'studio3d', 'visuale', 'scrittura-rapida', 'database', 'corsi', 'assistente'] as const
 
 export type HelpPage = (typeof HELP_PAGES)[number]
 
@@ -16,6 +16,7 @@ const BY_PANEL: [test: (id: string) => boolean, page: HelpPage][] = [
   [(id) => id === 'preview' || id === 'console', 'anteprima'],
   [(id) => id === 'terminal' || id === 'problems' || id === 'trace', 'terminale'],
   [(id) => id === 'designer', 'designer'],
+  [(id) => id.startsWith('studio3d:'), 'studio3d'],
   [(id) => id.startsWith('visual:') || id.startsWith('diagram:'), 'visuale'],
   [(id) => id === 'quick', 'scrittura-rapida'],
   [(id) => id.startsWith('sql-'), 'database'],

@@ -74,6 +74,46 @@ function designer(): TourDefinition {
   }
 }
 
+/** «La tela libera» (1.7): disegnare, righelli e guide, allinea, livelli. */
+function telaLibera(): TourDefinition {
+  const s = (id: string, rest?: Rest) => step('canvas', id, rest)
+  return {
+    id: 'tela-libera',
+    title: t('tour.canvas.title'),
+    description: t('tour.canvas.description'),
+    minutes: 4,
+    steps: [
+      s('intro'),
+      s('open', { target: '[data-testid="open-designer"]', wait: { kind: 'element', selector: '[data-testid="designer"]' } }),
+      s('draw', { target: '[data-testid="draw-tools"]', open: { command: 'designer.open' }, dock: true }),
+      s('rulers', { target: '[data-testid="ruler-top"]', open: { command: 'designer.open' } }),
+      s('arrange', { target: '[data-testid="designer-host"]', open: { command: 'designer.open' }, dock: true }),
+      s('layers', { target: '[data-testid="designer-layers-tab"]', open: { command: 'designer.open' } }),
+      s('done')
+    ]
+  }
+}
+
+/** «Lo Studio 3D» (1.7): una scena pronta, un oggetto, l'ispettore e il codice. */
+function studio3d(): TourDefinition {
+  const s = (id: string, rest?: Rest) => step('studio3d', id, rest)
+  return {
+    id: 'studio-3d',
+    title: t('tour.studio3d.title'),
+    description: t('tour.studio3d.description'),
+    minutes: 4,
+    steps: [
+      s('intro'),
+      s('create', { target: '[data-testid="s3-create"]', open: { command: 'studio3d.new' }, wait: { kind: 'element', selector: '[data-testid="studio3d"]' } }),
+      s('add', { target: '[data-testid="s3-add"]' }),
+      s('tree', { target: '[data-testid="s3-tree"]', dock: true }),
+      s('inspector', { target: '[data-testid="s3-inspector"]', dock: true }),
+      s('code', { target: '[data-testid="s3-show-code"]' }),
+      s('done')
+    ]
+  }
+}
+
 /** «Il laboratorio» (1.6, come «Il laboratorio SQL» di Easey DB): la disposizione didattica, un esempio eseguito. */
 function laboratorio(): TourDefinition {
   const s = (id: string, rest?: Rest) => step('lab', id, rest)
@@ -96,7 +136,7 @@ function laboratorio(): TourDefinition {
 }
 
 export function allTours(): TourDefinition[] {
-  return [primaPagina(), primoProgramma(), laboratorio(), designer()]
+  return [primaPagina(), primoProgramma(), laboratorio(), designer(), telaLibera(), studio3d()]
 }
 
 export function tourById(id: string): TourDefinition | undefined {

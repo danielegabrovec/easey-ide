@@ -16,7 +16,7 @@ via contratti), **consolidamento** (mai due modi di fare la stessa cosa).
 | `src/renderer/workbench/` | **Shell**: layout dockview, comandi, palette, eventi, stato condiviso, notifiche | Logica di dominio |
 | `src/renderer/services/` | Client condivisi da più moduli senza interfaccia (es. `ai-client.ts`: stato di Ollama, chat in streaming; `inline-ai.ts`: l'unico motore del suggerimento AI in grigio, per i file e la Scrittura rapida) | Componenti |
 | `src/renderer/ui/` | Primitive di interfaccia (dialoghi, menu contestuale, Markdown) | Stato di dominio |
-| `src/renderer/modules/<modulo>/` | Un modulo per cartella: `explorer`, `editor`, `run-web`, `run-terminal`, `ai-assist`, `sql-lab`, `designer`, `visual-code`, `diagrams`, `learn`, `step-run`, `git`, `quick-code`, `guide` (percorsi guidati, «Cosa fare adesso», Glossario, F1) | Import di altri moduli |
+| `src/renderer/modules/<modulo>/` | Un modulo per cartella: `explorer`, `editor`, `run-web`, `run-terminal`, `ai-assist`, `sql-lab`, `designer`, `studio3d`, `visual-code`, `diagrams`, `learn`, `step-run`, `git`, `quick-code`, `guide` (percorsi guidati, «Cosa fare adesso», Glossario, F1) | Import di altri moduli |
 | `src/renderer/modules/index.ts` | **Unico** punto in cui i moduli vengono attivati | — |
 | `src/renderer/i18n/` | Testi: `it.ts` (fonte), `en.ts` (stesse chiavi, verificato da TypeScript) | Testi sparsi nei componenti |
 | `resources/courses/` | Corsi inclusi nell'app, nel formato pacchetto ([CORSI.md](CORSI.md)) | Codice |
@@ -107,6 +107,26 @@ via contratti), **consolidamento** (mai due modi di fare la stessa cosa).
   `tests/unit/shared-kits-lock.test.ts` e `design-kit-lock.test.ts`). `scene3d` può importare `three`.
 - Cambiare un kit: si modifica **solo qui**, `node scripts/shared-kits-lock.mjs` (o `design-kit-lock.mjs`), e si
   copiano gli stessi file e la lock in IDE Next.
+
+## Punti d'estensione della 1.7 (tela libera e Studio 3D)
+
+- **Stato solo dell'editor** del designer in `designer/view-state.ts` (strumento, righelli, guide, occhio, lucchetto):
+  per file in localStorage, mai nell'HTML/CSS. Chiave di un elemento: `viewKey` (`#id` o `@percorso`).
+- **Aggancio e misure**: il Canvas passa i riquadri al canvas kit (`snapMove`, `snapResize`, `nearestDistances`,
+  `measureBetween`) e disegna il risultato con `showSnap()` (`SnapLayer.tsx`, stato a parte: muovendo il mouse si
+  ridisegna solo quel livello). Movimento sempre nel DOM dell'iframe, un passo solo al rilascio.
+- **Disegno**: cosa crea ogni strumento in `shared/designer/draw-shapes.ts`; `drawElement` (actions) lo mette libero nel
+  contenitore sotto il puntatore (mai dentro un'altra forma libera). Allinea/livelli/«Da libero a layout» in
+  `designer/arrange.ts` (misure nel canvas) + `placeFreeBoxes`, `setElementRules`, `applyFreeLayout` (un passo solo);
+  la traduzione del piano di `inferLayout` in CSS/HTML è pura in `shared/designer/layout-apply.ts`.
+- **Studio 3D** (`modules/studio3d/`): un solo `WebGLRenderer` (`sharedRenderer()`), ogni vista copia l'immagine nel
+  suo canvas 2D; disegno a richiesta, ciclo solo con le animazioni. Ripiego 2D forzabile nei collaudi con
+  `localStorage['easey.studio3d.noWebGL'] = '1'`. Comandi per gli altri moduli: `studio3d.new`, `studio3d.open`,
+  `studio3d.createScene`, `studio3d.prepareEmbed`.
+- **Scena nelle pagine**: regole pure in `shared/designer/scene-embed.ts`. Three in `vendor/three/` (copiato dal
+  pacchetto con `?raw`), accanto alla scena il modulo `x.scene3d.js` e l'immagine `x.scene3d.svg` (SVG con dentro il
+  PNG: i file del progetto si scrivono come testo), caricatore `js/scene-3d.js`. Nel designer il canvas mostra
+  l'immagine (`canvas-document.ts`), nell'Anteprima la scena gira.
 
 ## Trappole note
 
