@@ -1,4 +1,4 @@
-// Canvas kit (1.7): geometria pura delle tavole dei designer, una sola fonte per Easey IDE e IDE Next.
+// Canvas kit: geometria pura delle tavole dei designer, una sola fonte per Easey IDE e IDE Next.
 // Niente DOM, React, Electron o Node: le misure le passa chi disegna. Coordinate in px della pagina,
 // relative al contenitore (0,0 = angolo in alto a sinistra del contenitore).
 

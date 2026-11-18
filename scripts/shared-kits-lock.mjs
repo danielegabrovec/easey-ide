@@ -1,4 +1,4 @@
-// Impronta dei kit puri condivisi con IDE Next (1.7): src/shared/canvas-kit e src/shared/scene3d.
+// Impronta dei kit puri condivisi con IDE Next: src/shared/canvas-kit e src/shared/scene3d.
 // Come per il design kit (scripts/design-kit-lock.mjs): i file si cambiano SOLO in Easey IDE, poi
 // `node scripts/shared-kits-lock.mjs` rigenera src/shared/<kit>.lock e si copiano gli stessi file
 // (lock compresa) in IDE Next, dove un test identico li confronta.
